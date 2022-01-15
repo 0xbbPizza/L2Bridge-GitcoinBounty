@@ -211,7 +211,7 @@ market_makers' Rules:
    >
    > The risks of this model are:
    >
-   > 1. The security of LP's funds is highly related to the trust mechanism, 
+   > 1. The security of LP's funds is highly related to the trust mechanism, If the contract believes in the wrong security mechanism, LP will not get paid
    >
    > 
    >
@@ -224,53 +224,6 @@ market_makers' Rules:
    > 4. During the dispute period, you can continue to pledge for the new txhash interval. The pledge in the same fork extension line can be added to the PK before the end of the dispute. If the fork extension line is not, it will not be included in the dispute competition.
 
    
-
-   > The model can be abstracted as: maketmaker obtains a 7-day-to-account future in DestinationContract through the service sender, sets up a loan contract, LP deposits liquidity in the loan contract, and the 7-day-to-account futures are considered as collateral . The bonder uses some mechanism to make the loan contract believe in the value of the futures and lend the asset to the maketmaker
-
-   > iDestinationContract.sol
-
-   ```
-   uint256 sourceTxIndex
-   bytes32 sourceHashOnion
-   mapping( forkTxIndex -> forkId -> hashOnionFork) hashOnionHistory
-   
-   mapping( address -> balance) commiterDepositBalance
-   
-   BASE_COMMIT_FEE = x
-   
-   - claim(transferData,txIndex, forkTxIndex ,forkId)
-   - bonder(sourceHashOnion, forkTxIndex , forkId)
-   - commiterDeposit()
-   - commiterWithdraw(amount)
-   ```
-
-   > iLP.sol
-   >
-   > ```
-   > struct forkData{
-   >         address tokenAddress;
-   >         address destination;
-   >         address sender;
-   >         uint256 amount;
-   >         uint256 fee;
-   >         uint256 startTime;
-   >         uint256 feeRampup;
-   >         uint256 nonce;
-   >     }
-   >     
-   > mapping( forkTxIndex -> forkId -> hashOnionFork) hashOnionHistory
-   > 
-   > mapping( address -> balance) commiterDepositBalance
-   > 
-   > BASE_COMMIT_FEE = x
-   > 
-   > - claim(transferData,txIndex, forkTxIndex ,forkId)
-   > - bonder(sourceHashOnion, forkTxIndex , forkId)
-   > - commiterDeposit()
-   > - commiterWithdraw(amount)
-   > ```
-
-
 
 1. Market Maker with Response Time Commitment with Deposit
 2. Cross domain Dex, open protocal

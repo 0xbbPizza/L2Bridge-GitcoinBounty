@@ -31,13 +31,13 @@ contract SourceContract is ISourceContract{
         uint256 allAmount = transferData.amount + transferData.fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
         
-        hashOnion = keccak256(abi.encode(transferData),hashOnion);
+        hashOnion = keccak256(abi.encode(transferData,hashOnion));
         txIndex += 1;
 
         emit newTransfer(transferData,txIndex,hashOnion);
     }
 
-    function extractHashOnionAndBalance() external payable{
+    function extractHashOnionAndBalance() external payable override{
         uint256 amount = IERC20(tokenAddress).balanceOf(address(this));
         IERC20(tokenAddress).safeTransfer(relayAddress,amount);
 
@@ -45,5 +45,4 @@ contract SourceContract is ISourceContract{
 
         emit extract(txIndex,amount,hashOnion);
     }
-
 }

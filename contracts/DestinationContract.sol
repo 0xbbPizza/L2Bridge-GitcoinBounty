@@ -15,11 +15,6 @@ interface IDestinationContract{
         mapping(address => uint256) forkState;
     }
 
-    mapping(uint256 => mapping(uint256 => HashOnionFork)) hashOnionForks;
-
-    uint256 sourceTxIndex;
-    bytes32 sourceHashOnion;
-
     event newClaim(Data.TransferData transferData, uint256 txindex, bytes32 hashOnion);
     event newBond(uint256 txIndex,uint256 amount,bytes32 hashOnion);
 
@@ -29,16 +24,21 @@ interface IDestinationContract{
 }
 
 contract DestinationContract is IDestinationContract{
-    function claim(uint256 _txIndex, uint256 _forkId, Data.TransferData memory _transferData) external{
+    mapping(uint256 => mapping(uint256 => HashOnionFork)) hashOnionForks;
+
+    uint256 sourceTxIndex;
+    bytes32 sourceHashOnion;
+    
+    function claim(uint256 _txIndex, uint256 _forkId, Data.TransferData memory _transferData) external override{
         HashOnionFork storage destHashOnionFork = hashOnionForks[_txIndex][_forkId];
         require(destHashOnionFork.forkedFromForkId != 0,"fork is null");
         // hashOnions 
 
     }
-    function bonder(bytes32 sourceHashOnion, uint256 _txIndex, uint256 _forkId) external{
+    function bonder(bytes32 sourceHashOnion, uint256 _txIndex, uint256 _forkId) external override{
 
     }
-    function getHashOnion(address[] calldata _bonderList,bytes32 _sourceHashOnion, bytes32 _bonderListHash) external{
+    function getHashOnion(address[] calldata _bonderList,bytes32 _sourceHashOnion, bytes32 _bonderListHash) external override{
 
     }
 }   

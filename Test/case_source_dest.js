@@ -1,3 +1,7 @@
+/*
+test just sourceContract and destContract on one provider
+*/
+
 require('dotenv').config()
 
 const requireEnvVariables = envVars => {

@@ -27,11 +27,23 @@ contract SourceContract is ISourceContract{
 
     bytes32 hashOnion;
     
+    constructor(address _relayAddress, address _tokenAddress){
+        TransferData storage zeroTransferData = {
+            _tokenAddress,
+            address(0),
+            0,
+            0
+        };
+        hashOnion = keccak256(abi.encode(zeroTransferData));
+        relayAddress = _relayAddress;
+        tokenAddress = _tokenAddress;
+    }
+
     function transfer(Data.TransferData memory transferData) external payable override {
         uint256 allAmount = transferData.amount + transferData.fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
         
-        hashOnion = keccak256(abi.encode(transferData,hashOnion));
+        hashOnion = keccak256(abi.encode(hashOnion,keccak256(abi.encode(transferData))));
         txIndex += 1;
 
         emit newTransfer(transferData,txIndex,hashOnion);

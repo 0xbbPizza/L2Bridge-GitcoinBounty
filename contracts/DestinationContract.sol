@@ -67,7 +67,7 @@ contract DestinationContract is IDestinationContract{
         // the maximum index of the current Fork
         uint256 maxIndexInFork = _forkKey + workFork.hashOnions.length;
         // _workIndex must in the right range
-        require(_workIndex >= _forkKey && _workIndex <= maxIndexInFork + 1, "c");
+        require(_workIndex > _forkKey && _workIndex <= maxIndexInFork, "c");
 
         /* 
         * under this scheme, in the event of competing submissions between market makers, 
@@ -78,29 +78,38 @@ contract DestinationContract is IDestinationContract{
         
         // parentHashonion 
         bytes32 parentHashonion;
-        if (_workIndex == _forkKey){
-            bytes32[] parentHashonions = hashOnionForks[workFork.forkedFromTxIndex][forkedFromForkId].hashOnions;
-            parentHashonion = parentHashonions[parentHashonions.length - 1];
-        }else{
-            parentHashonion = workFork.hashOnions[_workIndex - _forkKey - 1];
-        }
+        parentHashonion = workFork.hashOnions[_workIndex - _forkKey - 1];
 
         // when intent is insert
-        if (_workIndex != maxIndexInFork + 1){
+        if (_workIndex != maxIndexInFork ){
             // determine whether the first inserted transferDatas exists
+            bytes32 existingHashOnion = workFork.hashOnions[_workIndex - _forkKey];
             // obtain parentHashonion according to different situations
             bytes32 willInsertHashOnion = keccak256(abi.encode(parentHashonion,keccak256(abi.encode(_transferDatas[0]))));
-            bytes32 existingHashOnion = workFork.hashOnions[_workIndex - _forkKey];
-            
             // determine whether to repeat, If repeated, exit
-            require(willInsertHashOnion != existingHashOnion, "d")
+            require(willInsertHashOnion != existingHashOnion, "d1")
 
             // if different, create new fork , and work on new fork
             (workFork, _forkKey, _forkId) = hashForkSplit(workFork, _workIndex, willInsertHashOnion);
+        
+        // if workFork is full and "_workIndex == maxIndexInFork", it is same as "workIndex % ONEFORK_MAX_LENGTH == 0"
+        }else if (workFork.hashOnions.length == ONEFORK_MAX_LENGTH){
+            // if workfork have old childfork, Compared
+            if(workFork.childCount){
+                // obtain parentHashonion according to different situations
+                bytes32 willInsertHashOnion = keccak256(abi.encode(parentHashonion,keccak256(abi.encode(_transferDatas[0]))));
+
+                for (uint256 i = 1; i < workFork.childCount; i++){
+                    require(hashOnionForks[_forkKey][_forkId].hashOnions[0] != willInsertHashOnion, "d2");
+                }
+            }
             
-
-            // or bring line 115 "&& workIndex != _forkKey" to here, make gas more spend less
-
+            // automatically create a new fork if a special value is reached
+            HashOnionFork storage newFork = creatNewFork(_forkKey , _forkId);
+            // push to hashOnionForks
+            workFork.childCount += 1;
+            hashOnionForks[workIndex][workFork.childCount] = newFork;
+            workFork = newFork;
         }
 
         // just append
@@ -108,24 +117,10 @@ contract DestinationContract is IDestinationContract{
             
             // Now workIndex meets the following conditions： workIndex == _forkKey + workFork.hashOnions.length + 1 ?
             workIndex = _workIndex + i;
-            
-            // automatically create a new fork if a special value is reached
-            if (
-                workIndex % ONEFORK_MAX_LENGTH == 0 
-                && workIndex != _forkKey // avoid repetitive creation of empty shells, When the index of the operation is forked logic and index is ONEFORK_MAX_LENGTH
-                ) { 
-                // create a new fork
-                HashOnionFork storage newFork = creatNewFork(_forkKey , _forkId);
-                // push to hashOnionForks
-                workFork.childCount += 1;
-                hashOnionForks[workIndex][workFork.childCount] = newFork
-                workFork = newFork;
-            }
 
             // Without doing more data checking, committers can only affect their own branches, What data should be checked if there is a fallback?
             preHashOnion = dealWith(workFork,_transferDatas[i],isRespond[i],parentHashonion)
         }
-
     }
 
     function creatNewFork(uint256 forkedFromTxIndex,uint256 forkedFromForkId){
@@ -165,6 +160,10 @@ contract DestinationContract is IDestinationContract{
     }
 
     function hashForkSplit(destHashOnionFork, index){
+
+        
+
+
         // warning: Determine whether the first hashonion of workFork is duplicated with other fork[0]
         (_workFork, parallelFork, parentFork) = hashForkSplit(workFork, _insertIndex);
         workFork = _workFork;
@@ -193,7 +192,10 @@ contract DestinationContract is IDestinationContract{
     function getHashOnion(address[] calldata _bonderList,bytes32 _sourceHashOnion, bytes32 _bonderListHash) external override{
 
     }
-    funciton buyFork(){
+    function buyOneFork(){
+
+    }
+    function buyOneOnion(){
 
     }
 }   

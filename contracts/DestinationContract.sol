@@ -45,7 +45,7 @@ contract DestinationContract is IDestinationContract{
             0
         };
 
-        HashOnionFork storage newFork = creatNewFork(0,1);
+        HashOnionFork storage newFork = creatNewFork();
         newFork.hashOnions.push(keccak256(abi.encode(zeroTransferData)));
         newFork.transferData.push(zeroTransferData);
         newFork.filter.push(Null);
@@ -90,7 +90,14 @@ contract DestinationContract is IDestinationContract{
             require(willInsertHashOnion != existingHashOnion, "d1")
 
             // if different, create new fork , and work on new fork
-            (workFork, _forkKey, _forkId) = hashForkSplit(workFork, _workIndex, willInsertHashOnion);
+            (firstFork, secondFork) = hashForkSplit(workFork, _workIndex, _forkKey, _forkId);
+            
+            HashOnionFork storage newFork = creatNewFork();
+            // push to hashOnionForks
+            firstFork.childCount += 1;
+            hashOnionForks[_workIndex][firstFork.childCount] = newFork;
+            workFork = newFork;
+
         
         // if workFork is full and "_workIndex == maxIndexInFork", it is same as "workIndex % ONEFORK_MAX_LENGTH == 0"
         }else if (workFork.hashOnions.length == ONEFORK_MAX_LENGTH){
@@ -106,19 +113,15 @@ contract DestinationContract is IDestinationContract{
             }
             
             // automatically create a new fork if a special value is reached
-            HashOnionFork storage newFork = creatNewFork(_forkKey , _forkId);
+            HashOnionFork storage newFork = creatNewFork();
             // push to hashOnionForks
             workFork.childCount += 1;
-            hashOnionForks[workIndex][workFork.childCount] = newFork;
+            hashOnionForks[_workIndex][workFork.childCount] = newFork;
             workFork = newFork;
         }
 
-        // just append
+        // just append, Now workIndex meets the following conditions： workIndex == _forkKey + workFork.hashOnions.length + 1 
         for (uint256 i = 0; i < _transferDatas.length; i++){
-            
-            // Now workIndex meets the following conditions： workIndex == _forkKey + workFork.hashOnions.length + 1 ?
-            workIndex = _workIndex + i;
-
             // Without doing more data checking, committers can only affect their own branches, What data should be checked if there is a fallback?
             preHashOnion = dealWith(workFork,_transferDatas[i],isRespond[i],parentHashonion)
         }
@@ -158,7 +161,7 @@ contract DestinationContract is IDestinationContract{
         return workHashOnion;
     }
 
-    function hashForkSplit(HashOnionFork memory _workFork, uint8 _index){
+    function hashForkSplit(HashOnionFork memory _workFork, uint8 _index, uint256 _forkKey, uint256 _forkId){
         
         uint8 a;
         uint8 b;
@@ -183,6 +186,9 @@ contract DestinationContract is IDestinationContract{
             newFork.filter = _workFork.filter[:_index];
             _workFork.filter = _workFork.filter[_index:];
 
+            hashOnionForks[_forkKey][_forkId] = newFork;
+            hashOnionForks[_forkKey + _index][newFork.childCount] = _workFork;
+
         }else {
             // workFork_newFork
             a = _index;
@@ -202,6 +208,8 @@ contract DestinationContract is IDestinationContract{
 
             newFork.filter = _workFork.filter[_index:];
             _workFork.filter = _workFork.filter[:_index];
+
+            hashOnionForks[_forkKey + _index][_workFork.childCount] = newFork;
         }
 
             
@@ -217,26 +225,10 @@ contract DestinationContract is IDestinationContract{
             _workFork.allAmount -= _workFork.transferData[i].amount + _workFork.transferData[i].fee
         }
             
-
-
-        // warning: Determine whether the first hashonion of workFork is duplicated with other fork[0]
-        (_workFork, parallelFork, parentFork) = hashForkSplit(workFork, _insertIndex);
-        workFork = _workFork;
-        parentFork.childCount += 1;
-        hashOnionForks[_insertIndex][parentFork.childCount] = parallelFork;
-        parentFork.childCount += 1;
-        hashOnionForks[_insertIndex][parentFork.childCount] = workFork;
-        return {
-            newParentFork,
-            parallelFork,
-            workFork
-        }
-    }
-    function hashForkSplicing(destHashOnionFork, transferDatas, index){
-        
-        return {
-            newParentFork,
-            parallelFork
+        if(2*_index <= _workFork.filter.length){
+            return {newFork,_workFork}
+        }else{
+            return {_workFork,newFork}
         }
     }
 

@@ -7,13 +7,13 @@ import "./Data.sol";
 interface IDestinationContract{
     
     struct HashOnionFork{
-        uint256 forkedFromTxIndex; 
-        uint256 forkedFromForkId;  // start at 1 not 0
+        // uint256 forkedFromTxIndex; 
+        // uint256 forkedFromForkId;  // start at 1 not 0
         address forker;
         bytes32[] hashOnions;
         Data.TransferData[] transferDatas; //https://stackoverflow.com/questions/35743893/how-do-i-initialize-an-array-in-a-struct
-        bool[] filter;
-        mapping(address => uint256) balanceState;
+        bytes32[] filter;
+        mapping(address => uint256) balanceState;  //Use balancestate when bonding ？
         uint256 childCount;
         uint256 allAmount;
     }
@@ -48,7 +48,7 @@ contract DestinationContract is IDestinationContract{
         HashOnionFork storage newFork = creatNewFork(0,1);
         newFork.hashOnions.push(keccak256(abi.encode(zeroTransferData)));
         newFork.transferData.push(zeroTransferData);
-        newFork.filter.push(true);
+        newFork.filter.push(Null);
         
         hashOnionForks[0][1] = newFork;
     }
@@ -63,7 +63,7 @@ contract DestinationContract is IDestinationContract{
         // positioning fork
         HashOnionFork storage workFork = hashOnionForks[_forkKey][_forkId];
         // fork must exist
-        require(workFork.forkedFromForkId != 0,"fork is null");
+        require(workFork.forker != Null,"fork is null");
         // the maximum index of the current Fork
         uint256 maxIndexInFork = _forkKey + workFork.hashOnions.length;
         // _workIndex must in the right range
@@ -98,9 +98,10 @@ contract DestinationContract is IDestinationContract{
             if(workFork.childCount){
                 // obtain parentHashonion according to different situations
                 bytes32 willInsertHashOnion = keccak256(abi.encode(parentHashonion,keccak256(abi.encode(_transferDatas[0]))));
-
+                
+                // Is it possible to do gas cost optimization?
                 for (uint256 i = 1; i < workFork.childCount; i++){
-                    require(hashOnionForks[_forkKey][_forkId].hashOnions[0] != willInsertHashOnion, "d2");
+                    require(hashOnionForks[_workIndex][i].hashOnions[0] != willInsertHashOnion, "d2");
                 }
             }
             
@@ -123,11 +124,9 @@ contract DestinationContract is IDestinationContract{
         }
     }
 
-    function creatNewFork(uint256 forkedFromTxIndex,uint256 forkedFromForkId){
+    function creatNewFork(){
         mapping(address => uint256) storage balanceState;
         HashOnionFork storage newFork = {
-            forkedFromTxIndex,
-            forkedFromForkId,
             msg.sender, 
             [],
             [],
@@ -144,14 +143,14 @@ contract DestinationContract is IDestinationContract{
         _workFork.hashOnions.push(workHashOnion);
 
         _workFork.transferDatas.push(_transferData);
-        
-        _workFork.filter.push(_isRespond);
 
         if(_isRespond){
             IERC20(_transferData.tokenAddress).safeTransferFrom(msg.sender,_transferData.destination,_transferData.amount);
             _workFork.balanceState[msg.sender] += _transferData.amount + _transferData.fee;
+            _workFork.filter.push(msg.sender);
         }else{
             _workFork.balanceState[_transferData.destination] += transferData.amount + transferData.fee;
+            _workFork.filter.push(Null);
         }
 
         _workFork.allAmount += _transferData.amount + _transferData.fee;
@@ -159,9 +158,65 @@ contract DestinationContract is IDestinationContract{
         return workHashOnion;
     }
 
-    function hashForkSplit(destHashOnionFork, index){
-
+    function hashForkSplit(HashOnionFork memory _workFork, uint8 _index){
         
+        uint8 a;
+        uint8 b;
+        HashOnionFork memory newFork = creatNewFork();
+
+        if(2*_index <= _workFork.filter.length){
+            // newFork_workFork
+            a = 0;
+            b = _index;
+
+            newFork.childCount = 1;
+
+            newFork.hashOnions = _workFork.hashOnions[:_index];
+            _workFork.hashOnions = _workFork.hashOnions[_index:];
+
+            newFork.transferDatas = _workFork.transferDatas[:_index];
+            _workFork.transferDatas = _workFork.transferDatas[_index:];
+
+            newFork.filter = _workFork.filter[:_index];
+            _workFork.filter = _workFork.filter[_index:];
+
+            newFork.filter = _workFork.filter[:_index];
+            _workFork.filter = _workFork.filter[_index:];
+
+        }else {
+            // workFork_newFork
+            a = _index;
+            b = _workFork.filter.length;
+
+            newFork.childCount = _workFork.childCount;
+            _workFork.childCount = 1;
+
+            newFork.hashOnions = _workFork.hashOnions[_index:];
+            _workFork.hashOnions = _workFork.hashOnions[:_index];
+
+            newFork.transferDatas = _workFork.transferDatas[_index:];
+            _workFork.transferDatas = _workFork.transferDatas[:_index];
+
+            newFork.filter = _workFork.filter[_index:];
+            _workFork.filter = _workFork.filter[:_index];
+
+            newFork.filter = _workFork.filter[_index:];
+            _workFork.filter = _workFork.filter[:_index];
+        }
+
+            
+        for (uint256 i = a; i < b; i++){
+            if(_workFork.filter[i]){
+                newFork.balanceState[_workFork.filter[i]] += _workFork.transferData[i].amount + _workFork.transferData[i].fee;
+                _workFork.balanceState[_workFork.filter[i]] -= _workFork.transferData[i].amount + _workFork.transferData[i].fee;
+            }else{
+                newFork.balanceState[_workFork.transferData[i].destination] += _workFork.transferData[i].amount + _workFork.transferData[i].fee;
+                _workFork.balanceState[_workFork.transferData[i].destination] -= _workFork.transferData[i].amount + _workFork.transferData[i].fee;
+            }
+            newFork.allAmount += _workFork.transferData[i].amount + _workFork.transferData[i].fee
+            _workFork.allAmount -= _workFork.transferData[i].amount + _workFork.transferData[i].fee
+        }
+            
 
 
         // warning: Determine whether the first hashonion of workFork is duplicated with other fork[0]

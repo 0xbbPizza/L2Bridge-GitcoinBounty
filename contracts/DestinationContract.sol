@@ -16,7 +16,9 @@ interface IDestinationContract{
     }
     
     struct MForkData{
-
+        bytes32 forkKey;
+        uint256 forkIndex;
+        bytes32[] wrongtxHash;
     }
 
     event newClaim(Data.TransferData transferData, uint256 txindex, bytes32 hashOnion);
@@ -24,8 +26,14 @@ interface IDestinationContract{
 
     function claim(bytes32 _forkKey,uint256 _forkIndex, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external;
     function zbond(bytes32 _forkKey,bytes32 _preForkKey, uint256 _preForkIndex, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external;
-    function mbond(bytes32[] calldata _forkKey, bool[] calldata _isForks, uint256[] calldata _length,bytes32[] calldata _wrongTxHash, bytes32 _preForkKey, uint256 _preForkIndex, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external;
-    function getHashOnion(address[] calldata _bonderList,bytes32 _sourceHashOnion, bytes32 _bonderListHash) external;
+    
+    function mbond(
+        MForkData[] calldata _mForkDatas,
+        bytes32 _preForkKey, uint256 _preForkIndex, 
+        Data.TransferData[] calldata _transferDatas, address[] calldata _commiters
+        ) external; 
+
+    // function getHashOnion(address[] calldata _bonderList,bytes32 _sourceHashOnion, bytes32 _bonderListHash) external;
 }
 
 contract DestinationContract is IDestinationContract{
@@ -220,7 +228,7 @@ contract DestinationContract is IDestinationContract{
     }
 
     // clearing zfork
-    // !!! how to clearing the first zfork
+    // !!! how to clearing the first zfork that have no preFork
     function zbond(
         bytes32 _forkKey,
         bytes32 _preForkKey, uint256 _preForkIndex, 
@@ -274,21 +282,20 @@ contract DestinationContract is IDestinationContract{
 
         // !!! Reward bonder
     }
+    
 
     // Settlement non-zero fork
     function mbond(
-        bytes32[] calldata _forkKey, bool[] calldata _isForks, uint256[] calldata _length,
-        bytes32[] calldata _wrongTxHash,
+        MForkData[] calldata _mForkDatas,
         bytes32 _preForkKey, uint256 _preForkIndex, 
         Data.TransferData[] calldata _transferDatas, address[] calldata _commiters
         ) external override{
         
-        require( _forkKey.length > 1, "a1");
+        require( _mForkDatas.length > 1, "a1");
         
         // incoming data length is correct
         require(_transferDatas.length == ONEFORK_MAX_LENGTH, "a1");
         require(_transferDatas.length == _commiters.length, "a2");
-        require(_transferDatas.length == _isForks.length, "a2");
 
         HashOnionFork memory preWorkFork = hashOnionForks[_preForkKey][_preForkIndex];
         // Determine whether this fork exists
@@ -296,14 +303,11 @@ contract DestinationContract is IDestinationContract{
 
         bytes32 onionHead = preWorkFork.onionHead;
         bytes32 destOnionHead = preWorkFork.destOnionHead;
-        bytes32 preForkOnionHead;
         uint256 y = 0;
-        uint256 x = 0;
-        uint256 memeryi = 0;
 
         // repeat
         for (uint256 i; i < _transferDatas.length; i++){
-            preForkOnionHead = onionHead;
+            bytes32 preForkOnionHead = onionHead;
             onionHead = keccak256(abi.encode(onionHead,keccak256(abi.encode(_transferDatas[i]))));
             
             /* 
@@ -311,26 +315,10 @@ contract DestinationContract is IDestinationContract{
                 1. Whether the parallel fork points of the fork point are the same, if they are the same, it means that the fork point is invalid, that is, the bond is invalid. And submissions at invalid fork points will not be compensated
                 2. Whether the headOnion of the parallel fork point can be calculated by the submission of the bond, if so, the incoming parameters of the bond are considered valid
             */
-            if(_isForks[i]){
+            if(_mForkDatas[y].forkIndex == i){
                 // Determine whether the fork needs to be settled, and also determine whether the fork exists
-                require(hashOnionForks[_forkKey[y]][memeryi].needBond == true, "b1");
-                // Calculate the onionHead of the parallel fork based on the preonion and the tx of the original path
-                preForkOnionHead = keccak256(abi.encode(preForkOnionHead, _wrongTxHash[x]));
-                // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
-                require(preForkOnionHead != onionHead,"a2");
-                // After passing, continue to calculate AFok
-                x += 1;
-                while (x < _length[y]){
-                    preForkOnionHead = keccak256(abi.encode(preForkOnionHead,_wrongTxHash[x]));
-                    x++;
-                }
-                // Judging that the incoming _wrongTxHash is in line with the facts, avoid bond forgery AFork.nextOnion == BFork.nextOnion
-                require(preForkOnionHead == hashOnionForks[_forkKey[y]][memeryi].onionHead);
-                // 
-                hashOnionForks[_forkKey[y]][memeryi].needBond = false;
+                checkForkData(_mForkDatas[y-1],_mForkDatas[y],preForkOnionHead,onionHead,i);
                 y += 1;
-                memeryi = i;
-
                 // !!! Calculate the reward, and reward the bond at the end, the reward fee is the number of forks * margin < margin equal to the wrongtx gaslimit overhead brought by 50 Wrongtx in this method * common gasPrice>
             }
 
@@ -349,8 +337,7 @@ contract DestinationContract is IDestinationContract{
         // Assert the replay result, indicating that the fork is legal
         require(onionHead == onWorkHashOnion,"a2");
         // Assert that the replay result is equal to the stored value of the fork, which means that the incoming _transferdatas are valid
-        require(destOnionHead == hashOnionForks[_forkKey[y]][memeryi].destOnionHead,"a4");
-        hashOnionForks[_forkKey[y]][memeryi].needBond = false;
+        require(destOnionHead == hashOnionForks[_mForkDatas[y].forkKey][_mForkDatas[y].forkIndex].destOnionHead,"a4");
 
         // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
         if (preWorkFork.needBond){
@@ -360,15 +347,36 @@ contract DestinationContract is IDestinationContract{
             onWorkHashOnion = sourceHashOnion;
         }
     }
-    
-    function getHashOnion(address[] calldata _bonderList,bytes32 _sourceHashOnion, bytes32 _bonderListHash) external override{
-        // judging only trust a target source
 
-        // save sourceHashOnion
-        sourceHashOnion = _sourceHashOnion;
-
-        // Settlement for bond
+    function checkForkData (MForkData calldata preForkData, MForkData calldata forkData, bytes32 preForkOnionHead, bytes32 onionHead,uint256 i) internal {
+        require(hashOnionForks[forkData.forkKey][forkData.forkIndex].needBond == true, "b1");
+        if(i != 0 ){
+            // Calculate the onionHead of the parallel fork based on the preonion and the tx of the original path
+            preForkOnionHead = keccak256(abi.encode(preForkOnionHead, forkData.wrongtxHash[0]));
+            // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
+            require(preForkOnionHead != onionHead,"a2");
+            // After passing, continue to calculate AFok
+            uint256 x = 1;
+            while (x < forkData.wrongtxHash.length) {
+                preForkOnionHead = keccak256(abi.encode(preForkOnionHead,forkData.wrongtxHash[x]));
+                x++;
+            }
+            // Judging that the incoming _wrongTxHash is in line with the facts, avoid bond forgery AFork.nextOnion == BFork.nextOnion
+            require(preForkOnionHead == hashOnionForks[preForkData.forkKey][preForkData.forkIndex].onionHead);
+        }
+        hashOnionForks[forkData.forkKey][forkData.forkIndex].needBond = false;
     }
+    
+    // !!!
+    // function getHashOnion(address[] calldata _bonderList,bytes32 _sourceHashOnion, bytes32 _bonderListHash) external override{
+    //     // judging only trust a target source
+
+    //     // save sourceHashOnion
+    //     sourceHashOnion = _sourceHashOnion;
+
+    //     // Settlement for bond
+    // }
+
     function buyOneFork(uint256 _forkKey, uint256 _forkId) external{
         // Unfinished hashOnions can be purchased
     }

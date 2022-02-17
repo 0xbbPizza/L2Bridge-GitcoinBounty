@@ -20,15 +20,15 @@ contract SourceContract is ISourceContract{
 
     uint256 txIndex;
     // relay need data
-    address tokenAddress;
-    address relayAddress;
+    address public tokenAddress;
+    address public relayAddress;
     
     // !!! A base fee also needs to be set up for early billing
-    uint8 BASE_BIND_FEE = 100;
+    uint8 BASE_BIND_FEE = 0;  // realy is x
 
     uint8 ONEFORK_MAX_LENGTH = 5;
 
-    bytes32 hashOnion;
+    bytes32 public hashOnion;
     // In order to adapt to dest's handling Onion
     bytes32 bringHashOnion; 
     // !!! do it later , if somebody dont want pay fee , will wait 7 day's withdraw time
@@ -50,13 +50,13 @@ contract SourceContract is ISourceContract{
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
         
-        Data.TransferData memory transferData = Data.TransferData({
-            destination: msg.sender,
-            amount: amount,
-            fee: fee
-        });
+        // Data.TransferData memory transferData = Data.TransferData({
+        //     destination: msg.sender,
+        //     amount: amount,
+        //     fee: fee
+        // });
 
-        hashOnion = keccak256(abi.encode(hashOnion,keccak256(abi.encode(transferData))));
+        hashOnion = keccak256(abi.encode(hashOnion,keccak256(abi.encode(msg.sender,amount,fee))));
         txIndex += 1;
         
         // !!! Create a portable hashOnion, taking into account the fee reward for the bonder
@@ -67,11 +67,10 @@ contract SourceContract is ISourceContract{
         emit newTransfer(txIndex,hashOnion); 
     }
 
-    function transferWithDest(Data.TransferData memory transferData) external payable {
-        uint256 allAmount = transferData.amount + transferData.fee + BASE_BIND_FEE;
+    function transferWithDest(address dest, uint256 amount, uint256 fee) external payable {
+        uint256 allAmount = amount + fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
-        
-        hashOnion = keccak256(abi.encode(hashOnion,keccak256(abi.encode(transferData))));
+        hashOnion = keccak256(abi.encode(hashOnion,keccak256(abi.encode(dest,amount,fee))));
         txIndex += 1;
         
         // !!! Create a portable hashOnion, taking into account the fee reward for the bonder

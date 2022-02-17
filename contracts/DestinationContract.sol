@@ -85,7 +85,7 @@ contract DestinationContract is IDestinationContract{
 
     // if fork index % ONEFORK_MAX_LENGTH == 0 
     // !!! Can be used without getting the previous fork
-    function zFork(bytes31 _forkKey, uint8 _index, Data.TransferData calldata _transferData, bool _isRespond) external{
+    function zFork(bytes32 _forkKey, uint8 _index, Data.TransferData calldata _transferData, bool _isRespond) external{
         // Determine whether msg.sender is eligible to submit
         require(commiterDeposit[msg.sender] == true, "a3");
 

@@ -39,25 +39,33 @@ interface IDestinationContract{
 contract DestinationContract is IDestinationContract{
     using SafeERC20 for IERC20;
 
-    mapping(address => bool) commiterDeposit;   // Submitter's bond record
-    mapping(bytes32 => mapping(uint256 => HashOnionFork)) hashOnionForks; // Submitter's bond record
+    mapping(address => bool) public commiterDeposit;   // Submitter's bond record
+    mapping(bytes32 => mapping(uint256 => HashOnionFork)) public hashOnionForks; // Submitter's bond record
 
     mapping(bytes32 => bool) isRespondOnions;   // Whether it is a Onion that is not responded to
     mapping(bytes32 => address) onionsAddress;  // !!! Conflict with using zk scheme, new scheme needs to be considered when using zk
 
-    bytes32 sourceHashOnion;   // Used to store the sent hash
-    bytes32 onWorkHashOnion;   // Used to store settlement hash
+    bytes32 public sourceHashOnion;   // Used to store the sent hash
+    bytes32 public onWorkHashOnion;   // Used to store settlement hash
 
     address tokenAddress;
 
     address trustAddress;
 
-    uint256 ONEFORK_MAX_LENGTH = 5;  // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
+    uint256 public ONEFORK_MAX_LENGTH = 5;  // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
     uint256 DEPOSIT_AMOUNT = 1 * 10**18;  // !!! The final value is 2 * 10**17
 
-    constructor(address _tokenAddress, address _trustAddress){
+    constructor(address _trustAddress,address _tokenAddress){
         tokenAddress = _tokenAddress;
         trustAddress = _trustAddress;
+        hashOnionForks[0x0000000000000000000000000000000000000000000000000000000000000000][0] = HashOnionFork(
+                0x0000000000000000000000000000000000000000000000000000000000000000,
+                0x0000000000000000000000000000000000000000000000000000000000000000,
+                0,
+                ONEFORK_MAX_LENGTH,
+                address(0),
+                false
+            );
     }
 
     /* 
@@ -85,29 +93,29 @@ contract DestinationContract is IDestinationContract{
 
     // if fork index % ONEFORK_MAX_LENGTH == 0 
     // !!! Can be used without getting the previous fork
-    function zFork(bytes32 _forkKey, uint8 _index, Data.TransferData calldata _transferData, bool _isRespond) external{
+    function zFork(bytes32 _forkKey, uint8 _index, address dest, uint256 amount, uint256 fee, bool _isRespond) external{
         // Determine whether msg.sender is eligible to submit
-        require(commiterDeposit[msg.sender] == true, "a3");
+        // require(commiterDeposit[msg.sender] == true, "a1");
 
         // Take out the Fork
         HashOnionFork storage workFork = hashOnionForks[_forkKey][_index];
         
         // Determine if the previous fork is full
         // !!! use length use length is missing to consider that the last fork is from forkFromInput, you need to modify the usage of length to index
-        require(workFork.length == ONEFORK_MAX_LENGTH,"fork is null"); 
+        // require(workFork.length == ONEFORK_MAX_LENGTH,"fork is null"); 
 
         // !!! Deposit is only required for additional, and a new fork does not require deposit, but how to ensure that the correct sourceOnionHead is occupied by the next submitter, but the wrong destOnionHead is submitted
         // Determine the eligibility of the submitter
         if (commiterDeposit[msg.sender] == false){
             // If same commiter, don't need deposit
-            require(msg.sender == workFork.lastCommiterAddress, "a3");
+            require(msg.sender == workFork.lastCommiterAddress, "a2");
         }
 
         // Create a new Fork
         HashOnionFork memory newFork;
 
         // set newFork
-        newFork.onionHead = keccak256(abi.encode(workFork.onionHead,keccak256(abi.encode(_transferData))));
+        newFork.onionHead = keccak256(abi.encode(workFork.onionHead,keccak256(abi.encode(dest,amount,fee))));
         // Determine whether there is a fork with newFork.destOnionHead as the key
         require(hashOnionForks[newFork.onionHead][0].length == 0, "c1");
 
@@ -115,15 +123,16 @@ contract DestinationContract is IDestinationContract{
         
         // Determine whether the maker only submits or submits and responds
         if(_isRespond){
-            IERC20(tokenAddress).safeTransferFrom(msg.sender,_transferData.destination,_transferData.amount);
+            IERC20(tokenAddress).safeTransferFrom(msg.sender,dest,amount);
         }else{
             // !!! Whether to add the identification position of the index
             isRespondOnions[newFork.onionHead] = true; 
         }
         
-        newFork.allAmount += _transferData.amount + _transferData.fee;
+        newFork.allAmount += amount + fee;
         newFork.length = 1;
         newFork.lastCommiterAddress = msg.sender;
+        newFork.needBond = true;
 
         // storage
         hashOnionForks[newFork.onionHead][0] = newFork;
@@ -191,7 +200,7 @@ contract DestinationContract is IDestinationContract{
         
         // Determine whether someone has submitted it before. If it has been submitted by the predecessor, msg.sender thinks that the submission is incorrect and can be forked and resubmitted through forkFromInput
         // !!! Avoid duplicate submissions
-        require(_workIndex == workFork.length, "b1");
+        require(_workIndex == workFork.length, "b2");
         
         // Judge _transferDatas not to exceed the limit
         require(_workIndex + _transferDatas.length <= ONEFORK_MAX_LENGTH, "a2");
@@ -224,7 +233,8 @@ contract DestinationContract is IDestinationContract{
             lastCommiterAddress: msg.sender,
             needBond: workFork.needBond
         });
-    
+        
+        hashOnionForks[_forkKey][_forkIndex] = workFork;
     }
 
     // clearing zfork
@@ -242,11 +252,11 @@ contract DestinationContract is IDestinationContract{
         HashOnionFork memory workFork = hashOnionForks[_forkKey][0];
         
         // Judging whether this fork exists && Judging that the fork needs to be settled
-        require(workFork.needBond ,"a4"); 
+        require(workFork.needBond, "a3"); 
         workFork.needBond = false;
 
         // Determine whether the onion of the fork has been recognized
-        require(workFork.onionHead == onWorkHashOnion,"a2"); //use length
+        require(workFork.onionHead == onWorkHashOnion,"a4"); //use length
 
         HashOnionFork memory preWorkFork = hashOnionForks[_preForkKey][_preForkIndex];
         // Determine whether this fork exists
@@ -270,7 +280,7 @@ contract DestinationContract is IDestinationContract{
         }
         
         // Assert that the replay result is equal to the stored value of the fork, which means that the incoming _transferdatas are valid
-        require(destOnionHead == workFork.destOnionHead,"a4");
+        require(destOnionHead == workFork.destOnionHead,"a5");
 
         // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
         if (preWorkFork.needBond){
@@ -368,17 +378,25 @@ contract DestinationContract is IDestinationContract{
     }
     
     // !!!
-    // function getHashOnion(address[] calldata _bonderList,bytes32 _sourceHashOnion, bytes32 _bonderListHash) external override{
-    //     // judging only trust a target source
+    function setHashOnion(bytes32 _sourceHashOnion) external{
+        // judging only trust a target source
 
-    //     // save sourceHashOnion
-    //     sourceHashOnion = _sourceHashOnion;
+        // save sourceHashOnion
+        sourceHashOnion = _sourceHashOnion;
+        if (onWorkHashOnion == "") {
+            onWorkHashOnion = _sourceHashOnion;
+        }
 
-    //     // Settlement for bond
-    // }
+        // Settlement for bond
+    }
 
     function buyOneFork(uint256 _forkKey, uint256 _forkId) external{
         // Unfinished hashOnions can be purchased
+    }
+
+    function becomeCommiter() external{
+        // !!! need deposit
+        commiterDeposit[msg.sender] = true;
     }
 
     function buyOneOnion(bytes32 preHashOnion,Data.TransferData calldata _transferData) external{

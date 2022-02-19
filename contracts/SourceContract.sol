@@ -26,7 +26,7 @@ contract SourceContract is ISourceContract{
     // !!! A base fee also needs to be set up for early billing
     uint8 BASE_BIND_FEE = 0;  // realy is x
 
-    uint8 ONEFORK_MAX_LENGTH = 5;
+    uint8 public ONEFORK_MAX_LENGTH = 5;
 
     bytes32 public hashOnion;
     // In order to adapt to dest's handling Onion
@@ -36,12 +36,7 @@ contract SourceContract is ISourceContract{
     // !!! The data structure also needs to consider multi-layer2 scenarios，multi destination domain
 
     constructor(address _relayAddress, address _tokenAddress){
-        Data.TransferData memory zeroTransferData = Data.TransferData({
-            destination: address(0),
-            amount: 0,
-            fee: 0
-        });
-        hashOnion = keccak256(abi.encode(zeroTransferData));
+        hashOnion = 0x0000000000000000000000000000000000000000000000000000000000000000;
         relayAddress = _relayAddress;
         tokenAddress = _tokenAddress;
     }
@@ -49,12 +44,6 @@ contract SourceContract is ISourceContract{
     function transfer(uint256 amount, uint256 fee) external payable override{
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
-        
-        // Data.TransferData memory transferData = Data.TransferData({
-        //     destination: msg.sender,
-        //     amount: amount,
-        //     fee: fee
-        // });
 
         hashOnion = keccak256(abi.encode(hashOnion,keccak256(abi.encode(msg.sender,amount,fee))));
         txIndex += 1;

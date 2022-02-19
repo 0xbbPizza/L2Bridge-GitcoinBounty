@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { Signer, BigNumber, Contract} from "ethers";
-import "ethers";
+// import "ethers";
 import { expect } from "chai";
 
 describe("source", function () {
@@ -18,8 +18,7 @@ describe("source", function () {
 
   before(async function () {
     accounts = await ethers.getSigners()
-    // console.log("ABC", accounts.map((a) => a.getAddress()));
-
+    
     // deploy token contract
     const FakeToken = await ethers.getContractFactory("BasicToken")
     let amount:BigNumber = BigNumber.from(1000000000000)

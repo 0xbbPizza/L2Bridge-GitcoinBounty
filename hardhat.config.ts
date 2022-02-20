@@ -1,7 +1,24 @@
 import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
+import * as fs from 'fs';
 // import "hardhat-gas-reporter"
+import "@nomiclabs/hardhat-etherscan"; 
+
+import * as dotenv from "dotenv";
+dotenv.config({ path: __dirname+'/.env' });
+
+const privateKeyPath = './generated/PrivateKey.secret';
+const getPrivateKey = (): string[] => {
+  try {
+    return fs.readFileSync(privateKeyPath).toString().trim().split("\n");
+  } catch (e) {
+    if (process.env.HARDHAT_TARGET_NETWORK !== 'localhost') {
+      console.log('☢️ WARNING: No mnemonic file created for a deploy account. Try `yarn run generate` and then `yarn run account`.');
+    }
+  }
+  return [''];
+};
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -22,4 +39,17 @@ export default {
   //   currency: 'USD',
   //   gasPrice: 21
   // }
+  networks: {
+    localhost: {
+      url: 'http://localhost:8545',
+    },
+    rinkeby: {
+      url: process.env.rinkebyRPC, // <---- YOUR INFURA ID! (or it won't work)
+      accounts: getPrivateKey(),
+    }
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    apiKey: process.env.etherscanAPI // <---- "YOUR_ETHERSCAN_API_KEY"
+  }
 };

@@ -36,7 +36,8 @@ contract SourceContract is ISourceContract{
     // !!! The data structure also needs to consider multi-layer2 scenarios，multi destination domain
 
     constructor(address _relayAddress, address _tokenAddress){
-        hashOnion = 0x0000000000000000000000000000000000000000000000000000000000000000;
+        // !!! no set is safe?
+        // hashOnion = 0x0000000000000000000000000000000000000000000000000000000000000000;
         relayAddress = _relayAddress;
         tokenAddress = _tokenAddress;
     }

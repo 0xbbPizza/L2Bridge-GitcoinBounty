@@ -7,7 +7,8 @@ import "./Data.sol";
 
 
 interface ISourceContract{
-    event newTransfer(uint256 txindex, bytes32 hashOnion);
+    // !!! for test , if release, dont need event
+    event newTransfer(uint256 txindex, bytes32 hashOnion, address dest, uint256 amount, uint256 fee);
     event extract(uint256 txIndex,uint256 amount,bytes32 hashOnion);
 
     function transfer(uint256 amount, uint256 fee) external payable;
@@ -54,7 +55,7 @@ contract SourceContract is ISourceContract{
             bringHashOnion = hashOnion;
         }
         // !!! can delete event function , but less gas , more offchain work
-        emit newTransfer(txIndex,hashOnion); 
+        emit newTransfer(txIndex,hashOnion,msg.sender,amount,fee); 
     }
 
     function transferWithDest(address dest, uint256 amount, uint256 fee) external payable {
@@ -68,7 +69,7 @@ contract SourceContract is ISourceContract{
             bringHashOnion = hashOnion;
         }
         // !!! can delete event function , but less gas , more offchain work
-        emit newTransfer(txIndex,hashOnion); 
+        emit newTransfer(txIndex,hashOnion,dest,amount,fee); 
     }
 
     function extractHashOnionAndBalance() external payable override{

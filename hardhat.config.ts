@@ -46,6 +46,20 @@ export default {
     rinkeby: {
       url: process.env.rinkebyRPC, // <---- YOUR INFURA ID! (or it won't work)
       accounts: getPrivateKey(),
+    },
+    rinkebyArbitrum: {
+      url: "https://rinkeby.arbitrum.io/rpc",
+      accounts: getPrivateKey()
+      // companionNetworks: {
+      //   l1: "rinkeby",
+      // },
+    },
+    kovanOptimism: {
+      url: "https://kovan.optimism.io",
+      accounts: getPrivateKey()
+      // companionNetworks: {
+      //   l1: "kovan",
+      // },
     }
   },
   etherscan: {

@@ -21,7 +21,7 @@ interface IDestinationContract{
         bytes32[] wrongtxHash;
     }
 
-    event newClaim(Data.TransferData transferData, uint256 txindex, bytes32 hashOnion);
+    event newClaim(address dest, uint256 amount, uint256 fee, uint256 txindex, bytes32 hashOnion);
     event newBond(uint256 txIndex,uint256 amount,bytes32 hashOnion);
 
     function claim(bytes32 _forkKey,uint256 _forkIndex, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external;
@@ -141,6 +141,8 @@ contract DestinationContract is IDestinationContract{
         if (workFork.lastCommiterAddress != msg.sender){
             (commiterDeposit[workFork.lastCommiterAddress], commiterDeposit[msg.sender]) = (commiterDeposit[msg.sender], commiterDeposit[workFork.lastCommiterAddress]);
         }
+
+        emit newClaim(dest,amount,fee,0,newFork.onionHead); 
     }
 
     // if fork index % ONEFORK_MAX_LENGTH != 0
@@ -218,6 +220,8 @@ contract DestinationContract is IDestinationContract{
             }
             destOnionHead = keccak256(abi.encode(destOnionHead,onionHead,msg.sender));
             allAmount += _transferDatas[i].amount + _transferDatas[i].fee;
+
+            emit newClaim(_transferDatas[i].destination,_transferDatas[i].amount,_transferDatas[i].fee,_workIndex+i,onionHead); 
         }
 
         // change deposit , deposit token is ETH , need a function to deposit and with draw

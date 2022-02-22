@@ -122,3 +122,5 @@ typechain
 #Hardhat files
 cache
 artifacts
+
+.DS_Store

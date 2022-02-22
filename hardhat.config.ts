@@ -14,7 +14,7 @@ const getPrivateKey = (): string[] => {
     return fs.readFileSync(privateKeyPath).toString().trim().split("\n");
   } catch (e) {
     if (process.env.HARDHAT_TARGET_NETWORK !== 'localhost') {
-      console.log('☢️ WARNING: No mnemonic file created for a deploy account. Try `yarn run generate` and then `yarn run account`.');
+      console.log('☢️ WARNING: No PrivateKey file created for a deploy account. Try `yarn run generate` and then `yarn run account`.');
     }
   }
   return [''];

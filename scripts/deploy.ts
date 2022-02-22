@@ -4,11 +4,10 @@ import { BigNumber, Contract} from "ethers";
 
 async function main() {
   await run("compile");
-  // 100000000000000000000000000
   const accounts = await ethers.getSigners();
 
   const FakeToken = await ethers.getContractFactory("BasicToken")
-  let amount:BigNumber = BigNumber.from(8000000000000000)
+  let amount:BigNumber = BigNumber.from(8000000000000000) // no use , the amount is in contract
   let fakeToken: Contract = await FakeToken.deploy(amount);
   await fakeToken.deployed()
   console.log("FakeToken address:",fakeToken.address)
@@ -24,8 +23,6 @@ async function main() {
   let dest: Contract = await Dest.deploy(accounts[0].getAddress(),fakeToken.address)
   await dest.deployed()
   console.log("destContract Address", dest.address)
-
- 
 }
 
 main()

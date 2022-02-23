@@ -53,8 +53,6 @@ contract Caller {
         );
     }
 
-    
-
     function l2GasLimitForCalldata(bytes memory _calldata) private view returns (uint256) {
         uint256 l2GasLimit;
 

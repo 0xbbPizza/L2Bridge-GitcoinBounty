@@ -36,11 +36,11 @@ abstract contract Dock_L1 is IDock_L1{
     constructor(
         address _l2CallInAddress,
         address _l2OutAddress,
-        address _relayAddress,
+        address _relayAddress
     ){
         l2CallInAddress = _l2CallInAddress;
         l2OutAddress = _l2OutAddress;
-        relayAddress = __relayAddress;
+        relayAddress = _relayAddress;
     }
 
     function fromL2Pair(
@@ -50,13 +50,13 @@ abstract contract Dock_L1 is IDock_L1{
         IRelay(relayAddress).relayCall(destChainID, data);
     }
 
-    function fromRelay(bytes calldata _data) external onlyRelay{
-        bytes calldata newData = abi.encodeWithSignature("fromL1Pair(bytes)", _data);
+    function fromRelay(bytes calldata _data) external override onlyRelay{
+        bytes memory newData = abi.encodeWithSignature("fromL1Pair(bytes)", _data);
         _callBridge(newData);
     }
 
     // muti to bridge 
-    function _callBridge(bytes calldata _data) internal {
+    function _callBridge(bytes memory _data) internal {
 
     }
 

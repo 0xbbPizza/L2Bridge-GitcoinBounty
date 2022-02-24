@@ -19,13 +19,17 @@
 
  pragma solidity 0.8.4;
 
+ import "@openzeppelin/contracts/utils/Address.sol";
+
 interface IDock_L1{
-    function callOtherDomainFuntion(bytes calldata data) external;
-    function sourceChainID() external view returns (uint256);
-    function sourceSender() external view returns (address);
+    function callOtherDomainFuntion(address _destAddress, uint256 _destChainID, bytes calldata _destMassage) external;
+    function getSourceChainID() external view returns (uint256);
+    function getSourceSender() external view returns (address);
 }
 
-abstract contract Dock_L2 {
+abstract contract Dock_L2 is IDock_L1{
+    using Address for address;
+
      struct SourceContext {
         uint256 sourceChainID;
         address sender;
@@ -42,37 +46,37 @@ abstract contract Dock_L2 {
 
     constructor(
         address _l1PairAddress,
-        address _bridgeAddress,
+        address _bridgeAddress
     ){
         l1PairAddress = _l1PairAddress;
         bridgeAddress = _bridgeAddress;
     }
 
-    function sourceChainID() external view override returns (uint256) {
+    function getSourceChainID() external view override returns (uint256) {
         return sourceChainID;
     }
-    function sourceSender() external view override returns (address) {
+    function getSourceSender() external view override returns (address) {
         return sourceSender;
     }
 
     // fromDomain
     function callOtherDomainFuntion(address _destAddress, uint256 _destChainID, bytes calldata _destMassage) external {
-        bytes calldata onions1 = abi.encode(_destAddress, _destMassage, msg.sender, block.chainid);
-        bytes calldata onions2 = abi.encodeWithSignature("fromL2Pair(uint256,bytes)",_destChainID,onions1);
+        bytes memory onions1 = abi.encode(_destAddress, _destMassage, msg.sender, block.chainid);
+        bytes memory onions2 = abi.encodeWithSignature("fromL2Pair(uint256,bytes)",_destChainID,onions1);
         sendToBridge(onions2);
     }
 
     // muti : call bridge
-    function sendToBridge(bytes calldata _data) internal {
+    function sendToBridge(bytes memory _data) internal {
         
     }
 
     // fromBridge 
     function fromL1Pair(bytes calldata _data) external checkSenderIsBridgeAndL1Pair{
-        bytes preSourceSender = sourceSender;
+        address preSourceSender = sourceSender;
         uint256 preSourceChainID = sourceChainID;
         address destAddress;
-        bytes destMassage;
+        bytes memory destMassage;
         (destAddress,destMassage,sourceSender,sourceChainID) = abi.decode(_data, (address, bytes, address, uint256));
         
         if (destMassage.length > 0) require(destAddress.isContract(), "NO_CODE_AT_DEST");
@@ -93,16 +97,15 @@ abstract contract CrossDomainHelper {
     address public immutable dockAddr;
     
     constructor(
-        address _l1PairAddress,
-        address _bridgeAddress,
+        address _dockAddr
     ){
         dockAddr = _dockAddr;
     }
 
     modifier checkSenderIsBridgeAndL1Pair {
         require(msg.sender == dockAddr, "NOT_DOCK");
-        uint256 sourceChainID_DOCK = IDock_L1(msg.sender).sourceChainID();
-        address sourceSender_DOCK = IDock_L1(msg.sender).sourceSender();
+        uint256 sourceChainID_DOCK = IDock_L1(msg.sender).getSourceChainID();
+        address sourceSender_DOCK = IDock_L1(msg.sender).getSourceSender();
         _;
     }
 

@@ -20,7 +20,7 @@ async function main() {
 
   // deploy dest contract
   const Dest = await ethers.getContractFactory("DestinationContract")
-  let dest: Contract = await Dest.deploy(accounts[0].getAddress(),fakeToken.address)
+  let dest: Contract = await Dest.deploy(fakeToken.address)
   await dest.deployed()
   console.log("destContract Address", dest.address)
 }

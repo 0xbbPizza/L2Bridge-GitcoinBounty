@@ -24,7 +24,7 @@ interface IDestinationContract{
     event newClaim(address dest, uint256 amount, uint256 fee, uint256 txindex, bytes32 hashOnion);
     event newBond(uint256 txIndex,uint256 amount,bytes32 hashOnion);
 
-    function claim(bytes32 _forkKey,uint256 _forkIndex, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external;
+    function claim(uint256 chainId,bytes32 _forkKey,uint256 _forkIndex, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external;
     function zbond(bytes32 _forkKey,bytes32 _preForkKey, uint256 _preForkIndex, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external;
     
     function mbond(
@@ -50,14 +50,11 @@ contract DestinationContract is IDestinationContract{
 
     address tokenAddress;
 
-    address trustAddress;
-
     uint256 public ONEFORK_MAX_LENGTH = 5;  // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
     uint256 DEPOSIT_AMOUNT = 1 * 10**18;  // !!! The final value is 2 * 10**17
 
-    constructor(address _trustAddress,address _tokenAddress){
+    constructor(address _tokenAddress){
         tokenAddress = _tokenAddress;
-        trustAddress = _trustAddress;
         hashOnionForks[0x0000000000000000000000000000000000000000000000000000000000000000][0] = HashOnionFork(
                 0x0000000000000000000000000000000000000000000000000000000000000000,
                 0x0000000000000000000000000000000000000000000000000000000000000000,
@@ -93,7 +90,7 @@ contract DestinationContract is IDestinationContract{
 
     // if fork index % ONEFORK_MAX_LENGTH == 0 
     // !!! Can be used without getting the previous fork
-    function zFork(bytes32 _forkKey, uint8 _index, address dest, uint256 amount, uint256 fee, bool _isRespond) external{
+    function zFork(uint256 chainId,bytes32 _forkKey, uint8 _index, address dest, uint256 amount, uint256 fee, bool _isRespond) external{
         // Determine whether msg.sender is eligible to submit
         // require(commiterDeposit[msg.sender] == true, "a1");
 
@@ -184,7 +181,7 @@ contract DestinationContract is IDestinationContract{
     */
 
     // !!! depend  should be split and _forkKey should use destOnionHead
-    function claim(bytes32 _forkKey, uint256 _forkIndex, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external override{
+    function claim(uint256 chainId,bytes32 _forkKey, uint256 _forkIndex, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external override{
         
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");

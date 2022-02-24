@@ -13,10 +13,10 @@ interface IArbSys {
 
 interface ISourceContract{
     // !!! for test , if release, dont need event
-    event newTransfer(uint256 indexed txindex, bytes32 hashOnion, address dest, uint256 amount, uint256 fee);
+    event newTransfer(uint256 indexed txindex, bytes32 hashOnion, address dest, uint256 amount, uint256 fee, uint256 chainId);
     event extract(uint256 txIndex,uint256 amount,bytes32 hashOnion);
 
-    function transfer(uint256 amount, uint256 fee) external payable;
+    function transfer(uint256 chainId,uint256 amount, uint256 fee) external payable;
     // function extractHashOnionAndBalance() external payable;
 }
 
@@ -27,7 +27,6 @@ contract SourceContract is ISourceContract{
     uint256 txIndex;
     // relay need data
     address public tokenAddress;
-    address public relayAddress;
     
     // !!! A base fee also needs to be set up for early billing
     uint8 BASE_BIND_FEE = 0;  // realy is x
@@ -35,6 +34,9 @@ contract SourceContract is ISourceContract{
     uint8 public ONEFORK_MAX_LENGTH = 5;
 
     bytes32 public hashOnion;
+    
+    mapping(uint256 => bytes32) public chainId_Onions; 
+
     // In order to adapt to dest's handling Onion
     bytes32 bringHashOnion; 
     // !!! do it later , if somebody dont want pay fee , will wait 7 day's withdraw time
@@ -50,7 +52,7 @@ contract SourceContract is ISourceContract{
         tokenAddress = _tokenAddress;
     }
 
-    function transfer(uint256 amount, uint256 fee) external payable override{
+    function transfer(uint256 chainId, uint256 amount, uint256 fee) external payable override{
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
 
@@ -62,10 +64,10 @@ contract SourceContract is ISourceContract{
             bringHashOnion = hashOnion;
         }
         // !!! can delete event function , but less gas , more offchain work
-        emit newTransfer(txIndex,hashOnion,msg.sender,amount,fee); 
+        emit newTransfer(txIndex,hashOnion,msg.sender,amount,fee,chainId); 
     }
 
-    function transferWithDest(address dest, uint256 amount, uint256 fee) external payable {
+    function transferWithDest(uint256 chainId, address dest, uint256 amount, uint256 fee) external payable {
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
         hashOnion = keccak256(abi.encode(hashOnion,keccak256(abi.encode(dest,amount,fee))));
@@ -76,7 +78,7 @@ contract SourceContract is ISourceContract{
             bringHashOnion = hashOnion;
         }
         // !!! can delete event function , but less gas , more offchain work
-        emit newTransfer(txIndex,hashOnion,dest,amount,fee); 
+        emit newTransfer(txIndex,hashOnion,dest,amount,fee,chainId); 
     }
 
     function extractHashOnionAndBalance(address raley) external payable {

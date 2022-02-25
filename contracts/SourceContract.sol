@@ -13,7 +13,7 @@ interface IArbSys {
 
 interface ISourceContract{
     // !!! for test , if release, dont need event
-    event newTransfer(uint256 indexed txindex, bytes32 hashOnion, address dest, uint256 amount, uint256 fee, uint256 chainId);
+    event newTransfer(uint256 indexed txindex, bytes32 hashOnion, address dest, uint256 amount, uint256 fee, uint256 indexed chainId);
     event extract(uint256 txIndex,uint256 amount,bytes32 hashOnion);
 
     function transfer(uint256 chainId,uint256 amount, uint256 fee) external payable;

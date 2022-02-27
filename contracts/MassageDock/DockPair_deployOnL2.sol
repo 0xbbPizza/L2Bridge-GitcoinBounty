@@ -95,6 +95,8 @@ abstract contract Dock_L2 is IDock_L1{
 
 abstract contract CrossDomainHelper {
     address public immutable dockAddr;
+    uint256 sourceChainID_DOCK;
+    address sourceSender_DOCK;
     
     constructor(
         address _dockAddr
@@ -104,9 +106,11 @@ abstract contract CrossDomainHelper {
 
     modifier checkSenderIsBridgeAndL1Pair {
         require(msg.sender == dockAddr, "NOT_DOCK");
-        uint256 sourceChainID_DOCK = IDock_L1(msg.sender).getSourceChainID();
-        address sourceSender_DOCK = IDock_L1(msg.sender).getSourceSender();
+        sourceChainID_DOCK = IDock_L1(msg.sender).getSourceChainID();
+        sourceSender_DOCK = IDock_L1(msg.sender).getSourceSender();
         _;
+        sourceChainID_DOCK = 0;
+        sourceSender_DOCK= address(0);
     }
 
     function crossDomainMassage(address _destAddress, uint256 _destChainID, bytes calldata _destMassage) internal {

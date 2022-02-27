@@ -3,6 +3,7 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface ISourceContract{
     
@@ -21,7 +22,7 @@ interface ISourceContract{
 }
 
 
-contract SourceContract is ISourceContract{
+contract SourceContract is ISourceContract, Ownable{
     using SafeERC20 for IERC20;
 
     // record transaction
@@ -40,6 +41,14 @@ contract SourceContract is ISourceContract{
 
     constructor(address _tokenAddress){
         tokenAddress = _tokenAddress;
+    }
+
+    function addDestDomain(uint256 chainId, address destContract) external onlyOwner {
+        require(chainId_Onions[chainId].destContract == "");
+        
+        chainId_Onions[chainId] = DomainStruct{(
+            destContract: destContract
+        )};
     }
 
     function transfer(uint256 chainId, uint256 amount, uint256 fee) external payable override{
@@ -76,14 +85,6 @@ contract SourceContract is ISourceContract{
     function extractHashOnion() external {
         // !!! Create a portable chainId_Onions[chainId].hashOnion, taking into account the fee reward for the bonder
         // emit extract(chainId_Onions[chainId].txIndex,amount,chainId_Onions[chainId].hashOnion);
-    }
-
-    function addDestChain(uint256 chainId, address destContract) external {
-        require(chainId_Onions[chainId].destContract == "");
-        
-        chainId_Onions[chainId] = DomainStruct{(
-            destContract: destContract
-        )};
     }
 }
 

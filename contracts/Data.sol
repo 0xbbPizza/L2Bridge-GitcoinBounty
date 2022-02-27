@@ -8,4 +8,20 @@ library Data {
         uint256 amount;
         uint256 fee;
     }
+
+    struct MForkData{
+        uint256 forkIndex;
+        uint256 forkKeyNum;
+        bytes32[] wrongtxHash;
+    }
+
+    struct HashOnionFork{
+        bytes32 onionHead;
+        bytes32 destOnionHead;
+        uint256 allAmount;
+        uint256 length;  // !!! change to byte https://jeancvllr.medium.com/solidity-tutorial-all-about-bytes-9d88fdb22676
+        address lastCommiterAddress;
+        bool needBond; // true is need to settle 
+    }
+    
 }

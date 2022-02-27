@@ -44,15 +44,18 @@ contract SourceContract is ISourceContract, Ownable{
     }
 
     function addDestDomain(uint256 chainId, address destContract) external onlyOwner {
-        require(chainId_Onions[chainId].destContract == "");
+        require(chainId_Onions[chainId].destAddress == address(0));
         
-        chainId_Onions[chainId] = DomainStruct{(
-            destContract: destContract
-        )};
+        chainId_Onions[chainId] = DomainStruct(
+            0,
+            0x0000000000000000000000000000000000000000000000000000000000000000,
+            0x0000000000000000000000000000000000000000000000000000000000000000,
+            destContract
+        );
     }
 
     function transfer(uint256 chainId, uint256 amount, uint256 fee) external payable override{
-        require(chainId_Onions[chainId].destContract != "");
+        require(chainId_Onions[chainId].destAddress != address(0));
 
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
@@ -68,7 +71,7 @@ contract SourceContract is ISourceContract, Ownable{
     }
 
     function transferWithDest(uint256 chainId, address dest, uint256 amount, uint256 fee) external payable {
-        require(chainId_Onions[chainId].destContract != "");
+        require(chainId_Onions[chainId].destAddress != address(0));
 
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
@@ -82,7 +85,7 @@ contract SourceContract is ISourceContract, Ownable{
         emit newTransfer(chainId_Onions[chainId].txIndex,chainId_Onions[chainId].hashOnion,dest,amount,fee,chainId); 
     }
 
-    function extractHashOnion() external {
+    function extractHashOnion() external override {
         // !!! Create a portable chainId_Onions[chainId].hashOnion, taking into account the fee reward for the bonder
         // emit extract(chainId_Onions[chainId].txIndex,amount,chainId_Onions[chainId].hashOnion);
     }

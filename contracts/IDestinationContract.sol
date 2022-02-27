@@ -4,15 +4,6 @@ pragma solidity 0.8.4;
 import "./Data.sol";
 
 interface IDestinationContract{
-
-    struct HashOnionFork{
-        bytes32 onionHead;
-        bytes32 destOnionHead;
-        uint256 allAmount;
-        uint256 length;  // !!! change to byte https://jeancvllr.medium.com/solidity-tutorial-all-about-bytes-9d88fdb22676
-        address lastCommiterAddress;
-        bool needBond; // true is need to settle 
-    }
     
     struct MForkData{
         bytes32 forkKey;

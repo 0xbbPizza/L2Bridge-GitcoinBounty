@@ -11,6 +11,13 @@ contract DestChildContract is IDestChildContract{
     // mapping(address => bool) public commiterDeposit;   // Submitter's bond record
     mapping(bytes32 => mapping(uint256 => HashOnionFork)) public hashOnionForks; // Submitter's bond record
 
+    struct forkKeyStruct{
+        bytes32 forkKey;
+        uint256 forkIndexKey;
+    }
+    uint256 forkKeyNum;
+    mapping(uint256 => forkKeyStruct) public num_forkKeys;
+
     mapping(bytes32 => bool) isRespondOnions;   // Whether it is a Onion that is not responded to
     mapping(bytes32 => address) onionsAddress;  // !!! Conflict with using zk scheme, new scheme needs to be considered when using zk
 
@@ -32,6 +39,7 @@ contract DestChildContract is IDestChildContract{
                 address(0),
                 false
             );
+        num_forkKeys[0] = forkKeyStruct(0x0000000000000000000000000000000000000000000000000000000000000000,0);
     }
 
     /* 
@@ -59,7 +67,11 @@ contract DestChildContract is IDestChildContract{
 
     // if fork index % ONEFORK_MAX_LENGTH == 0 
     // !!! Can be used without getting the previous fork
-    function zFork(uint256 chainId,bytes32 _forkKey, uint8 _index, address dest, uint256 amount, uint256 fee, bool _isRespond) external{
+    function zFork(uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external{
+
+        // take out the fork key
+        bytes32 _forkKey = num_forkKeys[forkKeyNum].forkKey;
+        uint8 _index = num_forkKeys[forkKeyNum].forkIndexKey;
 
         // Take out the Fork
         HashOnionFork storage workFork = hashOnionForks[_forkKey][_index];
@@ -101,6 +113,7 @@ contract DestChildContract is IDestChildContract{
 
         // storage
         hashOnionForks[newFork.onionHead][0] = newFork;
+        num_forkKeys[forkKeyNum++] = forkKeyStruct(newFork.onionHead,0);
 
         // Locks the new committer's bond, unlocks the previous committer's bond state
         if (workFork.lastCommiterAddress != IDestinationContract(routerAddress).getMsgSender()){
@@ -110,47 +123,13 @@ contract DestChildContract is IDestChildContract{
         emit newClaim(dest,amount,fee,0,newFork.onionHead); 
     }
 
-    // if fork index % ONEFORK_MAX_LENGTH != 0
-    function mFork(bytes32 _lastOnionHead, bytes32 _lastDestOnionHead, uint8 _index , Data.TransferData calldata _transferData, bool _isRespond) external{
-        // Determine whether IDestinationContract(routerAddress).getMsgSender() is eligible to submit
-        require(IDestinationContract(routerAddress).getCommiterDeposit() == true, "a3");
-
-        // Create a new Fork
-        HashOnionFork memory newFork;
-
-        // set newFork
-        newFork.onionHead = keccak256(abi.encode(_lastOnionHead,keccak256(abi.encode(_transferData))));
-        // Determine whether there is a fork with newFork.destOnionHead as the key
-        require(hashOnionForks[newFork.onionHead][_index].length == 0, "c1");
-
-        newFork.destOnionHead = keccak256(abi.encode(_lastDestOnionHead, newFork.onionHead , IDestinationContract(routerAddress).getMsgSender()));
-
-        // Determine whether the maker only submits or submits and also responds, so as to avoid the large amount of unresponsiveness of the maker and block subsequent commints
-        if(_isRespond){
-            IDestinationContract(routerAddress).transferFrom(_transferData.destination,_transferData.amount);
-        }else{
-            isRespondOnions[newFork.onionHead] = true;
-        }
+    // just append
+    function claim(uint256 forkKeyNum, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external override{
         
-        newFork.allAmount += _transferData.amount + _transferData.fee;
-        newFork.length = _index;
-        newFork.lastCommiterAddress = IDestinationContract(routerAddress).getMsgSender();
+        // take out the fork key        
+        bytes32 _forkKey = num_forkKeys[forkKeyNum].forkKey;
+        uint256 _forkIndex = num_forkKeys[forkKeyNum].forkIndexKey;
 
-        // storage
-        hashOnionForks[newFork.onionHead][_index] = newFork;
-
-        // Freeze Margin
-        IDestinationContract(routerAddress).getCommiterDeposit() = false;
-    }
-
-    /* 
-        !!! fork from input， Because there is a deposit, I am not afraid of witch attack. Do I need to design a mechanism that the deposit cannot be retrieved?
-        Can the deposit mechanism be made more concise?
-    */
-
-    // !!! depend  should be split and _forkKey should use destOnionHead
-    function claim(uint256 chainId,bytes32 _forkKey, uint256 _forkIndex, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external override{
-        
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");
 
@@ -206,10 +185,44 @@ contract DestChildContract is IDestChildContract{
         hashOnionForks[_forkKey][_forkIndex] = workFork;
     }
 
+    // if fork index % ONEFORK_MAX_LENGTH != 0
+    function mFork(bytes32 _lastOnionHead, bytes32 _lastDestOnionHead, uint8 _index , Data.TransferData calldata _transferData, bool _isRespond) external{
+        // Determine whether IDestinationContract(routerAddress).getMsgSender() is eligible to submit
+        require(IDestinationContract(routerAddress).getCommiterDeposit() == true, "a3");
+
+        // Create a new Fork
+        HashOnionFork memory newFork;
+
+        // set newFork
+        newFork.onionHead = keccak256(abi.encode(_lastOnionHead,keccak256(abi.encode(_transferData))));
+        // Determine whether there is a fork with newFork.destOnionHead as the key
+        require(hashOnionForks[newFork.onionHead][_index].length == 0, "c1");
+
+        newFork.destOnionHead = keccak256(abi.encode(_lastDestOnionHead, newFork.onionHead , IDestinationContract(routerAddress).getMsgSender()));
+
+        // Determine whether the maker only submits or submits and also responds, so as to avoid the large amount of unresponsiveness of the maker and block subsequent commints
+        if(_isRespond){
+            IDestinationContract(routerAddress).transferFrom(_transferData.destination,_transferData.amount);
+        }else{
+            isRespondOnions[newFork.onionHead] = true;
+        }
+        
+        newFork.allAmount += _transferData.amount + _transferData.fee;
+        newFork.length = _index;
+        newFork.lastCommiterAddress = IDestinationContract(routerAddress).getMsgSender();
+
+        // storage
+        hashOnionForks[newFork.onionHead][_index] = newFork;
+        num_forkKeys[forkKeyNum++] = forkKeyStruct(newFork.onionHead,_index);
+
+        // Freeze Margin
+        IDestinationContract(routerAddress).getCommiterDeposit() = false;
+    }
+
     // clearing zfork
     // !!! how to clearing the first zfork that have no preFork
     function zbond(
-        bytes32 _forkKey,
+        uint256 forkKeyNum,
         bytes32 _preForkKey, uint256 _preForkIndex, 
         Data.TransferData[] calldata _transferDatas, address[] calldata _commiters
         ) external override{
@@ -218,6 +231,8 @@ contract DestChildContract is IDestChildContract{
         require(_transferDatas.length > 0, "a1");
         require(_commiters.length == _transferDatas.length, "a2");
 
+        bytes32 _forkKey = num_forkKeys[forkKeyNum].forkKey;
+        
         HashOnionFork memory workFork = hashOnionForks[_forkKey][0];
         
         // Judging whether this fork exists && Judging that the fork needs to be settled
@@ -266,7 +281,7 @@ contract DestChildContract is IDestChildContract{
     // Settlement non-zero fork
     function mbond(
         MForkData[] calldata _mForkDatas,
-        bytes32 _preForkKey, uint256 _preForkIndex, 
+        uint256 forkKeyNum,
         Data.TransferData[] calldata _transferDatas, address[] calldata _commiters
         ) external override{
         
@@ -275,6 +290,9 @@ contract DestChildContract is IDestChildContract{
         // incoming data length is correct
         require(_transferDatas.length == ONEFORK_MAX_LENGTH, "a1");
         require(_transferDatas.length == _commiters.length, "a2");
+        
+        bytes32 _preForkKey = num_forkKeys[forkKeyNum].forkKey;
+        uint256 _preForkIndex = num_forkKeys[forkKeyNum].forkIndexKey;
 
         HashOnionFork memory preWorkFork = hashOnionForks[_preForkKey][_preForkIndex];
         // Determine whether this fork exists
@@ -359,10 +377,6 @@ contract DestChildContract is IDestChildContract{
         // Settlement for bond
     }
 
-    function buyOneFork(uint256 _forkKey, uint256 _forkId) external{
-        // Unfinished hashOnions can be purchased
-    }
-
     function buyOneOnion(bytes32 preHashOnion,Data.TransferData calldata _transferData) external{
         bytes32 key = keccak256(abi.encode(preHashOnion,keccak256(abi.encode(_transferData))));
         require( isRespondOnions[key], "a1");
@@ -370,6 +384,10 @@ contract DestChildContract is IDestChildContract{
 
         IDestinationContract(routerAddress).transferFrom(_transferData.destination,_transferData.amount);
         onionsAddress[key] = IDestinationContract(routerAddress).getMsgSender();
+    }
+
+    function buyOneFork(uint256 _forkKey, uint256 _forkId) external{
+        // Unfinished hashOnions can be purchased
     }
 }   
 

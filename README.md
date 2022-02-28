@@ -7,6 +7,10 @@ PS: development still in progress, I think in another month it will become pract
 
 
 
+https://user-images.githubusercontent.com/88087562/156001467-15609577-639b-4cb4-89ed-932d3746a6d9.mp4
+
+
+
 ## Project resources
 
 - 🌊 [Contract code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/main/contracts)

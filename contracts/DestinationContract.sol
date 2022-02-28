@@ -14,6 +14,7 @@ contract DestinationContract is IDestinationContract , Ownable {
 
     mapping(uint256 => address) public chainId_childs;
     mapping(address => uint256) public child_chainIds;
+
     mapping(address => uint256) public sourc_chainIds;
 
     mapping(address => bool) private _commiterDeposit;   // Submitter's bond record
@@ -21,6 +22,13 @@ contract DestinationContract is IDestinationContract , Ownable {
     uint256 public ONEFORK_MAX_LENGTH = 5;  // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
     uint256 DEPOSIT_AMOUNT = 1 * 10**18;  // !!! The final value is 2 * 10**17
 
+    /*
+	1. every LP need deposit `DEPOSIT_AMOUNT` ETH, DEPOSIT_AMOUNT = OnebondGaslimit * max_fork.length * Average_gasPrice 
+	2. when LP call zfork()、mfork()、claim(). lock deposit, and unlock the preHashOnions LP's deposit. 
+	3. When bonder is settling `middle fork`, will get `DEPOSIT_AMOUNT` ETH back from destContract. 
+	4. LP's deposit can only be withdrawn if they are unlocked.
+	5. No one wants to pay for someone else's mistakes, so the perpetrator's deposit will never be unlocked
+    */
     address private _msg_Sender;
 
     modifier onlyChild {

@@ -99,12 +99,34 @@ The following settings are made in the source contract of pizza bridge. The keyP
 
 2. There are three ways to transfer money for users zfork(), claim(), mfork()，The reason there are multiple function under:
 
+   > openness is more than other future in this contract, Because only then will there be enough competition, LP's service will be cheaper and faster. 
+   >
+   > but Openness allows bad behavior to have a chance.  only one hashOnion is not safe, Map save every hashOnion spent too much gas. 
+   >
+   > so , I make a data struct "Fork" , It is both safe and cheap，every fork just spend 2 x byte32 + unit 256 ,  the multiple of saving over full storage is fork.length, after the official launch, the number will be 100，If zero-knowledge proof is used in settlement, fork.length will > 500
+   
+   ```solidity
+   library Data {
+    		struct HashOnionFork{
+           bytes32 onionHead;
+           bytes32 destOnionHead;
+           uint256 allAmount;
+           uint256 length;  
+           address lastCommiterAddress;
+           bool needBond; // true is need to settle 
+       }
+   }
    ```
-    A. Ensure that a single correct fork link is present:
-           There are three behaviors of commiters related to fork:
-           1. Create a 0-bit fork
-           2. Create a non-zero fork
-           3. Add OnionHead to any Fork
+   
+   The following are the submission rules for LPs
+   
+   ```solidity
+     /* 
+           A. Ensure that a single correct fork link is present:
+           There are three behaviors of commiters(LP) related to fork:
+           1. Create a 0-bit fork : zfork()
+           2. Create a non-zero fork:  mfork()
+           3. Add OnionHead to any Fork :  claim()
    
            The rules are as follows:
            1. Accept any submission, zero-bit Fork needs to pass in PreForkkey
@@ -120,9 +142,113 @@ The following settings are made in the source contract of pizza bridge. The keyP
            C. Guarantee that bad commits will be penalized:
            1. CommiterA deposits the deposit, initiates a commit or fork, and the deposit is locked
            2. The margin can only be unlocked by the addition of another Committer  
+       */
+   ```
+   
+   All of the above is to ensure that there must be only one correct link from the initial to the latest source.hashOnion in Dest, no double spending 、 no  blocking attacks、no dust attack. 
+   
+2. in the design of number 2, If there is no penalty, data will like A style, too many "uncle fork". 
+
+   ![IMG_0208](https://tva1.sinaimg.cn/large/e6c9d24egy1gztba52m3yj21r00hb401.jpg)
+   
+   - so , make A become B ,  the deposit rule is :
+   
+     ```solidity
+     /*
+     	1. every LP need deposit `DEPOSIT_AMOUNT` ETH, DEPOSIT_AMOUNT = OnebondGaslimit * max_fork.length * Average_gasPrice 
+     	2. when LP call zfork()、mfork()、claim(). lock deposit, and unlock the preHashOnions LP's deposit. 
+     	3. When bonder is settling `middle fork`, will get `DEPOSIT_AMOUNT` ETH back from destContract. 
+     	4. LP's deposit can only be withdrawn if they are unlocked.
+     	5. No one wants to pay for someone else's mistakes, so the perpetrator's deposit will never be unlocked
+     */
+     ```
+
+4. for muti Domain ,  I design a pair contract named "destinationContract and destChildContract", the good news , it is work , is that fund on one contract, but I don's think It's best plan.  
+
+   ```
+   // like a shell pack the true performer
+   contract DestinationContract{
+   	mapping(uint256 => address) public chainId_childs;
+   	mapping(address => uint256) public child_chainIds;
+   	
+   	// One more parameter chainID
+   	function zFork(uint256 chainId, uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external
+   }
+   
+   // true performer 
+   contract DestChildContract{
+   		uint256 forkKeyID;
+       mapping(uint256 => Data.HashOnionFork) public hashOnionForks;
+       mapping(bytes32 => mapping(uint256 => uint256)) public forkKeysMap; 
+       
+       function zFork(uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external;
+   }
    ```
 
    
+
+### 3. cross L2 domain send HashOnion or fund [code]  
+
+1. When the two domains can be transferred to each other, the settlement will be smoother, the fund will only be transferred once after a long time, and the LP's fund settlement efficiency is still normal.
+
+   > There are two domains, A and B.
+
+   1. Just A-source  to  B-dest : two contract，one-way ：
+
+      - **Settled in source**： The time for LP to restore the capital limit in B takes  **two weeks**: one week B->hashOnion->A，one week A->fund-> B.
+
+      - **Settled in dest**：The time for LP to restore the capital limit in B takes **one weeks**.
+
+   2. Deployed A-source -> B-dest  + B-source -> A-dest : four contract，two-way
+
+      - Whether settled in source or dest contracts，LP to restore fund just need one week, no need to move funds between domains。（As in the picture, B-dest can settle with the funds in B-source after obtaining the hashOnion of A-source, and vice versa）
+
+        ![image-20220228175458488](https://tva1.sinaimg.cn/large/e6c9d24egy1gztdkbftosj21ks0dgwg0.jpg)
+
+        Some people worry about a situation，when B-source fund is less than A-source, Balance cannot be supported B-dest settlement . As in the picture, Whenever dest is to be settled, the balance in source is accumulated after seven days. no need to move funds between domains.
+
+        ![image-20220228175812041](https://tva1.sinaimg.cn/large/e6c9d24egy1gztdno8ce9j21ko0jstav.jpg)
+
+      - Based on my follow-up design to improve the efficiency of fund use, I prefer hashOnion  from source to dest.
+
+      
+
+2. very time N txs are generated ，cross domain only happens once. 
+
+   > one_tx_spend_gasLimit = (l2-L1gaslimit  + L1-L2 gaslimit) * 1 / N 
+   >
+   > when Arb -> OP, cost 30K gaslimit，when OP -> Arb, cost 100K gaslimit.  set N = 50 
+   >
+   > one_tx_spend_gasLimit = 1k ~ 2k  
+
+   Detail:
+
+   ```
+   1. Arb -> OP， gaslimit = 30K
+   
+      1. source -> Arb_bridge     759259(l2)
+      2. Arb_bridge -> L1relayContract   161754
+      3. L1relayContract -> Op_bridge     150829
+      4. Op_bridge -> destContract   4536(L2)
+   
+   2. OP -> Arb， gaslimit = 100K ：
+   
+      1. source -> Op_bridge    5186(L2)
+      2. Op_bridge -> L1relayContract   776662
+      3. L1relayContract -> Arb_bridge   207106
+      4. Arb_bridge -> destContract   900995(l2)
+   
+   ```
+
+   
+
+3. Build standard contracts on cross domains
+
+   > 
+
+
+
+
 
 
 

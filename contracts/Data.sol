@@ -19,7 +19,7 @@ library Data {
         bytes32 onionHead;
         bytes32 destOnionHead;
         uint256 allAmount;
-        uint256 length;  // !!! change to byte https://jeancvllr.medium.com/solidity-tutorial-all-about-bytes-9d88fdb22676
+        uint256 length;  
         address lastCommiterAddress;
         bool needBond; // true is need to settle 
     }

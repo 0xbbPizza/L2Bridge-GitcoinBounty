@@ -9,12 +9,13 @@ PS: development still in progress, I think in another month it will become pract
 
 ## Project resources
 
-- 🏄 [ Front-end github ](https://github.com/0xbbPizza/Orbiter_V2)
-- 🏄‍♀️ [ LPClient github ](https://github.com/0xbbPizza/L2Bridge-MakerNode)
+- 🌊 [Contract code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/main/contracts)
+- 🏄 [ Front-end Project ](https://github.com/0xbbPizza/Orbiter_V2)
+- 🏄‍♀️ [ LPClient Project ](https://github.com/0xbbPizza/L2Bridge-MakerNode)
 
 
 
-## 🌊 Contract [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/main/contracts)
+## Deploy Address
 
 > The contract is being updated all the time, and the code for deploying the contract may not be exactly the same as the code in the main branch
 

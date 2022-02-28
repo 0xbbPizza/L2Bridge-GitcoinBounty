@@ -25,6 +25,9 @@ interface ISourceContract{
 contract SourceContract is ISourceContract, Ownable{
     using SafeERC20 for IERC20;
 
+    // relay need data
+    address public tokenAddress;
+    
     // record transaction
     mapping(uint256 => DomainStruct) public chainId_Onions; 
     
@@ -35,9 +38,6 @@ contract SourceContract is ISourceContract, Ownable{
     // A base fee also needs to be set up for early billing
     // TODO realy is x = The gas cost of a bond * 1.2 / ONEFORK_MAX_LENGTH
     uint8 BASE_BIND_FEE = 0;  
-
-    // relay need data
-    address public tokenAddress;
 
     constructor(address _tokenAddress){
         tokenAddress = _tokenAddress;

@@ -7,11 +7,10 @@ import "./IDestinationContract.sol";
 
 
 contract DestChildContract is IDestChildContract{
-
-    mapping(bytes32 => mapping(uint256 => uint256)) public forkKeysMap; // Submitter's bond record
-
+    
     uint256 forkKeyID;
     mapping(uint256 => Data.HashOnionFork) public hashOnionForks;
+    mapping(bytes32 => mapping(uint256 => uint256)) public forkKeysMap; // Submitter's bond record
 
     // mapping(address => uint256) public lPBalance;
 

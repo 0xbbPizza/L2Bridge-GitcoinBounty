@@ -1,3 +1,109 @@
+
+# Pizza 🍕Bridge
+
+A decentralized L222 bridge 
+
+
+
+## Project resources
+
+- 🏄 [ Front-end webpage ](https://pizza.orbiter.finance/)
+  - [ Front-end github ](https://github.com/0xbbPizza/Orbiter_V2)
+- 🏄‍♀️ [ LPClient github ](https://github.com/0xbbPizza/L2Bridge-MakerNode)
+
+
+
+## 🌊 Contract
+
+| chain        |                        sourceContract                        |                         destContract                         |
+| :----------- | :----------------------------------------------------------: | :----------------------------------------------------------: |
+| Rinkeby      | [ 0x11d3985F79EC388077C930A9F8619CeDBB22b840 ](https://rinkeby.etherscan.io/address/0x11d3985F79EC388077C930A9F8619CeDBB22b840) | [ 0x06bcb27827dEA0c76ea0975c9d26E7Ec239B6cC0 ](https://rinkeby.etherscan.io/address/0x06bcb27827dEA0c76ea0975c9d26E7Ec239B6cC0) |
+| Arbitrum(R)  | [ 0x27a4DcB2846bebcE415b6fc406cF8bFCB5d1055c ](https://testnet.arbiscan.io/address/0x27a4DcB2846bebcE415b6fc406cF8bFCB5d1055c) | [ 0xeda8D1c38074263d4e174D37857E66f948CF8aD5 ](https://testnet.arbiscan.io/address/0xeda8D1c38074263d4e174D37857E66f948CF8aD5) |
+| Optimisim(K) | [ 0xf3c3988609cB90b0C64e5De511eE27D3A6d703f1 ](https://kovan-optimistic.etherscan.io/address/0xf3c3988609cB90b0C64e5De511eE27D3A6d703f1) | [ 0x1aB15C4Ef458b45e1a7Ed3Ef1e534B71b8c5113c ](https://kovan-optimistic.etherscan.io/address/0x1aB15C4Ef458b45e1a7Ed3Ef1e534B71b8c5113c) |
+
+
+### design
+
+This scheme is based on the design in vitalik's article ["Easy Decentralized cross-layer-2 bridge"](https://notes.ethereum.org/@vbuterin/cross_layer_2_bridges), and his further discussion of the scheme in telegram . The basic structure of the program and the realization of the goal, vitalik has a very refined description.
+
+![image-20220227043842424](https://tva1.sinaimg.cn/large/e6c9d24egy1gzrkxj394ej20u00je0vt.jpg)
+
+To accomplish this 4-step function, there are some general design principles:
+
+1. Try to optimize the gas consumption in each process
+2. Maintain maximum openness
+3. Reduce governance and scrutiny
+4. The rules set can promote the motivation of each role, and make the process smooth and safe
+5. Set rules against malicious behavior that do not burden normal behavior
+6. Establish to overcome the 7-day withdrawalTime waiting period and improve the efficiency of the use of funds
+7. Make full use of the feature that Layer2 can obtain enough data through Roothash+Proof
+
+
+Also, in the model: There are two main contracts, Source and Dest, and three main roles, User, LP, Bonder
+
+Next, I will introduce the implementation details of Pizza according to the order of contract interaction:
+
+#### On source domain User transfer token to SourceContract [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/main/contracts/SourceContract.sol)
+The following settings are made in the source contract of pizza bridge. The core is to better cooperate with the subsequent steps related to Dest.
+
+1. Data structure: In order to reduce the size of the input data on L1, reduce the gas fee, and dest, bind the tokenAddress to the smart contract address. There are only destination, amount, and fee in TransferData.
+
+   ```solidity
+   library Data {
+       struct TransferData{
+           address destination;
+           uint256 amount;
+           uint256 fee;
+       }
+   }
+   ```
+
+2. full amount，involved fee and BASE_BIND_FEE 
+
+   ```solidity
+   uint256 allAmount = amount + fee + BASE_BIND_FEE;
+   ```
+
+   - fee: The bounty for the LP is directly passed in by the User. As long as the two conditions are met, the user can get the payment immediately, so the method of calculating the revenue according to the response time in the contract can be omitted.
+
+     > 1. Fee is approximately equal to 0.15%. It is based on the unit time of LP's minimum annualized expectation (8%)/365 days/withdrawtime 7 days. 
+     > 2. dest is an open system, and LPs know that it is impossible to rule out that someone will serve the user.
+
+   - BASE_BIND_FEE: Bounty for Bonder, preset in the contract, equal to (a normal L2-L1-L2 information transfer GasLimit/ONEFORK_MAX_LENGTH ) x average price
+
+3. There is a transfer function, which can further reduce the transfer data when the user does not need to set the destination address
+
+   ```solidity
+   function transfer(uint256 chainId,uint256 amount, uint256 fee) external ;
+   ```
+
+4. Support muti domain, the advantage of using mapping(uint256 => DomainStruct) is to allow liquidity to be concentrated in the same contract.
+
+   ```solidity
+   struct DomainStruct{
+           uint256 txIndex;
+           bytes32 hashOnion;
+           bytes32 bringHashOnion;  
+           address destAddress;     //destContract
+       }
+   ```
+
+
+
+#### On dest domain LP cross DestContract transfer token to user [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/main/contracts/DestChildContract.sol)
+
+
+
+
+
+
+
+
+---
+OLD README
+
+
+
 ## [Rule of the Bounty](https://gitcoin.co/issue/gitcoinco/skunkworks/253/100027342)
 > This is a bounty to implement @vbuterin's idea of a decentralized cross-layer-2 bridge.
 > 
@@ -229,19 +335,6 @@ market_makers' Rules:
 2. Cross domain Dex, open protocal
 3. Multi-Coin
 4. Multi-Domain
-
-## Project resources
-- [ Front-end webpage ](https://pizza.orbiter.finance/)
-- [ Front-end github ](https://github.com/0xbbPizza/Orbiter_V2)
-- [ Maker-server github ](https://github.com/0xbbPizza/L2Bridge-MakerNode)
-
-
-## Contract
-| chain | sourceContract | destContract |
-| :-----| :----: | :----: |
-| Rinkeby | [ 0x11d3985F79EC388077C930A9F8619CeDBB22b840 ](https://rinkeby.etherscan.io/address/0x11d3985F79EC388077C930A9F8619CeDBB22b840) | [ 0x06bcb27827dEA0c76ea0975c9d26E7Ec239B6cC0 ](https://rinkeby.etherscan.io/address/0x06bcb27827dEA0c76ea0975c9d26E7Ec239B6cC0) |
-| Arbitrum(R) | [ 0x27a4DcB2846bebcE415b6fc406cF8bFCB5d1055c ](https://testnet.arbiscan.io/address/0x27a4DcB2846bebcE415b6fc406cF8bFCB5d1055c) | [ 0xeda8D1c38074263d4e174D37857E66f948CF8aD5 ](https://testnet.arbiscan.io/address/0xeda8D1c38074263d4e174D37857E66f948CF8aD5) |
-| Optimisim(K) | [ 0xf3c3988609cB90b0C64e5De511eE27D3A6d703f1 ](https://kovan-optimistic.etherscan.io/address/0xf3c3988609cB90b0C64e5De511eE27D3A6d703f1) | [ 0x1aB15C4Ef458b45e1a7Ed3Ef1e534B71b8c5113c ](https://kovan-optimistic.etherscan.io/address/0x1aB15C4Ef458b45e1a7Ed3Ef1e534B71b8c5113c) |
 
 
 

@@ -97,7 +97,32 @@ The following settings are made in the source contract of pizza bridge. The keyP
 
 1. LP run a offchain client ,  see this link [ LPClient github ](https://github.com/0xbbPizza/L2Bridge-MakerNode)
 
-2. LP 使用
+2. There are three ways to transfer money for users zfork(), claim(), mfork()，The reason there are multiple function under:
+
+   ```
+    A. Ensure that a single correct fork link is present:
+           There are three behaviors of commiters related to fork:
+           1. Create a 0-bit fork
+           2. Create a non-zero fork
+           3. Add OnionHead to any Fork
+   
+           The rules are as follows:
+           1. Accept any submission, zero-bit Fork needs to pass in PreForkkey
+           2. Fork starting with non-zero bits, length == ONEFORK_MAX_LENGTH - index (value range 1-49)
+   
+           B. Ensure that only the only correct fork link will be settled:
+           1. onWorkHashOnion's index % ONEFORK_MAX_LENGTH == ONEFORK_MAX_LENGTH
+           2. When bonding, the bond is the bond from the back to the front. If the fork being bonded is a non-zero fork, you need to provide preForkKey, onions1, onions2, and the parameters must meet the following conditions:
+              2.1 f(onions) == preFork.onionHead
+              2.2 onions[0] != fork.key //If there is an equal situation, then give the allAmount of the fork to onions[0].address . The bonder gets a deposit to compensate the gas fee.
+              2.3 fork.onionHead == onWorkHashOnion
+   
+           C. Guarantee that bad commits will be penalized:
+           1. CommiterA deposits the deposit, initiates a commit or fork, and the deposit is locked
+           2. The margin can only be unlocked by the addition of another Committer  
+   ```
+
+   
 
 
 

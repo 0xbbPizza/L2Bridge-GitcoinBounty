@@ -3,7 +3,7 @@
 
 A decentralized L222 bridge , see in [website ](https://pizza.orbiter.finance/)
 
-PS: development still in progress, I think in another month it will become practical
+development still in progress, I think in another month it will become practical
 
 
 
@@ -21,8 +21,8 @@ PS: development still in progress, I think in another month it will become pract
 
 | chain        |                        sourceContract                        |                         destContract                         |
 | :----------- | :----------------------------------------------------------: | :----------------------------------------------------------: |
-| Rinkeby      | [ 0x11d3985F79EC388077C930A9F8619CeDBB22b840 ](https://rinkeby.etherscan.io/address/0x11d3985F79EC388077C930A9F8619CeDBB22b840) | [ 0x06bcb27827dEA0c76ea0975c9d26E7Ec239B6cC0 ](https://rinkeby.etherscan.io/address/0x06bcb27827dEA0c76ea0975c9d26E7Ec239B6cC0) |
-| Arbitrum(R)  | [ 0x27a4DcB2846bebcE415b6fc406cF8bFCB5d1055c ](https://testnet.arbiscan.io/address/0x27a4DcB2846bebcE415b6fc406cF8bFCB5d1055c) | [ 0xeda8D1c38074263d4e174D37857E66f948CF8aD5 ](https://testnet.arbiscan.io/address/0xeda8D1c38074263d4e174D37857E66f948CF8aD5) |
+| Rinkeby      | [0x11d3985F79EC388077C930A9F8619CeDBB22b840 ](https://rinkeby.etherscan.io/address/0x11d3985F79EC388077C930A9F8619CeDBB22b840) | [ 0x06bcb27827dEA0c76ea0975c9d26E7Ec239B6cC0 ](https://rinkeby.etherscan.io/address/0x06bcb27827dEA0c76ea0975c9d26E7Ec239B6cC0) |
+| Arbitrum(R)  | [ 0x27a4DcB2846bebcE415b6fc406cF8bFCB5d1055c ](https://testnet.arbiscan.io/address/0x27a4DcB2846bebcE415b6fc406cF8bFCB5d1055c) | [0xeda8D1c38074263d4e174D37857E66f948CF8aD5 ](https://testnet.arbiscan.io/address/0xeda8D1c38074263d4e174D37857E66f948CF8aD5) |
 | Optimisim(K) | [ 0xf3c3988609cB90b0C64e5De511eE27D3A6d703f1 ](https://kovan-optimistic.etherscan.io/address/0xf3c3988609cB90b0C64e5De511eE27D3A6d703f1) | [ 0x1aB15C4Ef458b45e1a7Ed3Ef1e534B71b8c5113c ](https://kovan-optimistic.etherscan.io/address/0x1aB15C4Ef458b45e1a7Ed3Ef1e534B71b8c5113c) |
 
 ---
@@ -187,7 +187,7 @@ The following settings are made in the source contract of pizza bridge. The keyP
 
    
 
-### 3. cross L2 domain send HashOnion or fund [code]  
+### 3. cross L2 domain send HashOnion or fund   
 
 1. When the two domains can be transferred to each other, the settlement will be smoother, the fund will only be transferred once after a long time, and the LP's fund settlement efficiency is still normal.
 
@@ -242,18 +242,107 @@ The following settings are made in the source contract of pizza bridge. The keyP
 
    
 
-3. Build standard contracts on cross domains
+3. Build standard contracts on cross domains, [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/main/contracts/MassageDock)
 
-   > 
+   > Just finished the architecture design，need more work
 
+   Because the interfaces of each bridge are not uniform, it is necessary to design the forwarding system slightly to keep the dest contract and the source contract clear. This code shows the API
 
+   ```
+   abstract contract CrossDomainHelper {
+       address public immutable dockAddr;
+       uint256 sourceChainID_DOCK;
+       address sourceSender_DOCK;
+       
+       constructor(
+           address _dockAddr
+       ){
+           dockAddr = _dockAddr;
+       }
+   
+       modifier checkSenderIsBridgeAndL1Pair {
+           require(msg.sender == dockAddr, "NOT_DOCK");
+           sourceChainID_DOCK = IDock_L1(msg.sender).getSourceChainID();
+           sourceSender_DOCK = IDock_L1(msg.sender).getSourceSender();
+           _;
+           sourceChainID_DOCK = 0;
+           sourceSender_DOCK= address(0);
+       }
+   
+       function crossDomainMassage(address _destAddress, uint256 _destChainID, bytes calldata _destMassage) internal {
+           IDock_L1(dockAddr).callOtherDomainFuntion(_destAddress, _destChainID, _destMassage);
+       }
+   }
+   ```
 
+   The current information transmission between L2 <-> L2 needs to go through L1, and the Merkle proof needs to be done in the bridge contract of L1 in the middle.
+   The bottom layer can be replaced if necessary in the future. The message no longer passes through L1, but is proved on L2, which can save the gas cost of the calculation process. In the future, zero-knowledge proof can be used to reduce the gas consumption of input on L1.
 
+   
 
+### 4. all the LPs can now be compensated
 
+1. Funtion: zBond , mBond.  
+
+   ```solidity
+   interface IDestChildContract{
+   	function zbond(uint256 forkKeyNum, uint256 _preForkKeyNum, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external;
+   
+   	function mbond(Data.MForkData[] calldata _mForkDatas,uint256 forkKeyNum, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external;
+   }
+   ```
+
+   > The input data in L1 is too large, and I am considering using starkNet's Cairo to generate account status through transfer information:
+   >
+   > input: sourceTxs , destMakerAddress 
+   >
+   > change to 
+   >
+   > input: [{address, balance},...]
+   >
+   > but，need wait [keccak](https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/keccak.cairo) more safe 
+   >
+   > ```
+   > # Computes the keccak hash.
+   > # This function is unsafe (not sound): there is no validity enforcement that the result is indeed
+   > # keccak, but an honest prover will compute the keccak.
+   > # Args:
+   > # data - an array of words representing the input data. Each word in the array is 16 bytes of the
+   > # input data, except the last word, which may be less.
+   > # length - the number of bytes in the input.
+   > ```
+
+   
+
+2. Break the one-week capital efficiency limit, early settlement mechanism
+
+   The model can be abstracted as follows: the sender deposits 1 million USDC in the source, and at the same time withdraws the funds to the dest via the official bridge. In dest's view, this is a 7-day future. In the dest contract, maketmaker sent 1 million USDC to the sender, which can be regarded as taking ownership of the futures. Suppose we also have a loan contract, and LPs have deposited liquidity in the loan contract. If the loan contract can be convinced of the value of the 1 million USDC futures through some kind of credit mechanism, the maker will immediately obtain funds from the loan contract. , 7 days later, 1 million USDC reaches dest, and the loan contract is repaid.
+
+   The benefits of this model are:
+
+   1. Maketmaker can complete more transactions with less capital
+   2. The sender's funds are very safe
+   3. The LP only needs to deposit funds into the contract and does not need to run a node. Lower the threshold for earning income
+
+   The risks of this model are:
+
+   1. The security of LP's funds is highly related to the trust mechanism, If the contract believes in the wrong security mechanism, LP will not get paid
+
+   
+
+   The credit mechanism is as follows:
+
+   1. In the loan contract, there is an open interface. Anyone can mortgage a txhash interval in the dest contract. The mortgage fund is 10% of the total amount of the interval. Wait for a dispute period. If you place a bet on fork, it is considered that if the credit reaches 100, you can borrow 100% and return the mortgage. The dispute period may be 30 minutes, or it may be calculated based on the total amount of the interval.
+   2. In the thread of mortgage for disagreement, the two can bet successively at a fixed amount to extend the dispute time. If both parties stop betting, after the dispute time is reached, the bet with more bet amount wins, and the winning fork reaches 100% 's credit. 60% of the total bet amount of the failed fork will be rewarded to the winner, 30% will be rewarded to the LP of the loan contract, and 10% will be destroyed or used for other purposes.
+   3. The bet amount cannot exceed 120% of the total amount of the interval, and the longest dispute period cannot exceed the withdrawal time of the source
+   4. During the dispute period, you can continue to pledge for the new txhash interval. The pledge in the same fork extension line can be added to the PK before the end of the dispute. If the fork extension line is not, it will not be included in the dispute competition.
+
+   
 
 
 ---
+
+
 OLD README
 
 

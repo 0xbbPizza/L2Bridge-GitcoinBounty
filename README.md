@@ -1,19 +1,22 @@
 
 # Pizza 🍕Bridge
 
-A decentralized L222 bridge 
+A decentralized L222 bridge , see in [website ](https://pizza.orbiter.finance/)
+
+PS: development still in progress, I think in another month it will become practical
 
 
 
 ## Project resources
 
-- 🏄 [ Front-end webpage ](https://pizza.orbiter.finance/)
-  - [ Front-end github ](https://github.com/0xbbPizza/Orbiter_V2)
+- 🏄 [ Front-end github ](https://github.com/0xbbPizza/Orbiter_V2)
 - 🏄‍♀️ [ LPClient github ](https://github.com/0xbbPizza/L2Bridge-MakerNode)
 
 
 
-## 🌊 Contract
+## 🌊 Contract [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/main/contracts)
+
+> The contract is being updated all the time, and the code for deploying the contract may not be exactly the same as the code in the main branch
 
 | chain        |                        sourceContract                        |                         destContract                         |
 | :----------- | :----------------------------------------------------------: | :----------------------------------------------------------: |
@@ -21,30 +24,29 @@ A decentralized L222 bridge
 | Arbitrum(R)  | [ 0x27a4DcB2846bebcE415b6fc406cF8bFCB5d1055c ](https://testnet.arbiscan.io/address/0x27a4DcB2846bebcE415b6fc406cF8bFCB5d1055c) | [ 0xeda8D1c38074263d4e174D37857E66f948CF8aD5 ](https://testnet.arbiscan.io/address/0xeda8D1c38074263d4e174D37857E66f948CF8aD5) |
 | Optimisim(K) | [ 0xf3c3988609cB90b0C64e5De511eE27D3A6d703f1 ](https://kovan-optimistic.etherscan.io/address/0xf3c3988609cB90b0C64e5De511eE27D3A6d703f1) | [ 0x1aB15C4Ef458b45e1a7Ed3Ef1e534B71b8c5113c ](https://kovan-optimistic.etherscan.io/address/0x1aB15C4Ef458b45e1a7Ed3Ef1e534B71b8c5113c) |
 
+---
 
-### design
+
+
+## Eat Pizza
 
 This scheme is based on the design in vitalik's article ["Easy Decentralized cross-layer-2 bridge"](https://notes.ethereum.org/@vbuterin/cross_layer_2_bridges), and his further discussion of the scheme in telegram . The basic structure of the program and the realization of the goal, vitalik has a very refined description.
 
 ![image-20220227043842424](https://tva1.sinaimg.cn/large/e6c9d24egy1gzrkxj394ej20u00je0vt.jpg)
 
-To accomplish this 4-step function, there are some general design principles:
-
-1. Try to optimize the gas consumption in each process
-2. Maintain maximum openness
-3. Reduce governance and scrutiny
-4. The rules set can promote the motivation of each role, and make the process smooth and safe
-5. Set rules against malicious behavior that do not burden normal behavior
-6. Establish to overcome the 7-day withdrawalTime waiting period and improve the efficiency of the use of funds
-7. Make full use of the feature that Layer2 can obtain enough data through Roothash+Proof
 
 
-Also, in the model: There are two main contracts, Source and Dest, and three main roles, User, LP, Bonder
 
-Next, I will introduce the implementation details of Pizza according to the order of contract interaction:
+Next, I will introduce the implementation details of Pizza according to the order of contract interaction.
 
-#### On source domain User transfer token to SourceContract [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/main/contracts/SourceContract.sol)
-The following settings are made in the source contract of pizza bridge. The core is to better cooperate with the subsequent steps related to Dest.
+- There are two contracts: Source and Dest
+- three roles: User, LP, Bonder
+
+
+
+### 1. On source domain User transfer token to SourceContract [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/main/contracts/SourceContract.sol)
+
+The following settings are made in the source contract of pizza bridge. The keyPoint is to better cooperate with the subsequent steps related to Dest.
 
 1. Data structure: In order to reduce the size of the input data on L1, reduce the gas fee, and dest, bind the tokenAddress to the smart contract address. There are only destination, amount, and fee in TransferData.
 
@@ -90,11 +92,11 @@ The following settings are made in the source contract of pizza bridge. The core
 
 
 
-#### On dest domain LP cross DestContract transfer token to user [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/main/contracts/DestChildContract.sol)
+### 2. On dest domain LP cross DestContract transfer token to user [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/main/contracts/DestChildContract.sol)
 
+1. LP run a offchain client ,  see this link [ LPClient github ](https://github.com/0xbbPizza/L2Bridge-MakerNode)
 
-
-
+2. LP 使用
 
 
 
@@ -338,3 +340,14 @@ market_makers' Rules:
 
 
 
+---
+
+To accomplish this 4-step function, there are some general design principles:
+
+1. Try to optimize the gas consumption in each process
+2. Maintain maximum openness
+3. Reduce governance and scrutiny
+4. The rules set can promote the motivation of each role, and make the process smooth and safe
+5. Set rules against malicious behavior that do not burden normal behavior
+6. Establish to overcome the 7-day withdrawalTime waiting period and improve the efficiency of the use of funds
+7. Make full use of the feature that Layer2 can obtain enough data through Roothash+Proof

@@ -2,10 +2,9 @@
 # Pizza 🍕Bridge
 
 A decentralized L222 bridge , see in [website ](https://pizza.orbiter.finance/)
+development still in progress.
 
-PS: development still in progress, I think in another month it will become practical
-
-
+https://user-images.githubusercontent.com/88087562/156006812-c3e6b0d2-04a5-4c9c-a203-63d7af24f325.mp4
 
 ## Project resources
 

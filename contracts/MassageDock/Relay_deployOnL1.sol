@@ -27,15 +27,15 @@ interface IDock_L1{
 interface IRelay{
     function relayCall(uint256 destChainID,bytes calldata data) external returns (bool success);
     function docksAddressKey(address dock) external view returns (uint256);
-    function docksChainIdKey(uint256 chainId) external view returns (uint256);
+    function docksChainIdKey(uint256 chainId) external view returns (address);
 
     event addedDock(uint256 indexed chainId, address dock);
 }
 
 contract Relay is IRelay, Ownable{
 
-    mapping(uint256 => address) private docksMap_addressKey;
-    mapping(address => uint256) private docksMap_chainIdKey;
+    mapping(uint256 => address) private docksMap_chainIdKey;
+    mapping(address => uint256) private docksMap_addressKey;
     
     address[] public allowedDockList;
     
@@ -43,7 +43,7 @@ contract Relay is IRelay, Ownable{
         return docksMap_addressKey[dock];
     }
     
-    function docksChainIdKey(uint256 chainId) external view override returns (uint256) {
+    function docksChainIdKey(uint256 chainId) external view override returns (address) {
         return docksMap_chainIdKey[chainId];
     }
       

@@ -343,7 +343,7 @@ contract DestChildContract is IDestChildContract{
         hashOnionForks[forkData.forkKeyNum].needBond = false;
     }
     
-    // !!!
+    // TODO in a case not work, like if zbond or mbond don't set onWorkHashOnion
     function setHashOnion(bytes32 _sourceHashOnion) external{
         // judging only trust a target source
 

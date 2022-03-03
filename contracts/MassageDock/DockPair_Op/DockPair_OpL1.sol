@@ -18,7 +18,53 @@
 
 pragma solidity 0.8.4;
 
-interface IArbSys { 
-    // from arbitrum
-    function sendTxToL1(address destAddr, bytes calldata calldataForL1) external payable;
+import "../Dock_L1.sol";
+
+interface iOVM_BaseCrossDomainMessenger {
+    /**********************
+    * Contract Variables *
+    **********************/
+    function xDomainMessageSender() external view returns (address);
+    
+    /**
+     * Sends a cross domain message to the target messenger.
+     * @param _target Target contract address.
+     * @param _message Message to send to the target.
+     * @param _gasLimit Gas limit for the provided message.
+     */
+    function sendMessage(
+        address _target,
+        bytes calldata _message,
+        uint32 _gasLimit
+    ) external;
+}
+
+contract DockL1_OP is DockL1 {
+    uint256 public immutable defaultGasLimit;
+
+    constructor(
+        address _l2CallInAddress,
+        address _l2OutAddress,
+        address _relayAddress, 
+        uint256 _defaultGasLimit
+    )
+        DockL1(_l2CallInAddress,_l2OutAddress,_relayAddress)
+    {
+        defaultGasLimit = _defaultGasLimit;
+    }
+
+    function _callBridge(bytes memory _data) internal{
+        iOVM_BaseCrossDomainMessenger(l2OutAddress).sendMessage(
+            l2CallInAddress,
+            _data,
+            defaultGasLimit
+        );
+    }
+
+    // From bridge
+    function _verifySenderAndL2Pair (address _msgSender) internal {
+        require(_msgSender == l2OutAddress, "DOCK1");
+        require(iOVM_BaseCrossDomainMessenger(l2OutAddress).xDomainMessageSender() == _l2CallInAddress,"DOCK2");
+    }
+
 }

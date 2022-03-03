@@ -31,7 +31,6 @@ pragma solidity 0.8.4;
 //     function sendTxToL1(address destAddr, bytes calldata calldataForL1) external payable;
 // }
 
-
 //  // send to L1 dest
 //         bytes memory message = abi.encodeWithSignature(
 //             "getHashOnion(bytes32)",

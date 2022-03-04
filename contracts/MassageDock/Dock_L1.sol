@@ -50,10 +50,10 @@ abstract contract Dock_L1 is IDock_L1{
     }
 
     // muti to bridge 
-    function _callBridge(bytes memory _data) internal;
+    function _callBridge(bytes memory _data) internal virtual;
 
     // muti  From bridge
-    function _verifySenderAndL2Pair (address _msgSender) internal;
+    function _verifySenderAndL2Pair (address _msgSender) internal view virtual;
     
     modifier onlyRelay {
         require(msg.sender == relayAddress);

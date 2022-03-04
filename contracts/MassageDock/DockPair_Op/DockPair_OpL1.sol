@@ -39,7 +39,7 @@ interface iOVM_BaseCrossDomainMessenger {
     ) external;
 }
 
-contract DockL1_OP is DockL1 {
+contract DockL1_OP is Dock_L1 {
     uint256 public immutable defaultGasLimit;
 
     constructor(
@@ -48,23 +48,23 @@ contract DockL1_OP is DockL1 {
         address _relayAddress, 
         uint256 _defaultGasLimit
     )
-        DockL1(_l2CallInAddress,_l2OutAddress,_relayAddress)
+        Dock_L1(_l2CallInAddress,_l2OutAddress,_relayAddress)
     {
         defaultGasLimit = _defaultGasLimit;
     }
 
-    function _callBridge(bytes memory _data) internal{
+    function _callBridge(bytes memory _data) internal override {
         iOVM_BaseCrossDomainMessenger(l2OutAddress).sendMessage(
             l2CallInAddress,
             _data,
-            defaultGasLimit
+            uint32(defaultGasLimit)
         );
     }
 
     // From bridge
-    function _verifySenderAndL2Pair (address _msgSender) internal {
+    function _verifySenderAndL2Pair (address _msgSender) internal view override {
         require(_msgSender == l2OutAddress, "DOCK1");
-        require(iOVM_BaseCrossDomainMessenger(l2OutAddress).xDomainMessageSender() == _l2CallInAddress,"DOCK2");
+        require(iOVM_BaseCrossDomainMessenger(l2OutAddress).xDomainMessageSender() == l2CallInAddress,"DOCK2");
     }
 
 }

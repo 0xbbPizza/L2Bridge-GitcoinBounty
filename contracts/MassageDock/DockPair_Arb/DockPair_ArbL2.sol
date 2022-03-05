@@ -17,30 +17,39 @@
  */
 
 pragma solidity 0.8.4;
- 
-    //     // !!! Determine whether the index at the moment is greater than the last withdrawal index, and determine whether the index is at zero
-    //     // !!! Make a settlement for the bond
-    //     // !!! Send onion to Relay, each step will be settled to bonder
-    //     uint256 amount = IERC20(tokenAddress).balanceOf(address(this));
-    //     IERC20(tokenAddress).safeTransfer(relayAddress,amount);
 
-    //     Relay(relayAddress).getHashOnion(txIndex,hashOnion,tokenAddress,msg.sender);
+import "../Dock_L2.sol";
 
-// interface IArbSys { 
-//     // from arbitrum
-//     function sendTxToL1(address destAddr, bytes calldata calldataForL1) external payable;
-// }
+interface IArbSys { 
+    function sendTxToL1(address destAddr, bytes calldata calldataForL1) external payable;
+}
 
-//  // send to L1 dest
-//         bytes memory message = abi.encodeWithSignature(
-//             "getHashOnion(bytes32)",
-//             bringHashOnion
-//         );
+contract DockL2_Arb is Dock_L2 {
+    uint256 public immutable defaultGasLimit;
 
-//         IArbSys(l2Messenger).sendTxToL1(
-//             raley,
-//             message
-//         );
+    constructor(
+        address _l1PairAddress,
+        address _bridgeAddress, 
+        uint256 _defaultGasLimit
+    )
+        Dock_L2(_l1PairAddress,_bridgeAddress)
+    {
+        defaultGasLimit = _defaultGasLimit;
+    }
+
+    function _callBridge(bytes memory _data) internal override{
+        IArbSys(bridgeAddress).sendTxToL1(
+            l1PairAddress,
+            _data
+        );
+    }
+
+    function _verifySenderAndDockPair() internal view override{
+        // TODO 
+    }
+}
+
+
 
 
 

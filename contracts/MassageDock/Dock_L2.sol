@@ -55,19 +55,18 @@ abstract contract Dock_L2 is IDock_L2{
     }
 
     // fromDomain
-    function callOtherDomainFuntion(address _destAddress, uint256 _destChainID, bytes calldata _destMassage) external override{
+    function callOtherDomainFunction(address _destAddress, uint256 _destChainID, bytes calldata _destMassage) external override{
         bytes memory onions1 = abi.encode(_destAddress, _destMassage, msg.sender, block.chainid);
         bytes memory onions2 = abi.encodeWithSignature("fromL2Pair(uint256,bytes)",_destChainID,onions1);
-        sendToBridge(onions2);
+        _callBridge(onions2);
     }
 
     // muti : call bridge
-    function sendToBridge(bytes memory _data) internal {
-        
-    }
+    function _callBridge(bytes memory _data) internal virtual;
 
     // fromBridge 
-    function fromL1Pair(bytes calldata _data) external checkSenderIsBridgeAndL1Pair{
+    function fromL1Pair(bytes calldata _data) external {
+        _verifySenderAndDockPair();
         address preSourceSender = sourceSender;
         uint256 preSourceChainID = sourceChainID;
         address destAddress;
@@ -75,7 +74,7 @@ abstract contract Dock_L2 is IDock_L2{
         (destAddress,destMassage,sourceSender,sourceChainID) = abi.decode(_data, (address, bytes, address, uint256));
         
         if (destMassage.length > 0) require(destAddress.isContract(), "NO_CODE_AT_DEST");
-        (bool success, bytes memory data) = destAddress.call(destMassage);
+        (bool success,) = destAddress.call(destMassage);
         require(success, "WRONG_MSG");
             
         sourceSender = preSourceSender;
@@ -83,8 +82,5 @@ abstract contract Dock_L2 is IDock_L2{
     }
 
     // muti : FromBridge
-    modifier checkSenderIsBridgeAndL1Pair {
-
-        _;
-    }
+    function _verifySenderAndDockPair () internal view virtual;
 }

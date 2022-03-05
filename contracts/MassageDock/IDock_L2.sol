@@ -20,7 +20,7 @@
 pragma solidity 0.8.4;
 
 interface IDock_L2{
-    function callOtherDomainFuntion(address _destAddress, uint256 _destChainID, bytes calldata _destMassage) external;
+    function callOtherDomainFunction(address _destAddress, uint256 _destChainID, bytes calldata _destMassage) external;
     function getSourceChainID() external view returns (uint256);
     function getSourceSender() external view returns (address);
 }

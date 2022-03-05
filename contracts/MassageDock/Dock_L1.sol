@@ -37,11 +37,11 @@ abstract contract Dock_L1 is IDock_L1{
     }
 
     function fromL2Pair(
-        uint256 destChainID, 
-        bytes calldata data
+        uint256 _destChainID, 
+        bytes calldata _data
     ) external {
         _verifySenderAndDockPair(msg.sender);
-        IRelay(relayAddress).relayCall(destChainID, data);
+        IRelay(relayAddress).relayCall(_destChainID, _data);
     }
 
     function fromRelay(bytes calldata _data) external override onlyRelay{

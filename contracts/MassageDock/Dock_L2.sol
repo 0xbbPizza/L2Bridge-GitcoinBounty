@@ -25,13 +25,8 @@ import "./IDock_L2.sol";
 abstract contract Dock_L2 is IDock_L2{
     using Address for address;
 
-     struct SourceContext {
-        uint256 sourceChainID;
-        address sender;
-    }
-
-     address public immutable l1PairAddress;
-     address public immutable bridgeAddress;
+    address public immutable l1PairAddress;
+    address public immutable bridgeAddress;
 
     // Note, these variables are set and then wiped during a single transaction.
     // Therefore their values don't need to be maintained, and their slots will

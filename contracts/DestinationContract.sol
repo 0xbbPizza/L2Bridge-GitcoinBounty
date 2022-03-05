@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Data.sol";
 import "./IDestChildContract.sol";
 import "./IDestinationContract.sol";
+import "./MassageDock/CrossDomainHelper.sol";
 
-contract DestinationContract is IDestinationContract , Ownable {
+contract DestinationContract is IDestinationContract, CrossDomainHelper , Ownable {
     using SafeERC20 for IERC20;
 
     address tokenAddress;
@@ -29,27 +30,32 @@ contract DestinationContract is IDestinationContract , Ownable {
 	4. LP's deposit can only be withdrawn if they are unlocked.
 	5. No one wants to pay for someone else's mistakes, so the perpetrator's deposit will never be unlocked
     */
-    address private _msg_Sender;
+
+    constructor(
+        address _tokenAddress,
+        address _dockAddr
+    )
+        CrossDomainHelper(_dockAddr)
+    {
+        tokenAddress = _tokenAddress;
+    }
 
     modifier onlyChild {
         require(child_chainIds[msg.sender] != 0, "not child");
         _;
     }
 
-    modifier onlySoure {
-        _;
+    function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId) internal view override{
+        require(_sourChainId != 0, "ZERO_CHAINID");
+        require(sourc_chainIds[_sourceSender] == _sourChainId, "NOTAPPROVE");
     }
 
-    modifier onlySupportDomain {
-        // require(chainId_childs[chainId] != address(0));
-        address activeMsgSender = _msg_Sender;
-        _msg_Sender = msg.sender;
-        _;
-        _msg_Sender = activeMsgSender;
-    }
-
-    constructor(address _tokenAddress){
-        tokenAddress = _tokenAddress;
+    /*
+        call from source 
+    */
+    // TODO
+    function bondSourceHashOnion(bytes32 hashOnion) external sourceSafe {
+        // call childs
     }
 
     /*
@@ -70,24 +76,21 @@ contract DestinationContract is IDestinationContract , Ownable {
     
     // TODO need deposit ETH 
     function becomeCommiter() external{
-        _commiterDeposit[msg.sender] = true;
+        _commiterDeposit[tx.origin] = true;
     }
 
     /*
         childContract call back
     */
-    function getMsgSender() external view override returns (address) {
-        return _msg_Sender;
-    }
     function getCommiterDeposit() external view override returns (bool) {
-        return _commiterDeposit[_msg_Sender];
+        return _commiterDeposit[tx.origin];
     }
     function transfer(address dest, uint256 amount) external override onlyChild{
         IERC20(tokenAddress).safeTransfer(dest,amount); 
     }
 
     function transferFrom(address dest,uint256 amount) external override onlyChild {
-        IERC20(tokenAddress).safeTransferFrom(_msg_Sender,dest,amount); 
+        IERC20(tokenAddress).safeTransferFrom(tx.origin,dest,amount); 
     }
         
     function changeDepositState(address addr, bool state) external override onlyChild {
@@ -95,40 +98,32 @@ contract DestinationContract is IDestinationContract , Ownable {
     }
 
     /*
-        call from source 
-    */
-    // TODO
-    function bondSourceHashOnion(bytes32 hashOnion) external onlySoure {
-        // call childs
-    }
-
-    /*
         call childContract
     */
     // if index % ONEFORK_MAX_LENGTH == 0 
-    function zFork(uint256 chainId, uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external override onlySupportDomain{
+    function zFork(uint256 chainId, uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external override {
         IDestChildContract(chainId_childs[chainId]).zFork(forkKeyNum,dest,amount,fee,_isRespond);
     }
     // just deppend
-    function claim(uint256 chainId, uint256 forkKeyNum, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external override onlySupportDomain{
+    function claim(uint256 chainId, uint256 forkKeyNum, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external override {
         IDestChildContract(chainId_childs[chainId]).claim(forkKeyNum,_workIndex,_transferDatas,_isResponds);
     }
     // if source index % ONEFORK_MAX_LENGTH != 0
-    function mFork(uint256 chainId, bytes32 _lastOnionHead, bytes32 _lastDestOnionHead, uint8 _index , Data.TransferData calldata _transferData, bool _isRespond) external override onlySupportDomain{
+    function mFork(uint256 chainId, bytes32 _lastOnionHead, bytes32 _lastDestOnionHead, uint8 _index , Data.TransferData calldata _transferData, bool _isRespond) external override {
         IDestChildContract(chainId_childs[chainId]).mFork(_lastOnionHead,_lastDestOnionHead,_index,_transferData,_isRespond);
     }
     // clearing zfork
-    function zbond(uint256 chainId, uint256 forkKeyNum, uint256 _preForkKeyNum, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external override onlySupportDomain{
+    function zbond(uint256 chainId, uint256 forkKeyNum, uint256 _preForkKeyNum, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external override {
         IDestChildContract(chainId_childs[chainId]).zbond(forkKeyNum,_preForkKeyNum,_transferDatas,_commiters);
     }
     // Settlement non-zero fork
-    function mbond(uint256 chainId, Data.MForkData[] calldata _mForkDatas, uint256 forkKeyNum, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external override onlySupportDomain{
+    function mbond(uint256 chainId, Data.MForkData[] calldata _mForkDatas, uint256 forkKeyNum, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external override {
         IDestChildContract(chainId_childs[chainId]).mbond(_mForkDatas,forkKeyNum,_transferDatas,_commiters);
     }
-    function buyOneOnion(uint256 chainId, bytes32 preHashOnion,Data.TransferData calldata _transferData) external override onlySupportDomain{
+    function buyOneOnion(uint256 chainId, bytes32 preHashOnion,Data.TransferData calldata _transferData) external override {
         IDestChildContract(chainId_childs[chainId]).buyOneOnion(preHashOnion,_transferData);
     }
-    function buyOneFork(uint256 chainId, uint256 _forkKey, uint256 _forkId) external override onlySupportDomain{
+    function buyOneFork(uint256 chainId, uint256 _forkKey, uint256 _forkId) external override {
         IDestChildContract(chainId_childs[chainId]).buyOneFork(_forkKey,_forkId);
     }
 }   

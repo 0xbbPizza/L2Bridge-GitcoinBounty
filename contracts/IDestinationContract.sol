@@ -8,7 +8,6 @@ interface IDestinationContract{
     event newClaim(address dest, uint256 amount, uint256 fee, uint256 txindex, bytes32 hashOnion);
     event newBond(uint256 txIndex,uint256 amount,bytes32 hashOnion);
 
-    function getMsgSender() external view returns (address);
     function transfer(address dest, uint256 amount) external;
     function transferFrom(address dest,uint256 amount) external;
     function getCommiterDeposit() external view returns (bool);

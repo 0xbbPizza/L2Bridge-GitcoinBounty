@@ -23,8 +23,6 @@ import "./IDock_L2.sol";
 
 abstract contract CrossDomainHelper {
     address public immutable dockAddr;
-    uint256 sourceChainID_DOCK;
-    address sourceSender_DOCK;
     
     constructor(
         address _dockAddr
@@ -32,16 +30,15 @@ abstract contract CrossDomainHelper {
         dockAddr = _dockAddr;
     }
 
-    modifier checkSenderIsBridgeAndL1Pair {
+    modifier sourceSafe {
         require(msg.sender == dockAddr, "NOT_DOCK");
-        sourceChainID_DOCK = IDock_L2(msg.sender).getSourceChainID();
-        sourceSender_DOCK = IDock_L2(msg.sender).getSourceSender();
+        _onlyApprovedSources(IDock_L2(msg.sender).getSourceSender(),IDock_L2(msg.sender).getSourceChainID());
         _;
-        sourceChainID_DOCK = 0;
-        sourceSender_DOCK= address(0);
     }
 
-    function crossDomainMassage(address _destAddress, uint256 _destChainID, bytes calldata _destMassage) internal {
+    function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId) internal view virtual;
+
+    function crossDomainMassage(address _destAddress, uint256 _destChainID, bytes memory _destMassage) internal {
         IDock_L2(dockAddr).callOtherDomainFunction(_destAddress, _destChainID, _destMassage);
     }
 }

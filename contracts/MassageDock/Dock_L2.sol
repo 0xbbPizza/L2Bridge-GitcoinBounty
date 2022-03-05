@@ -50,7 +50,7 @@ abstract contract Dock_L2 is IDock_L2{
     }
 
     // fromDomain
-    function callOtherDomainFunction(address _destAddress, uint256 _destChainID, bytes calldata _destMassage) external override{
+    function callOtherDomainFunction(address _destAddress, uint256 _destChainID, bytes memory _destMassage) external override{
         bytes memory onions1 = abi.encode(_destAddress, _destMassage, msg.sender, block.chainid);
         bytes memory onions2 = abi.encodeWithSignature("fromL2Pair(uint256,bytes)",_destChainID,onions1);
         _callBridge(onions2);

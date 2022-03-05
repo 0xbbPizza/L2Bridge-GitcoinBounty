@@ -40,7 +40,7 @@ abstract contract Dock_L1 is IDock_L1{
         uint256 _destChainID, 
         bytes calldata _data
     ) external {
-        _verifySenderAndDockPair(msg.sender);
+        _verifySenderAndDockPair();
         IRelay(relayAddress).relayCall(_destChainID, _data);
     }
 
@@ -53,7 +53,7 @@ abstract contract Dock_L1 is IDock_L1{
     function _callBridge(bytes memory _data) internal virtual;
 
     // muti  From bridge
-    function _verifySenderAndDockPair (address _msgSender) internal view virtual;
+    function _verifySenderAndDockPair () internal view virtual;
     
     modifier onlyRelay {
         require(msg.sender == relayAddress);

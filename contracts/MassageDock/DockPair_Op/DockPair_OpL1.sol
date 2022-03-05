@@ -62,8 +62,8 @@ contract DockL1_OP is Dock_L1 {
     }
 
     // From bridge
-    function _verifySenderAndDockPair (address _msgSender) internal view override {
-        require(_msgSender == l2OutAddress, "DOCK1");
+    function _verifySenderAndDockPair () internal view override {
+        require(msg.sender == l2OutAddress, "DOCK1");
         require(iOVM_BaseCrossDomainMessenger(l2OutAddress).xDomainMessageSender() == l2CallInAddress,"DOCK2");
     }
 

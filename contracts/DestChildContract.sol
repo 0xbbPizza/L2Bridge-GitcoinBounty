@@ -38,6 +38,11 @@ contract DestChildContract is IDestChildContract{
             );
     }
 
+    modifier onlyRouter {
+        require(msg.sender == routerAddress, "NOT_ROUTER");
+        _;
+    }
+
     /* 
         A. Ensure that a single correct fork link is present:
         There are three behaviors of commiters related to fork:
@@ -63,14 +68,14 @@ contract DestChildContract is IDestChildContract{
 
     // if fork index % ONEFORK_MAX_LENGTH == 0 
     // !!! Can be used without getting the previous fork
-    function zFork(uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external override {
+    function zFork(uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external override onlyRouter{
 
         // Take out the Fork
         Data.HashOnionFork storage workFork = hashOnionForks[forkKeyNum];
         
         if (IDestinationContract(routerAddress).getCommiterDeposit() == false){
             // If same commiter, don't need deposit
-            require(IDestinationContract(routerAddress).getMsgSender() == workFork.lastCommiterAddress, "a2");
+            require(tx.origin == workFork.lastCommiterAddress, "a2");
         }
 
         // Create a new Fork
@@ -81,7 +86,7 @@ contract DestChildContract is IDestChildContract{
         // Determine whether there is a fork with newFork.destOnionHead as the key
         require(forkKeysMap[newFork.onionHead][0] == 0, "c1");
 
-        newFork.destOnionHead = keccak256(abi.encode(workFork.destOnionHead, newFork.onionHead , IDestinationContract(routerAddress).getMsgSender()));
+        newFork.destOnionHead = keccak256(abi.encode(workFork.destOnionHead, newFork.onionHead , tx.origin));
         
         // Determine whether the maker only submits or submits and responds
         if(_isRespond){
@@ -93,7 +98,7 @@ contract DestChildContract is IDestChildContract{
         
         newFork.allAmount += amount + fee;
         newFork.length = 1;
-        newFork.lastCommiterAddress = IDestinationContract(routerAddress).getMsgSender();
+        newFork.lastCommiterAddress = tx.origin;
         newFork.needBond = true;
 
         // storage
@@ -102,16 +107,16 @@ contract DestChildContract is IDestChildContract{
         
 
         // Locks the new committer's bond, unlocks the previous committer's bond state
-        if (workFork.lastCommiterAddress != IDestinationContract(routerAddress).getMsgSender()){
+        if (workFork.lastCommiterAddress != tx.origin){
             IDestinationContract(routerAddress).changeDepositState(workFork.lastCommiterAddress,true);
-            IDestinationContract(routerAddress).changeDepositState(IDestinationContract(routerAddress).getMsgSender(),false);
+            IDestinationContract(routerAddress).changeDepositState(tx.origin,false);
         }
 
         emit newClaim(dest,amount,fee,0,newFork.onionHead); 
     }
 
     // just append
-    function claim(uint256 forkKeyNum, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external override{
+    function claim(uint256 forkKeyNum, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external override onlyRouter{
         
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");
@@ -124,10 +129,10 @@ contract DestChildContract is IDestChildContract{
 
         // Determine the eligibility of the submitter
         if (IDestinationContract(routerAddress).getCommiterDeposit() == false){
-            require(IDestinationContract(routerAddress).getMsgSender() == workFork.lastCommiterAddress, "a3");
+            require(tx.origin == workFork.lastCommiterAddress, "a3");
         }
         
-        // Determine whether someone has submitted it before. If it has been submitted by the predecessor, IDestinationContract(routerAddress).getMsgSender() thinks that the submission is incorrect and can be forked and resubmitted through forkFromInput
+        // Determine whether someone has submitted it before. If it has been submitted by the predecessor, tx.origin thinks that the submission is incorrect and can be forked and resubmitted through forkFromInput
         // !!! Avoid duplicate submissions
         require(_workIndex == workFork.length, "b2");
         
@@ -145,16 +150,16 @@ contract DestChildContract is IDestChildContract{
             }else{
                 isRespondOnions[onionHead] = true;
             }
-            destOnionHead = keccak256(abi.encode(destOnionHead,onionHead,IDestinationContract(routerAddress).getMsgSender()));
+            destOnionHead = keccak256(abi.encode(destOnionHead,onionHead,tx.origin));
             allAmount += _transferDatas[i].amount + _transferDatas[i].fee;
 
             emit newClaim(_transferDatas[i].destination,_transferDatas[i].amount,_transferDatas[i].fee,_workIndex+i,onionHead); 
         }
         
         // change deposit , deposit token is ETH , need a function to deposit and with draw
-        if (workFork.lastCommiterAddress != IDestinationContract(routerAddress).getMsgSender()){
+        if (workFork.lastCommiterAddress != tx.origin){
             IDestinationContract(routerAddress).changeDepositState(workFork.lastCommiterAddress,true);
-            IDestinationContract(routerAddress).changeDepositState(IDestinationContract(routerAddress).getMsgSender(),false);
+            IDestinationContract(routerAddress).changeDepositState(tx.origin,false);
         }
 
         workFork = Data.HashOnionFork({
@@ -162,7 +167,7 @@ contract DestChildContract is IDestChildContract{
             destOnionHead: destOnionHead,
             allAmount: allAmount + workFork.allAmount,
             length: _workIndex + _transferDatas.length,
-            lastCommiterAddress: IDestinationContract(routerAddress).getMsgSender(),
+            lastCommiterAddress: tx.origin,
             needBond: workFork.needBond
         });
         
@@ -170,8 +175,8 @@ contract DestChildContract is IDestChildContract{
     }
 
     // if fork index % ONEFORK_MAX_LENGTH != 0
-    function mFork(bytes32 _lastOnionHead, bytes32 _lastDestOnionHead, uint8 _index , Data.TransferData calldata _transferData, bool _isRespond) external override {
-        // Determine whether IDestinationContract(routerAddress).getMsgSender() is eligible to submit
+    function mFork(bytes32 _lastOnionHead, bytes32 _lastDestOnionHead, uint8 _index , Data.TransferData calldata _transferData, bool _isRespond) external override onlyRouter {
+        // Determine whether tx.origin is eligible to submit
         require(IDestinationContract(routerAddress).getCommiterDeposit() == true, "a3");
 
         // Create a new Fork
@@ -182,7 +187,7 @@ contract DestChildContract is IDestChildContract{
         // Determine whether there is a fork with newFork.destOnionHead as the key
         require(forkKeysMap[newFork.onionHead][_index] == 0, "c1");
 
-        newFork.destOnionHead = keccak256(abi.encode(_lastDestOnionHead, newFork.onionHead , IDestinationContract(routerAddress).getMsgSender()));
+        newFork.destOnionHead = keccak256(abi.encode(_lastDestOnionHead, newFork.onionHead , tx.origin));
 
         // Determine whether the maker only submits or submits and also responds, so as to avoid the large amount of unresponsiveness of the maker and block subsequent commints
         if(_isRespond){
@@ -193,14 +198,14 @@ contract DestChildContract is IDestChildContract{
         
         newFork.allAmount += _transferData.amount + _transferData.fee;
         newFork.length = _index;
-        newFork.lastCommiterAddress = IDestinationContract(routerAddress).getMsgSender();
+        newFork.lastCommiterAddress = tx.origin;
 
         // storage
         forkKeysMap[newFork.onionHead][_index] = forkKeyID++;
         hashOnionForks[forkKeyID] = newFork;
 
         // Freeze Margin
-        IDestinationContract(routerAddress).changeDepositState(IDestinationContract(routerAddress).getMsgSender(),false);
+        IDestinationContract(routerAddress).changeDepositState(tx.origin,false);
     }
 
     // clearing zfork
@@ -209,7 +214,7 @@ contract DestChildContract is IDestChildContract{
         uint256 forkKeyNum,
         uint256 _preForkKeyNum, 
         Data.TransferData[] calldata _transferDatas, address[] calldata _commiters
-        ) external override{
+        ) external override onlyRouter{ 
 
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");
@@ -265,7 +270,7 @@ contract DestChildContract is IDestChildContract{
         Data.MForkData[] calldata _mForkDatas,
         uint256 forkKeyNum,
         Data.TransferData[] calldata _transferDatas, address[] calldata _commiters
-        ) external override{
+        ) external override onlyRouter{
         
         require( _mForkDatas.length > 1, "a1");
         
@@ -356,16 +361,16 @@ contract DestChildContract is IDestChildContract{
         // Settlement for bond
     }
 
-    function buyOneOnion(bytes32 preHashOnion,Data.TransferData calldata _transferData) external override{
+    function buyOneOnion(bytes32 preHashOnion,Data.TransferData calldata _transferData) external override onlyRouter{
         bytes32 key = keccak256(abi.encode(preHashOnion,keccak256(abi.encode(_transferData))));
         require( isRespondOnions[key], "a1");
         require( onionsAddress[key] == address(0), "a1");
 
         IDestinationContract(routerAddress).transferFrom(_transferData.destination,_transferData.amount);
-        onionsAddress[key] = IDestinationContract(routerAddress).getMsgSender();
+        onionsAddress[key] = tx.origin;
     }
 
-    function buyOneFork(uint256 _forkKey, uint256 _forkId) external override {
+    function buyOneFork(uint256 _forkKey, uint256 _forkId) external override onlyRouter{
         // Unfinished hashOnions can be purchased
     }
 }   

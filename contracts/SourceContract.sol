@@ -4,6 +4,7 @@ pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./MassageDock/CrossDomainHelper.sol";
 
 interface ISourceContract{
     
@@ -18,11 +19,11 @@ interface ISourceContract{
     event extract(uint256 txIndex,uint256 amount,bytes32 hashOnion);
 
     function transfer(uint256 chainId,uint256 amount, uint256 fee) external payable;
-    function extractHashOnion() external;
+    function extractHashOnion(uint256 _chainId) external;
 }
 
 
-contract SourceContract is ISourceContract, Ownable{
+contract SourceContract is ISourceContract, CrossDomainHelper, Ownable{
     using SafeERC20 for IERC20;
 
     // relay need data
@@ -39,7 +40,12 @@ contract SourceContract is ISourceContract, Ownable{
     // TODO realy is x = The gas cost of a bond * 1.2 / ONEFORK_MAX_LENGTH
     uint8 BASE_BIND_FEE = 0;  
 
-    constructor(address _tokenAddress){
+    constructor(
+        address _tokenAddress,
+        address _dockAddr
+    )
+        CrossDomainHelper(_dockAddr)
+    {
         tokenAddress = _tokenAddress;
     }
 
@@ -85,7 +91,14 @@ contract SourceContract is ISourceContract, Ownable{
         emit newTransfer(chainId_Onions[chainId].txIndex,chainId_Onions[chainId].hashOnion,dest,amount,fee,chainId); 
     }
 
-    function extractHashOnion() external override {
+    function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId) internal view override{}
+
+    function extractHashOnion(uint256 _chainId) external override {
+        address destAddress = chainId_Onions[_chainId].destAddress;
+        require(destAddress != address(0));
+        bytes memory callMessage = abi.encodeWithSignature("bondSourceHashOnion(bytes32)",chainId_Onions[_chainId].bringHashOnion);
+        crossDomainMassage(destAddress , _chainId, callMessage);
+
         // !!! Create a portable chainId_Onions[chainId].hashOnion, taking into account the fee reward for the bonder
         // emit extract(chainId_Onions[chainId].txIndex,amount,chainId_Onions[chainId].hashOnion);
     }

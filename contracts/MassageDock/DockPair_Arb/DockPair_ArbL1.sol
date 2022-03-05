@@ -66,11 +66,11 @@ contract DockL1_Arb is Dock_L1 {
     }
 
     // From bridge
-    function _verifySenderAndDockPair (address _msgSender) internal view override {
+    function _verifySenderAndDockPair () internal view override {
         IBridge arbBridge = IInbox(l2OutAddress).bridge();
         IOutbox outbox = IOutbox(arbBridge.activeOutbox());
 
-        require(_msgSender == address(outbox), "DOCK1");
+        require(msg.sender == address(outbox), "DOCK1");
         // Verify that sender 
         require(outbox.l2ToL1Sender() == l2CallInAddress, "DOCK2");
     }

@@ -15,4 +15,6 @@ interface IDestChildContract{
     function mbond(Data.MForkData[] calldata _mForkDatas,uint256 forkKeyNum, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external;
     function buyOneOnion(bytes32 preHashOnion,Data.TransferData calldata _transferData) external;
     function buyOneFork(uint256 _forkKey, uint256 _forkId) external;
+
+    function bondSourceHashOnion(bytes32 hashOnion) external;
 }

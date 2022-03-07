@@ -96,7 +96,7 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable{
     function extractHashOnion(uint256 _chainId) external override {
         address destAddress = chainId_Onions[_chainId].destAddress;
         require(destAddress != address(0));
-        bytes memory callMessage = abi.encodeWithSignature("bondSourceHashOnion(bytes32)",chainId_Onions[_chainId].bringHashOnion);
+        bytes memory callMessage = abi.encodeWithSignature("bondSourceHashOnion(uint256,bytes32)",_chainId,chainId_Onions[_chainId].bringHashOnion);
         crossDomainMassage(destAddress , _chainId, callMessage);
 
         // !!! Create a portable chainId_Onions[chainId].hashOnion, taking into account the fee reward for the bonder

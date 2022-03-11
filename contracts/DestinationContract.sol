@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Data.sol";
 import "./IDestChildContract.sol";
+import "./DestChildContract.sol";
 import "./IDestinationContract.sol";
-import "./MassageDock/CrossDomainHelper.sol";
+import "./MessageDock/CrossDomainHelper.sol";
 
 contract DestinationContract is IDestinationContract, CrossDomainHelper , Ownable {
     using SafeERC20 for IERC20;
@@ -62,15 +63,10 @@ contract DestinationContract is IDestinationContract, CrossDomainHelper , Ownabl
     */
     function addDomain(uint256 chainId, address source) external onlyOwner {
         require(chainId_childs[chainId] == address(0));
-        address childAddr = deployChildContract();
+        address childAddr = address(new DestChildContract(address(this)));
         chainId_childs[chainId] = childAddr;
         child_chainIds[childAddr] = chainId;
         sourc_chainIds[source] = chainId;
-    }
-
-    // TODO 
-    function deployChildContract() internal returns (address addr){
-        return address(0);
     }
     
     // TODO need deposit ETH 

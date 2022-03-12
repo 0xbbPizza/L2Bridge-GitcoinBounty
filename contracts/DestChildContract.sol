@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 pragma solidity 0.8.4;
+
 import "./Data.sol";
 import "./IDestChildContract.sol";
 import "./IDestinationContract.sol";
@@ -27,8 +28,8 @@ contract DestChildContract is IDestChildContract{
 
     constructor(address _routerAddress){
         routerAddress = _routerAddress;
-        forkKeysMap[0x0000000000000000000000000000000000000000000000000000000000000000][0] = forkKeyID++;
-        hashOnionForks[0] = Data.HashOnionFork(
+        forkKeysMap[0x0000000000000000000000000000000000000000000000000000000000000000][0] = ++forkKeyID;
+        hashOnionForks[1] = Data.HashOnionFork(
                 0x0000000000000000000000000000000000000000000000000000000000000000,
                 0x0000000000000000000000000000000000000000000000000000000000000000,
                 0,
@@ -102,9 +103,8 @@ contract DestChildContract is IDestChildContract{
         newFork.needBond = true;
 
         // storage
-        forkKeysMap[newFork.onionHead][0] = forkKeyID++;
+        forkKeysMap[newFork.onionHead][0] = ++forkKeyID;
         hashOnionForks[forkKeyID] = newFork;
-        
 
         // Locks the new committer's bond, unlocks the previous committer's bond state
         if (workFork.lastCommiterAddress != tx.origin){
@@ -201,7 +201,7 @@ contract DestChildContract is IDestChildContract{
         newFork.lastCommiterAddress = tx.origin;
 
         // storage
-        forkKeysMap[newFork.onionHead][_index] = forkKeyID++;
+        forkKeysMap[newFork.onionHead][_index] = ++forkKeyID;
         hashOnionForks[forkKeyID] = newFork;
 
         // Freeze Margin
@@ -209,7 +209,6 @@ contract DestChildContract is IDestChildContract{
     }
 
     // clearing zfork
-    // !!! how to clearing the first zfork that have no preFork
     function zbond(
         uint256 forkKeyNum,
         uint256 _preForkKeyNum, 
@@ -223,13 +222,14 @@ contract DestChildContract is IDestChildContract{
         Data.HashOnionFork memory workFork = hashOnionForks[forkKeyNum];
         
         // Judging whether this fork exists && Judging that the fork needs to be settled
-        require(workFork.needBond, "a3"); 
+        require(workFork.needBond, "a3");
         workFork.needBond = false;
 
         // Determine whether the onion of the fork has been recognized
         require(workFork.onionHead == onWorkHashOnion,"a4"); //use length
         
         Data.HashOnionFork memory preWorkFork = hashOnionForks[_preForkKeyNum];
+
         // Determine whether this fork exists
         require(preWorkFork.length > 0,"fork is null"); //use length
 

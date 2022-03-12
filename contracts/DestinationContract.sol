@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Data.sol";
 import "./IDestChildContract.sol";
-import "./DestChildContract.sol";
+// import "./DestChildContract.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
 
@@ -55,16 +55,19 @@ contract DestinationContract is IDestinationContract, CrossDomainHelper , Ownabl
     /*
         call from source 
     */
-    function bondSourceHashOnion(uint256 chainId, bytes32 hashOnion) external sourceSafe {
+    // TODO need add sourceSafe 
+    function bondSourceHashOnion(uint256 chainId, bytes32 hashOnion) external  {
         IDestChildContract(chainId_childs[chainId]).bondSourceHashOnion(hashOnion);
     }
 
     /*
         set
     */
-    function addDomain(uint256 chainId, address source) external onlyOwner {
+    function addDomain(uint256 chainId, address source , address childAddr) external onlyOwner {
         require(chainId_childs[chainId] == address(0));
-        address childAddr = address(new DestChildContract(address(this)));
+        // TODO need new architecture
+        // address childAddr = address(new DestChildContract(address(this)));
+        // address childAddr = address(0);
         chainId_childs[chainId] = childAddr;
         child_chainIds[childAddr] = chainId;
         sourc_chainIds[source] = chainId;

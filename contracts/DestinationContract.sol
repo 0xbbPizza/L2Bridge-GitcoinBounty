@@ -55,8 +55,7 @@ contract DestinationContract is IDestinationContract, CrossDomainHelper , Ownabl
     /*
         call from source 
     */
-    // TODO need add sourceSafe 
-    function bondSourceHashOnion(uint256 chainId, bytes32 hashOnion) external  {
+    function bondSourceHashOnion(uint256 chainId, bytes32 hashOnion) external sourceSafe {
         IDestChildContract(chainId_childs[chainId]).bondSourceHashOnion(hashOnion);
     }
 

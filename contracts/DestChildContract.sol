@@ -69,7 +69,7 @@ contract DestChildContract is IDestChildContract{
 
     // if fork index % ONEFORK_MAX_LENGTH == 0 
     // !!! Can be used without getting the previous fork
-    function zFork(uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external override onlyRouter{
+    function zFork(uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external override {
 
         // Take out the Fork
         Data.HashOnionFork storage workFork = hashOnionForks[forkKeyNum];
@@ -116,7 +116,7 @@ contract DestChildContract is IDestChildContract{
     }
 
     // just append
-    function claim(uint256 forkKeyNum, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external override onlyRouter{
+    function claim(uint256 forkKeyNum, uint256 _workIndex, Data.TransferData[] calldata _transferDatas,bool[] calldata _isResponds) external override {
         
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");
@@ -175,7 +175,7 @@ contract DestChildContract is IDestChildContract{
     }
 
     // if fork index % ONEFORK_MAX_LENGTH != 0
-    function mFork(bytes32 _lastOnionHead, bytes32 _lastDestOnionHead, uint8 _index , Data.TransferData calldata _transferData, bool _isRespond) external override onlyRouter {
+    function mFork(bytes32 _lastOnionHead, bytes32 _lastDestOnionHead, uint8 _index , Data.TransferData calldata _transferData, bool _isRespond) external override {
         // Determine whether tx.origin is eligible to submit
         require(IDestinationContract(routerAddress).getCommiterDeposit() == true, "a3");
 
@@ -213,7 +213,7 @@ contract DestChildContract is IDestChildContract{
         uint256 forkKeyNum,
         uint256 _preForkKeyNum, 
         Data.TransferData[] calldata _transferDatas, address[] calldata _commiters
-        ) external override onlyRouter{ 
+        ) external override { 
 
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");
@@ -270,7 +270,7 @@ contract DestChildContract is IDestChildContract{
         Data.MForkData[] calldata _mForkDatas,
         uint256 forkKeyNum,
         Data.TransferData[] calldata _transferDatas, address[] calldata _commiters
-        ) external override onlyRouter{
+        ) external override {
         
         require( _mForkDatas.length > 1, "a1");
         
@@ -348,7 +348,7 @@ contract DestChildContract is IDestChildContract{
         hashOnionForks[forkData.forkKeyNum].needBond = false;
     }
     
-    function bondSourceHashOnion(bytes32 _sourceHashOnion) external override onlyRouter{
+    function bondSourceHashOnion(bytes32 _sourceHashOnion) external override {
         if (onWorkHashOnion == "" || onWorkHashOnion == sourceHashOnion) {
             onWorkHashOnion = _sourceHashOnion;
         }
@@ -356,7 +356,7 @@ contract DestChildContract is IDestChildContract{
         // Settlement for bond
     }
 
-    function buyOneOnion(bytes32 preHashOnion,Data.TransferData calldata _transferData) external override onlyRouter{
+    function buyOneOnion(bytes32 preHashOnion,Data.TransferData calldata _transferData) external override {
         bytes32 key = keccak256(abi.encode(preHashOnion,keccak256(abi.encode(_transferData))));
         require( isRespondOnions[key], "a1");
         require( onionsAddress[key] == address(0), "a1");
@@ -365,7 +365,7 @@ contract DestChildContract is IDestChildContract{
         onionsAddress[key] = tx.origin;
     }
 
-    function buyOneFork(uint256 _forkKey, uint256 _forkId) external override onlyRouter{
+    function buyOneFork(uint256 _forkKey, uint256 _forkId) external override {
         // Unfinished hashOnions can be purchased
     }
 }   

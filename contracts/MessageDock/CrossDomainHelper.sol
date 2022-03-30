@@ -21,7 +21,6 @@ pragma solidity 0.8.4;
 
 import "./IDock_L2.sol";
 
-
 // TODO: splite CrossDomainHelper, to be sourceCrossDomainHelper and destCrossDomainHelper
 
 abstract contract CrossDomainHelper {

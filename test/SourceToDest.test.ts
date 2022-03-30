@@ -35,17 +35,32 @@ describe("source", function () {
       let amount = i*1000000000
       fakeToken.transfer(accounts[i].getAddress(),amount)
     }
+
+    // 3
+    const Raley = await ethers.getContractFactory("Relay");
+    const raley = await Raley.deploy();
+    await raley.deployed();
+    console.log("raley Address:",raley.address)
+
+    // 2
+    const Dock_Mainnet = await ethers.getContractFactory("Dock_MainNet");
+    const dock_Mainnet = await Dock_Mainnet.deploy(raley.address);
+    await dock_Mainnet.deployed();
+    console.log("dock_Mainnet Address:",dock_Mainnet.address)
+
+    // set 2 to 3 
+    raley.addDock(dock_Mainnet.address,chainId)
     
     // deploy source contract 1
     const Source = await ethers.getContractFactory("SourceContract")
-    source = await Source.deploy(fakeToken.address, accounts[0].getAddress()) //mock
+    source = await Source.deploy(fakeToken.address, dock_Mainnet.address) //mock
     await source.deployed()
     ONEFORK_MAX_LENGTH = await source.ONEFORK_MAX_LENGTH()
     console.log("sourceContract Address", source.address)
     
     // deploy dest contract 4
     const Dest = await ethers.getContractFactory("DestinationContract")
-    dest = await Dest.deploy(fakeToken.address, accounts[0].getAddress())
+    dest = await Dest.deploy(fakeToken.address, dock_Mainnet.address)
     await dest.deployed()
     console.log("destContract Address", dest.address)
 
@@ -65,7 +80,6 @@ describe("source", function () {
     users = accounts.slice(1,17)
     makers = accounts.slice(18)
     txs = []
-
   });
 
   async function getSourceHashOnion(_chainId: number) {
@@ -238,16 +252,10 @@ describe("source", function () {
 
   });
 
-  // bond hashOnion
-
   it("only zbond on dest", async function () {
-    await dest.bondSourceHashOnion(chainId,hashOnion)
+    await source.extractHashOnion(chainId)
     expect(await (await getChild(chainId)).sourceHashOnion()).to.equal(hashOnion)
     expect(await (await getChild(chainId)).onWorkHashOnion()).to.equal(hashOnion)
-    // await dest.bondSourceHashOnion(chainId,"0x003d8a08f9ede42ea05521791c51a4fda7c79781c03131deef9f90cfd5741aaa")
-    // expect(await (await getChild(chainId)).sourceHashOnion()).to.equal("0x003d8a08f9ede42ea05521791c51a4fda7c79781c03131deef9f90cfd5741aaa")
-    // expect(await (await getChild(chainId)).onWorkHashOnion()).to.equal(hashOnion)
-
 
     let sourOnion : string = ethers.constants.HashZero
     let keySourOnion  = [sourOnion]

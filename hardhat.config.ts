@@ -2,7 +2,7 @@ import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
 import * as fs from 'fs';
-// import "hardhat-gas-reporter"
+import "hardhat-gas-reporter";
 import "@nomiclabs/hardhat-etherscan"; 
 
 import * as dotenv from "dotenv";

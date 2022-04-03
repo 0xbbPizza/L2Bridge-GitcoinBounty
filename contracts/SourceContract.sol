@@ -40,13 +40,18 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable{
     // TODO realy is x = The gas cost of a bond * 1.2 / ONEFORK_MAX_LENGTH
     uint8 BASE_BIND_FEE = 0;  
 
+    // TODO sameDomainAddress , transfer token to this address , or merge source and Dest
+    address public sameDomainDestAddress;
+
     constructor(
         address _tokenAddress,
-        address _dockAddr
+        address _dockAddr,
+        address _sameDomainDestAddress
     )
         CrossDomainHelper(_dockAddr)
     {
         tokenAddress = _tokenAddress;
+        sameDomainDestAddress = _sameDomainDestAddress;
     }
 
     function addDestDomain(uint256 chainId, address destContract) external onlyOwner {
@@ -60,11 +65,13 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable{
         );
     }
 
+    
+
     function transfer(uint256 chainId, uint256 amount, uint256 fee) external payable override{
         require(chainId_Onions[chainId].destAddress != address(0));
 
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
-        IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
+        IERC20(tokenAddress).safeTransferFrom(msg.sender,sameDomainDestAddress,allAmount);
 
         chainId_Onions[chainId].hashOnion = keccak256(abi.encode(chainId_Onions[chainId].hashOnion,keccak256(abi.encode(msg.sender,amount,fee))));
         chainId_Onions[chainId].txIndex += 1;
@@ -80,7 +87,7 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable{
         require(chainId_Onions[chainId].destAddress != address(0));
 
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
-        IERC20(tokenAddress).safeTransferFrom(msg.sender,address(this),allAmount);
+        IERC20(tokenAddress).safeTransferFrom(msg.sender,sameDomainDestAddress,allAmount);
         chainId_Onions[chainId].hashOnion = keccak256(abi.encode(chainId_Onions[chainId].hashOnion,keccak256(abi.encode(dest,amount,fee))));
         chainId_Onions[chainId].txIndex += 1;
         

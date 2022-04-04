@@ -15,9 +15,8 @@ contract DestinationContract is IDestinationContract, CrossDomainHelper , Ownabl
     address tokenAddress;
 
     mapping(uint256 => address) public chainId_childs;
-
     mapping(address => uint256) public sourc_chainIds;
-
+    
     mapping(address => bool) private _commiterDeposit;   // Submitter's bond record
 
     uint256 public ONEFORK_MAX_LENGTH = 5;  // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption

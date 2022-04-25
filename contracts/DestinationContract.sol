@@ -57,9 +57,11 @@ contract DestinationContract is IDestinationContract, CrossDomainHelper , Ownabl
     /*
         set
     */
-    function addDomain(uint256 chainId, address source ) external onlyOwner {
+    // TODO change to factory function or change data struct 
+    function addDomain(uint256 chainId, address source , address dest) external onlyOwner {
         require(chainId_childs[chainId] == address(0));
-        chainId_childs[chainId] = address(new DestChildContract(address(this)));
+        chainId_childs[chainId] = dest;
+        // chainId_childs[chainId] = address(new DestChildContract(address(this)));
         sourc_chainIds[source] = chainId;
     }
     
@@ -320,6 +322,7 @@ contract DestinationContract is IDestinationContract, CrossDomainHelper , Ownabl
             */
             if(_mForkDatas[y].forkIndex == i){
                 // Determine whether the fork needs to be settled, and also determine whether the fork exists
+                // TODO
                 // checkForkData(_mForkDatas[y-1],_mForkDatas[y],preForkOnionHead,onionHead,i,chainId);
                 y += 1;
                 // !!! Calculate the reward, and reward the bond at the end, the reward fee is the number of forks * margin < margin equal to the wrongtx gaslimit overhead brought by 50 Wrongtx in this method * common gasPrice>
@@ -430,16 +433,32 @@ contract DestinationContract is IDestinationContract, CrossDomainHelper , Ownabl
 
     // deposit and 
     function depositWithOneFork (uint256 chainId , uint256 forkKeyNum) external {
-        
+        DestChildContract child = DestChildContract(chainId_childs[chainId]);
+        // fork is deposit = true
     }
     // block Depostit one fork 
     function blockDepositOneFork (uint256 chainId , uint256 forkKeyNum) external {
-        
+        // fork is block = true
     }
     // create bond token
     function creatBondToken (uint256 chainId , uint256 forkKeyNum) external {
+        
 
     }
+    function settlement (uint256 chainId , uint256 forkKeyNum) external {
+        // if fork.deposit = true and fork.isblock = false and fork.depositValidBlockNum >= nowBlockNum
+        // if token.balanceof(this) < forkAmount do creatBondToken count to self
+        // if token.balanceof(lpcontract) >= forkAmount send bondToken to lpContract , and claim token to this
+        // if token.balanceof(lpcontract) < forkAmount share token is change to bondToken
+        // do zfork , send token to user 
+        // // if token.balanceof(this) >= forkAmount  do  zfork 
+    }
+
+    function loanFromLPPool (uint256 amount) internal {
+        // send bondToken to LPPool 
+        // LPPool send real token to dest
+    }
+
     // buy bond token 
     function buyOneFork(uint256 chainId, uint256 _forkKey, uint256 _forkId) external override {
         

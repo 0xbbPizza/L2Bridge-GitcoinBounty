@@ -33,7 +33,7 @@ describe("sourceToDest", function () {
     // set account token amount
     for (let i = 1 ; i < accounts.length ; i++){
       let amount = i*1000000000
-      fakeToken.transfer(accounts[i].getAddress(),amount)
+      await fakeToken.transfer(await accounts[i].getAddress(),amount)
     }
 
     // 3
@@ -70,8 +70,7 @@ describe("sourceToDest", function () {
     console.log("sourceContract Address", source.address)
 
     // add 1 to 4 
-    await dest.addDomain(chainId, source.address)
-    // console.log(await await child.hashOnionForks(1))
+    await dest.addDomain(chainId, source.address, child.address)
 
     // add 4 to 1
     await source.addDestDomain(chainId, dest.address)
@@ -80,7 +79,7 @@ describe("sourceToDest", function () {
     users = accounts.slice(1,17)
     makers = accounts.slice(18)
     txs = []
-  });
+  }).timeout(10000);
 
   async function getSourceHashOnion(_chainId: number) {
     let domainStruct = await source.chainId_Onions(_chainId);
@@ -285,8 +284,8 @@ describe("sourceToDest", function () {
     // await fakeToken.transfer(dest.address,sourceAmount)
     // expect(await fakeToken.balanceOf(dest.address)).to.equal(sourceAmount)
     // expect(await fakeToken.balanceOf(accounts[0].getAddress())).to.equal(bonderAmount.sub(sourceAmount))
-    console.log(await fakeToken.balanceOf(accounts[0].getAddress()))
-    console.log(await fakeToken.balanceOf(dest.address))
+    // console.log(await fakeToken.balanceOf(accounts[0].getAddress()))
+    // console.log(await fakeToken.balanceOf(dest.address))
 
     for (let i = keySourOnion.length-1; i > 0; i--){
       let x = (i-1) * ONEFORK_MAX_LENGTH
@@ -307,5 +306,32 @@ describe("sourceToDest", function () {
     expect(await fakeToken.balanceOf(dest.address)).to.equal(0)
     // expect(await fakeToken.balanceOf(accounts[0].getAddress())).to.equal(bonderAmount.sub(sourceAmount))
   });
+
+  // it("depositWithOneFork" async function () {
+  //   let waitBuyForkID = []
+  //   let waitBuyFork = []
+
+  //   // choice one fork 
+  //   for (let i = 0; i < 10; i++){
+  //     let fork = await getDestFork(chainId, forkKey, 0)
+  //     if (!fork.hadBuy) {
+  //       waitBuyForkID.push(i)
+  //       waitBuyFork.push(fork)
+  //     }
+  //   }
+
+  //   // math how many amount need deposit
+  //   let depositAmount = fork.allAmount + dest.minDepositFundRate();
+  //   if (depositAmount > dest.maxDepositsFunds){
+  //     depositAmount = dest.maxDepositsFunds
+  //   }
+
+  //   await fakeToken.connect(users[1]).approve(dest.address,depositAmount)
+
+  //   // call depositWtihOneFork 
+  //   await dest.depositWithOneFork( chainId, waitBuyForkID[0])
+
+  //   // check deposit is ok ?
+  // })
 
 });

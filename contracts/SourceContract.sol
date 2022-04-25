@@ -68,7 +68,7 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable{
     
 
     function transfer(uint256 chainId, uint256 amount, uint256 fee) external payable override{
-        require(chainId_Onions[chainId].destAddress != address(0));
+        // require(chainId_Onions[chainId].destAddress != address(0));
 
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(msg.sender,sameDomainDestAddress,allAmount);

@@ -18,9 +18,9 @@ library Data {
     struct HashOnionFork{
         bytes32 onionHead;
         bytes32 destOnionHead;
-        uint256 allAmount;
-        uint256 length;  
-        address lastCommiterAddress;
+        uint256 allAmount;      // can delete
+        uint256 length;         // can add new length to mean needBond
+        address lastCommiterAddress;  // can storage by uint256 ID
         bool needBond; // true is need to settle 
     }
     

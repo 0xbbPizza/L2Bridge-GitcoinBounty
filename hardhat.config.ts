@@ -94,7 +94,7 @@ export default {
     currency: 'USD',
     gasPrice: 21,
     enabled: (process.env.REPORT_GAS) ? true : false
-  }
+  },
   networks: {
     localhost: {
       url: 'http://localhost:8545',

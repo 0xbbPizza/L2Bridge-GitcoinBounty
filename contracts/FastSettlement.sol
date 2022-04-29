@@ -35,6 +35,6 @@ abstract contract FastSettlement {
     function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId) internal view virtual;
 
     function crossDomainMassage(address _destAddress, uint256 _destChainID, bytes memory _destMassage) internal {
-        IDock_L2(dockAddr).callOtherDomainFunction(_destAddress, _destChainID, _destMassage);
+        // IDock_L2(dockAddr).callOtherDomainFunction(_destAddress, _destChainID, _destMassage);
     }
 }

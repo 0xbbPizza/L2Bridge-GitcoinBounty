@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 
 contract NewDestinationContract {
     using HashOnions for mapping(uint256 => HashOnions.Info);
-    // using Fork for mapping(bytes32 => Fork.Info);
+    using Fork for mapping(bytes32 => Fork.Info);
 
     mapping(bytes32 => Fork.Info) public hashOnionForks;
     mapping(uint256 => HashOnions.Info) public hashOnions;

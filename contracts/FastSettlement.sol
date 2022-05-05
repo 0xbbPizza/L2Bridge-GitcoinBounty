@@ -16,25 +16,27 @@
  * limitations under the License.
  */
 
-
 pragma solidity 0.8.4;
 
-
 abstract contract FastSettlement {
-
     address public immutable tokenAddress;
     mapping(uint256 => bool) internal isSettlement;
     mapping(uint256 => address) internal lenter;
-    
-    constructor(
-        address _tokenAddress
-    ){
+
+    constructor(address _tokenAddress) {
         tokenAddress = _tokenAddress;
     }
 
-    function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId) internal view virtual;
+    function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId)
+        internal
+        view
+        virtual;
 
-    function crossDomainMassage(address _destAddress, uint256 _destChainID, bytes memory _destMassage) internal {
+    function crossDomainMassage(
+        address _destAddress,
+        uint256 _destChainID,
+        bytes memory _destMassage
+    ) internal {
         // IDock_L2(dockAddr).callOtherDomainFunction(_destAddress, _destChainID, _destMassage);
     }
 }

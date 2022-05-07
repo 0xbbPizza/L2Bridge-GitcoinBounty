@@ -11,8 +11,18 @@ contract NewDestinationContract {
     mapping(bytes32 => address) public onionsAddress;
     mapping(address => bool) private commiterDeposit;
 
-    uint256 public ONEFORK_MAX_LENGTH = 5; // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
-    uint256 DEPOSIT_AMOUNT = 1 * 10**18; // !!! The final value is 2 * 10**17
+    // uint256 public ONEFORK_MAX_LENGTH = 5; // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
+    // uint256 DEPOSIT_AMOUNT = 1 * 10**18; // !!! The final value is 2 * 10**17
+
+    function _oneforkMaxLength() internal pure returns (uint8) {
+        // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
+        return 5;
+    }
+
+    function _depositAmount() internal pure returns (uint256) {
+        // !!! The final value is 2 * 10**17
+        return 10**18;
+    }
 }
 
 library HashOnions {

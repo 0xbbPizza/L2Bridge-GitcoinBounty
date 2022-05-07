@@ -37,19 +37,19 @@ describe("sourceToDest", function () {
     }
 
     // 3
-    const Raley = await ethers.getContractFactory("Relay");
-    const raley = await Raley.deploy();
-    await raley.deployed();
-    console.log("raley Address:", raley.address);
+    const Relay = await ethers.getContractFactory("Relay");
+    const relay = await Relay.deploy();
+    await relay.deployed();
+    console.log("relay Address:", relay.address);
 
     // 2
     const Dock_Mainnet = await ethers.getContractFactory("Dock_MainNet");
-    const dock_Mainnet = await Dock_Mainnet.deploy(raley.address);
+    const dock_Mainnet = await Dock_Mainnet.deploy(relay.address);
     await dock_Mainnet.deployed();
     console.log("dock_Mainnet Address:", dock_Mainnet.address);
 
     // set 2 to 3
-    raley.addDock(dock_Mainnet.address, chainId);
+    relay.addDock(dock_Mainnet.address, chainId);
 
     // deploy dest contract 4
     const Dest = await ethers.getContractFactory("DestinationContract");
@@ -97,7 +97,7 @@ describe("sourceToDest", function () {
   ) {
     let childAddress = await dest.chainId_childs(_chainId);
     let Child = await ethers.getContractFactory("DestChildContract");
-    const child = await Child.attach(childAddress);
+    const child = Child.attach(childAddress);
     return await child.forkKeysMap(_destOnion, _index);
   }
 
@@ -108,7 +108,7 @@ describe("sourceToDest", function () {
   ) {
     let childAddress = await dest.chainId_childs(_chainId);
     let Child = await ethers.getContractFactory("DestChildContract");
-    const child = await Child.attach(childAddress);
+    const child = Child.attach(childAddress);
     let forkIndex = await child.forkKeysMap(_destOnion, _index);
     // console.log(_destOnion, _index, forkIndex);
     return await child.hashOnionForks(forkIndex);
@@ -117,7 +117,7 @@ describe("sourceToDest", function () {
   async function getChild(_chainId: number) {
     let childAddress = await dest.chainId_childs(_chainId);
     let Child = await ethers.getContractFactory("DestChildContract");
-    const child = await Child.attach(childAddress);
+    const child = Child.attach(childAddress);
 
     return child;
   }
@@ -157,24 +157,24 @@ describe("sourceToDest", function () {
 
   it("transferWithDest on SourceContract, change hashOnion", async function () {
     let user = users[2];
-    let allAmount = await fakeToken.balanceOf(user.getAddress());
+    let allAmount = await fakeToken.balanceOf(await user.getAddress());
     let fee = BigNumber.from(10000);
     let amount = allAmount.sub(fee);
-    let userAddress = await users[2].getAddress();
-    let userAddress2 = await users[3].getAddress();
+    let userAddress = await user.getAddress();
+    let userAddress3 = await users[3].getAddress();
 
     sourceAmount = sourceAmount.add(allAmount);
 
     await fakeToken.connect(user).approve(source.address, allAmount);
     await source
       .connect(user)
-      .transferWithDest(chainId, userAddress2, amount, fee);
+      .transferWithDest(chainId, userAddress3, amount, fee);
     expect(await fakeToken.balanceOf(userAddress)).to.equal(0);
     expect(await fakeToken.balanceOf(dest.address)).to.equal(sourceAmount);
 
-    let txABI = await ethers.utils.defaultAbiCoder.encode(
+    let txABI = ethers.utils.defaultAbiCoder.encode(
       ["address", "uint", "uint"],
-      [userAddress2, amount, fee]
+      [userAddress3, amount, fee]
     );
     let txHash = ethers.utils.keccak256(txABI);
     let onionABI = ethers.utils.defaultAbiCoder.encode(
@@ -184,7 +184,7 @@ describe("sourceToDest", function () {
     hashOnion = ethers.utils.keccak256(onionABI);
 
     expect(await getSourceHashOnion(chainId)).to.equal(hashOnion);
-    txs.push([userAddress2, amount, fee]);
+    txs.push([userAddress3, amount, fee]);
   });
 
   it("creat long hashOnion on SourceContract", async function () {
@@ -208,7 +208,7 @@ describe("sourceToDest", function () {
       expect(await fakeToken.balanceOf(userAddress)).to.equal(0);
       expect(await fakeToken.balanceOf(dest.address)).to.equal(sourceAmount);
 
-      let txABI = await ethers.utils.defaultAbiCoder.encode(
+      let txABI = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint", "uint"],
         [userAddress, amount, fee]
       );
@@ -238,7 +238,7 @@ describe("sourceToDest", function () {
     let destOnion: string = ethers.constants.HashZero;
 
     for (let i = 0; i < txs.length; i++) {
-      let txABI = await ethers.utils.defaultAbiCoder.encode(
+      let txABI = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint", "uint"],
         txs[i]
       );
@@ -318,7 +318,7 @@ describe("sourceToDest", function () {
     let commitAddresslist = [];
 
     for (let i = 0; i < txs.length; i++) {
-      let txABI = await ethers.utils.defaultAbiCoder.encode(
+      let txABI = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint", "uint"],
         txs[i]
       );

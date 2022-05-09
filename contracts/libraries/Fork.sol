@@ -21,7 +21,7 @@ contract NewDestinationContract {
 
     function _depositAmount() internal pure returns (uint256) {
         // !!! The final value is 2 * 10**17
-        return 10**18;
+        return 1 * 10**18;
     }
 }
 

@@ -2,8 +2,6 @@
 
 pragma solidity 0.8.4;
 
-import "./libraries/Fork.sol";
-
 // contract NewDestination {
 //     using HashOnions for mapping(uint256 => HashOnions.Info);
 //     using Fork for mapping(bytes32 => Fork.Info);
@@ -17,9 +15,10 @@ import "./libraries/Fork.sol";
 //     uint256 public immutable DEPOSIT_AMOUNT = 1 * 10**18; // !!! The final value is 2 * 10**17
 // }
 
+import "./libraries/Data.sol";
+import "./libraries/Fork.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./libraries/Data.sol";
 import "./DestChildContract.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
@@ -411,7 +410,7 @@ contract NewDestination is
 
         // repeat
         for (uint256 i; i < _transferDatas.length; i++) {
-            bytes32 preForkOnionHead = onionHead;
+            // bytes32 preForkOnionHead = onionHead;
             onionHead = keccak256(
                 abi.encode(onionHead, keccak256(abi.encode(_transferDatas[i])))
             );

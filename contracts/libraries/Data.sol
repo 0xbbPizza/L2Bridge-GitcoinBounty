@@ -15,6 +15,7 @@ library Data {
         bytes32[] wrongtxHash;
     }
 
+    // Deprecated, move to Fork.Info
     struct HashOnionFork {
         bytes32 onionHead;
         bytes32 destOnionHead;

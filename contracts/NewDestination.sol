@@ -19,7 +19,7 @@ import "./libraries/Fork.sol";
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./Data.sol";
+import "./libraries/Data.sol";
 import "./DestChildContract.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
@@ -38,8 +38,8 @@ contract NewDestination is
 
     mapping(address => bool) private _commiterDeposit; // Submitter's bond record
 
-    uint256 public ONEFORK_MAX_LENGTH = 5; // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
-    uint256 DEPOSIT_AMOUNT = 1 * 10**18; // !!! The final value is 2 * 10**17
+    uint256 public immutable ONEFORK_MAX_LENGTH = 5; // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
+    uint256 public immutable DEPOSIT_AMOUNT = 1 * 10**18; // !!! The final value is 2 * 10**17
 
     /*
 	1. every LP need deposit `DEPOSIT_AMOUNT` ETH, DEPOSIT_AMOUNT = OnebondGaslimit * max_fork.length * Average_gasPrice 

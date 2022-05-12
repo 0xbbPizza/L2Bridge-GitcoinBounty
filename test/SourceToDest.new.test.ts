@@ -52,7 +52,7 @@ describe("sourceToDest", function () {
     relay.addDock(dock_Mainnet.address, chainId);
 
     // deploy dest contract 4
-    const Dest = await ethers.getContractFactory("DestinationContract");
+    const Dest = await ethers.getContractFactory("NewDestination");
     dest = await Dest.deploy(fakeToken.address, dock_Mainnet.address);
     await dest.deployed();
     console.log("destContract Address", dest.address);

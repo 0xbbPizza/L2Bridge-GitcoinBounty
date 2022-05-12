@@ -2,19 +2,6 @@
 
 pragma solidity 0.8.4;
 
-// contract NewDestination {
-//     using HashOnions for mapping(uint256 => HashOnions.Info);
-//     using Fork for mapping(bytes32 => Fork.Info);
-
-//     mapping(bytes32 => Fork.Info) public hashOnionForks;
-//     mapping(uint256 => HashOnions.Info) public hashOnions;
-//     mapping(bytes32 => address) public onionsAddress;
-//     mapping(address => bool) private commiterDeposit;
-
-//     uint256 public immutable ONEFORK_MAX_LENGTH = 5; // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
-//     uint256 public immutable DEPOSIT_AMOUNT = 1 * 10**18; // !!! The final value is 2 * 10**17
-// }
-
 import "./libraries/Data.sol";
 import "./libraries/Fork.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -23,16 +10,24 @@ import "./DestChildContract.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
 
-contract NewDestination is
-    IDestinationContract,
-    CrossDomainHelper,
-    Ownable
-{
+contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     using SafeERC20 for IERC20;
 
+    // New
+    using HashOnions for mapping(uint256 => HashOnions.Info);
+    using Fork for mapping(bytes32 => Fork.Info);
+
+    mapping(bytes32 => Fork.Info) public hashOnionForks;
+    mapping(uint256 => HashOnions.Info) public hashOnions;
+    mapping(bytes32 => address) public onionsAddress; // !!! Conflict with using zk scheme, new scheme needs to be considered when using zk
+
+    
     address tokenAddress;
 
+    // x
     mapping(uint256 => address) public chainId_childs;
+
+
     mapping(address => uint256) public sourc_chainIds;
 
     mapping(address => bool) private _commiterDeposit; // Submitter's bond record
@@ -80,6 +75,7 @@ contract NewDestination is
         set
     */
     // TODO change to factory function or change data struct
+    // x
     function addDomain(
         uint256 chainId,
         address source,
@@ -87,7 +83,6 @@ contract NewDestination is
     ) external onlyOwner {
         require(chainId_childs[chainId] == address(0));
         chainId_childs[chainId] = dest;
-        // chainId_childs[chainId] = address(new DestChildContract(address(this)));
         sourc_chainIds[source] = chainId;
     }
 
@@ -128,10 +123,11 @@ contract NewDestination is
         uint256 fee,
         bool _isRespond
     ) external override {
+        // x
         DestChildContract child = DestChildContract(chainId_childs[chainId]);
 
         // Take out the Fork
-        Data.HashOnionFork memory workFork = child.getFork(forkKeyNum);
+        Fork.Info memory workFork = child.getFork(forkKeyNum);
 
         if (_commiterDeposit[msg.sender] == false) {
             // If same commiter, don't need deposit
@@ -139,7 +135,7 @@ contract NewDestination is
         }
 
         // Create a new Fork
-        Data.HashOnionFork memory newFork;
+        Fork.Info memory newFork;
 
         // set newFork
         newFork.onionHead = keccak256(
@@ -194,7 +190,7 @@ contract NewDestination is
         DestChildContract child = DestChildContract(chainId_childs[chainId]);
 
         // positioning fork
-        Data.HashOnionFork memory workFork = child.getFork(forkKeyNum);
+        Fork.Info memory workFork = child.getFork(forkKeyNum);
 
         // Determine whether this fork exists
         require(workFork.length > 0, "fork is null"); //use length
@@ -249,7 +245,7 @@ contract NewDestination is
             _commiterDeposit[msg.sender] = false;
         }
 
-        workFork = Data.HashOnionFork({
+        workFork = Fork.Info({
             onionHead: onionHead,
             destOnionHead: destOnionHead,
             allAmount: allAmount + workFork.allAmount,
@@ -277,7 +273,7 @@ contract NewDestination is
         DestChildContract child = DestChildContract(chainId_childs[chainId]);
 
         // Create a new Fork
-        Data.HashOnionFork memory newFork;
+        Fork.Info memory newFork;
 
         // set newFork
         newFork.onionHead = keccak256(
@@ -326,7 +322,7 @@ contract NewDestination is
 
         DestChildContract child = DestChildContract(chainId_childs[chainId]);
 
-        Data.HashOnionFork memory workFork = child.getFork(forkKeyNum);
+        Fork.Info memory workFork = child.getFork(forkKeyNum);
 
         // Judging whether this fork exists && Judging that the fork needs to be settled
         require(workFork.needBond, "a3");
@@ -334,7 +330,7 @@ contract NewDestination is
         // Determine whether the onion of the fork has been recognized
         require(workFork.onionHead == child.onWorkHashOnion(), "a4"); //use length
 
-        Data.HashOnionFork memory preWorkFork = child.getFork(_preForkKeyNum);
+        Fork.Info memory preWorkFork = child.getFork(_preForkKeyNum);
 
         // Determine whether this fork exists
         require(preWorkFork.length > 0, "fork is null"); //use length
@@ -399,7 +395,7 @@ contract NewDestination is
 
         DestChildContract child = DestChildContract(chainId_childs[chainId]);
 
-        Data.HashOnionFork memory preWorkFork = child.getFork(forkKeyNum);
+        Fork.Info memory preWorkFork = child.getFork(forkKeyNum);
 
         // Determine whether this fork exists
         require(preWorkFork.length > 0, "fork is null"); //use length

@@ -19,10 +19,10 @@ library Fork {
         bool needBond; // true is need to settle
     }
 
-    function clear(mapping(uint256 => Fork.Info) storage self, uint256 forkId)
+    function remove(mapping(bytes32 => Fork.Info) storage self, bytes32 forkKey)
         internal
     {
-        delete self[forkId];
+        delete self[forkKey];
     }
 
     // function create(mapping(uint256 => Fork.Info) storage self, uint256 forkId)
@@ -31,11 +31,11 @@ library Fork {
     //     returns (Info memory forkInfo)
     // {}
 
-    function updata(mapping(uint256 => Fork.Info) storage self, uint256 forkId)
+    function updata(mapping(bytes32 => Fork.Info) storage self, bytes32 forkKey)
         internal
     {}
 
-    function creatInfoKey(
+    function createInfoKey(
         uint256 chainId,
         bytes32 hashOnion,
         uint256 index

@@ -255,7 +255,7 @@ describe("sourceToDest", function () {
       destOnion = ethers.utils.keccak256(destOnionABI);
 
       index = i % ONEFORK_MAX_LENGTH;
-      let forkIndex = await getDestForkIndex(chainId, forkKey, 0);
+      let forkIndex = await getDestForkIndex(chainId, forkKey, 0);  
 
       // console.log("forkKey = ",forkKey, "forkIndex = ", forkIndex)
       // console.log("fork = ", await getDestFork(chainId, forkKey, 0))

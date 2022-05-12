@@ -3,13 +3,14 @@
 pragma solidity 0.8.4;
 
 import "./libraries/Data.sol";
+import "./libraries/Fork.sol";
 
 // import "./IDestChildContract.sol";
 // import "./IDestinationContract.sol";
 
 contract DestChildContract {
     uint256 forkKeyID;
-    mapping(uint256 => Data.HashOnionFork) public hashOnionForks;
+    mapping(uint256 => Fork.Info) public hashOnionForks;
     mapping(bytes32 => mapping(uint256 => uint256)) public forkKeysMap; // Submitter's bond record
 
     // mapping(address => uint256) public lPBalance;
@@ -17,19 +18,23 @@ contract DestChildContract {
     mapping(bytes32 => bool) isRespondOnions; // Whether it is a Onion that is not responded to
     mapping(bytes32 => address) public onionsAddress; // !!! Conflict with using zk scheme, new scheme needs to be considered when using zk
 
+    // x Move to NewDestination.hashOnions
     bytes32 public sourceHashOnion; // Used to store the sent hash
     bytes32 public onWorkHashOnion; // Used to store settlement hash
 
+    // x
     address routerAddress;
 
+    // x
     uint256 public ONEFORK_MAX_LENGTH = 5;
 
     constructor(address _routerAddress) {
-        routerAddress = _routerAddress;
+        routerAddress = _routerAddress; // x
+
         forkKeysMap[
             0x0000000000000000000000000000000000000000000000000000000000000000
         ][0] = ++forkKeyID;
-        hashOnionForks[1] = Data.HashOnionFork(
+        hashOnionForks[1] = Fork.Info(
             0x0000000000000000000000000000000000000000000000000000000000000000,
             0x0000000000000000000000000000000000000000000000000000000000000000,
             0,
@@ -39,6 +44,7 @@ contract DestChildContract {
         );
     }
 
+    // x
     modifier onlyRouter() {
         require(msg.sender == routerAddress, "NOT_ROUTER");
         _;
@@ -47,7 +53,7 @@ contract DestChildContract {
     function getFork(uint256 forkKeyNum)
         external
         view
-        returns (Data.HashOnionFork memory fork)
+        returns (Fork.Info memory fork)
     {
         fork = hashOnionForks[forkKeyNum];
     }
@@ -60,6 +66,7 @@ contract DestChildContract {
         keyNum = forkKeysMap[key][index];
     }
 
+    // x
     function setForKeyNum(
         bytes32 key,
         uint256 index,
@@ -71,16 +78,16 @@ contract DestChildContract {
     function setFork(
         bytes32 key,
         uint256 index,
-        Data.HashOnionFork calldata fork
+        Fork.Info calldata fork
     ) external onlyRouter {
         forkKeysMap[key][index] = ++forkKeyID;
         hashOnionForks[forkKeyID] = fork;
     }
 
-    function setForkWithForkKey(
-        uint256 forkKeyNum,
-        Data.HashOnionFork calldata fork
-    ) external onlyRouter {
+    function setForkWithForkKey(uint256 forkKeyNum, Fork.Info calldata fork)
+        external
+        onlyRouter
+    {
         hashOnionForks[forkKeyNum] = fork;
     }
 

@@ -15,7 +15,7 @@ interface IDestinationContract {
 
     function zFork(
         uint256 chainId,
-        uint256 forkKeyNum,
+        bytes32 hashOnion,
         address dest,
         uint256 amount,
         uint256 fee,

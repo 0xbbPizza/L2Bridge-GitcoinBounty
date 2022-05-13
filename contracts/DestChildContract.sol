@@ -31,12 +31,10 @@ contract DestChildContract {
     constructor(address _routerAddress) {
         routerAddress = _routerAddress; // x
 
-        forkKeysMap[
-            0x0000000000000000000000000000000000000000000000000000000000000000
-        ][0] = ++forkKeyID;
+        forkKeysMap[bytes32(0)][0] = ++forkKeyID;
         hashOnionForks[1] = Fork.Info(
-            0x0000000000000000000000000000000000000000000000000000000000000000,
-            0x0000000000000000000000000000000000000000000000000000000000000000,
+            bytes32(0),
+            bytes32(0),
             0,
             ONEFORK_MAX_LENGTH,
             address(0),
@@ -50,6 +48,7 @@ contract DestChildContract {
         _;
     }
 
+    // Params: chainId, hashOnion
     function getFork(uint256 forkKeyNum)
         external
         view
@@ -58,6 +57,7 @@ contract DestChildContract {
         fork = hashOnionForks[forkKeyNum];
     }
 
+    // x
     function getForkKeyNum(bytes32 key, uint256 index)
         external
         view
@@ -75,6 +75,8 @@ contract DestChildContract {
         forkKeysMap[key][index] = keyNum;
     }
 
+    // Params: chainId, hashOnion, index, fork
+    // Remove onlyRouter
     function setFork(
         bytes32 key,
         uint256 index,
@@ -129,7 +131,6 @@ contract DestChildContract {
     }
 
     // TODO add reset function set onworkonion
-
     function buyOneFork(uint256 _forkKey, uint256 _forkId) external {
         // Unfinished hashOnions can be purchased
     }

@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./DestChildContract.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
+import "hardhat/console.sol";
 
 contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     using SafeERC20 for IERC20;
@@ -18,15 +19,14 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     using Fork for mapping(bytes32 => Fork.Info);
 
     mapping(bytes32 => Fork.Info) public hashOnionForks;
+    mapping(uint256 => mapping(bytes32 => bool)) public isRespondOnions;
     mapping(uint256 => HashOnions.Info) public hashOnions;
     mapping(bytes32 => address) public onionsAddress; // !!! Conflict with using zk scheme, new scheme needs to be considered when using zk
 
-    
     address tokenAddress;
 
     // x
     mapping(uint256 => address) public chainId_childs;
-
 
     mapping(address => uint256) public sourc_chainIds;
 
@@ -71,18 +71,21 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // Settlement for bond
     }
 
-    /*
-        set
-    */
-    // TODO change to factory function or change data struct
-    // x
-    function addDomain(
-        uint256 chainId,
-        address source,
-        address dest
-    ) external onlyOwner {
-        require(chainId_childs[chainId] == address(0));
-        chainId_childs[chainId] = dest;
+    /**
+     * Add domain. Init hashOnionForks, bind source & chainId
+     */
+    function addDomain(uint256 chainId, address source) external onlyOwner {
+        bytes32 forkKey = Fork.generateInfoKey(chainId, bytes32(0), 0);
+        require(hashOnionForks.isExist(forkKey) == false);
+
+        hashOnionForks.update(forkKey, Fork.Info(
+            bytes32(0),
+            bytes32(0),
+            0,
+            ONEFORK_MAX_LENGTH,
+            address(0),
+            false
+        ));
         sourc_chainIds[source] = chainId;
     }
 
@@ -117,17 +120,15 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // if index % ONEFORK_MAX_LENGTH == 0
     function zFork(
         uint256 chainId,
-        uint256 forkKeyNum,
+        bytes32 hashOnion,
         address dest,
         uint256 amount,
         uint256 fee,
         bool _isRespond
     ) external override {
-        // x
-        DestChildContract child = DestChildContract(chainId_childs[chainId]);
-
         // Take out the Fork
-        Fork.Info memory workFork = child.getFork(forkKeyNum);
+        bytes32 workForkKey = Fork.generateInfoKey(chainId, hashOnion, 0);
+        Fork.Info memory workFork = hashOnionForks[workForkKey];
 
         if (_commiterDeposit[msg.sender] == false) {
             // If same commiter, don't need deposit
@@ -144,8 +145,14 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
                 keccak256(abi.encode(dest, amount, fee))
             )
         );
-        // Determine whether there is a fork with newFork.destOnionHead as the key
-        require(child.getForkKeyNum(newFork.onionHead, 0) == 0, "c1");
+        bytes32 newForkKey = Fork.generateInfoKey(
+            chainId,
+            newFork.onionHead,
+            0
+        );
+
+        // Determine whether there is a fork with newForkKey
+        require(hashOnionForks.isExist(newForkKey) == false, "c1");
 
         newFork.destOnionHead = keccak256(
             abi.encode(workFork.destOnionHead, newFork.onionHead, msg.sender)
@@ -156,7 +163,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
             IERC20(tokenAddress).safeTransferFrom(msg.sender, dest, amount);
         } else {
             // !!! Whether to add the identification position of the index
-            child.setIsRepondOnion(newFork.onionHead, true);
+            isRespondOnions[chainId][newFork.onionHead] = true;
         }
 
         newFork.allAmount += amount + fee;
@@ -165,7 +172,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         newFork.needBond = true;
 
         // storage
-        child.setFork(newFork.onionHead, 0, newFork);
+        hashOnionForks.update(newForkKey, newFork);
 
         // Locks the new committer's bond, unlocks the previous committer's bond state
         if (workFork.lastCommiterAddress != msg.sender) {

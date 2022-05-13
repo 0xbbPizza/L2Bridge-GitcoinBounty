@@ -52,7 +52,7 @@ describe("sourceToDest", function () {
     relay.addDock(dock_Mainnet.address, chainId);
 
     // deploy dest contract 4
-    const Dest = await ethers.getContractFactory("DestinationContract");
+    const Dest = await ethers.getContractFactory("NewDestination");
     dest = await Dest.deploy(fakeToken.address, dock_Mainnet.address);
     await dest.deployed();
     console.log("destContract Address", dest.address);
@@ -74,7 +74,7 @@ describe("sourceToDest", function () {
     console.log("sourceContract Address", source.address);
 
     // add 1 to 4
-    await dest.addDomain(chainId, source.address, child.address);
+    await dest.addDomain(chainId, source.address);
 
     // add 4 to 1
     await source.addDestDomain(chainId, dest.address);
@@ -230,7 +230,7 @@ describe("sourceToDest", function () {
     let amount = await fakeToken.balanceOf(accounts[0].getAddress());
 
     await dest.becomeCommiter();
-    fakeToken.approve(dest.address, amount);
+    await fakeToken.approve(dest.address, amount);
 
     let forkKey = ethers.constants.HashZero;
     let index = 0;
@@ -255,7 +255,9 @@ describe("sourceToDest", function () {
       destOnion = ethers.utils.keccak256(destOnionABI);
 
       index = i % ONEFORK_MAX_LENGTH;
-      let forkIndex = await getDestForkIndex(chainId, forkKey, 0);  
+
+      // x
+      // let forkIndex = await getDestForkIndex(chainId, forkKey, 0);  
 
       // console.log("forkKey = ",forkKey, "forkIndex = ", forkIndex)
       // console.log("fork = ", await getDestFork(chainId, forkKey, 0))
@@ -263,7 +265,7 @@ describe("sourceToDest", function () {
       if (index == 0) {
         await dest.zFork(
           chainId,
-          forkIndex,
+          forkKey,
           txs[i][0],
           txs[i][1],
           txs[i][2],
@@ -273,7 +275,7 @@ describe("sourceToDest", function () {
       } else {
         await dest.claim(
           chainId,
-          forkIndex,
+          forkKey,
           index,
           [{ destination: txs[i][0], amount: txs[i][1], fee: txs[i][2] }],
           [true]
@@ -281,11 +283,6 @@ describe("sourceToDest", function () {
       }
       let fork = await getDestFork(chainId, forkKey, 0);
 
-      // console.log("forkKey = ",forkKey, "forkIndex = ", await getDestForkIndex(chainId , forkKey , 0))
-      // console.log("fork = ", await getDestFork(chainId, forkKey, 0))
-
-      // console.log("sourOnion",sourOnion)
-      // console.log("destOnion",destOnion)
       expect(fork[0]).to.equal(sourOnion);
       expect(fork[1]).to.equal(destOnion);
     }

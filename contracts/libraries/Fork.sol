@@ -19,23 +19,31 @@ library Fork {
         bool needBond; // true is need to settle
     }
 
+    function isExist(
+        mapping(bytes32 => Fork.Info) storage self,
+        bytes32 forkKey
+    ) internal view returns (bool) {
+        return self[forkKey].length > 0;
+    }
+
     function remove(mapping(bytes32 => Fork.Info) storage self, bytes32 forkKey)
         internal
     {
         delete self[forkKey];
     }
 
-    // function create(mapping(uint256 => Fork.Info) storage self, uint256 forkId)
-    //     internal
-    //     pure
-    //     returns (Info memory forkInfo)
-    // {}
+    function update(
+        mapping(bytes32 => Fork.Info) storage self,
+        bytes32 forkKey,
+        Fork.Info memory forkInfo
+    ) internal {
+        self[forkKey] = forkInfo;
+    }
 
-    function updata(mapping(bytes32 => Fork.Info) storage self, bytes32 forkKey)
-        internal
-    {}
-
-    function createInfoKey(
+    /// @param chainId Chain's id
+    /// @param hashOnion Equal to Fork.Info.onionHead
+    /// @param index Fork's index
+    function generateInfoKey(
         uint256 chainId,
         bytes32 hashOnion,
         uint256 index

@@ -110,6 +110,7 @@ describe("sourceToDest", function () {
     let Child = await ethers.getContractFactory("DestChildContract");
     const child = Child.attach(childAddress);
     let forkIndex = await child.forkKeysMap(_destOnion, _index);
+
     // console.log(_destOnion, _index, forkIndex);
     return await child.hashOnionForks(forkIndex);
   }
@@ -256,12 +257,6 @@ describe("sourceToDest", function () {
 
       index = i % ONEFORK_MAX_LENGTH;
 
-      // x
-      // let forkIndex = await getDestForkIndex(chainId, forkKey, 0);  
-
-      // console.log("forkKey = ",forkKey, "forkIndex = ", forkIndex)
-      // console.log("fork = ", await getDestFork(chainId, forkKey, 0))
-
       if (index == 0) {
         await dest.zFork(
           chainId,
@@ -281,6 +276,9 @@ describe("sourceToDest", function () {
           [true]
         );
       }
+
+      const forkKey256 = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(['', '', ''], []))
+
       let fork = await getDestFork(chainId, forkKey, 0);
 
       expect(fork[0]).to.equal(sourOnion);

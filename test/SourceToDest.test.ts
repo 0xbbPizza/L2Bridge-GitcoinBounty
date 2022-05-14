@@ -101,28 +101,6 @@ describe("sourceToDest", function () {
     return await child.forkKeysMap(_destOnion, _index);
   }
 
-  async function getDestFork(
-    _chainId: number,
-    _destOnion: string,
-    _index: number
-  ) {
-    let childAddress = await dest.chainId_childs(_chainId);
-    let Child = await ethers.getContractFactory("DestChildContract");
-    const child = Child.attach(childAddress);
-    let forkIndex = await child.forkKeysMap(_destOnion, _index);
-
-    // console.log(_destOnion, _index, forkIndex);
-    return await child.hashOnionForks(forkIndex);
-  }
-
-  async function getChild(_chainId: number) {
-    let childAddress = await dest.chainId_childs(_chainId);
-    let Child = await ethers.getContractFactory("DestChildContract");
-    const child = Child.attach(childAddress);
-
-    return child;
-  }
-
   it("transfer on SourceContract, change hashOnion", async function () {
     let amount = await fakeToken.balanceOf(users[1].getAddress());
     let fee = BigNumber.from(0);
@@ -277,15 +255,13 @@ describe("sourceToDest", function () {
         );
       }
 
-      const forkKey256 = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(['', '', ''], []))
-
-      let fork = await getDestFork(chainId, forkKey, 0);
+      const fork = await dest.getHashOnionFork(chainId, forkKey, 0);
 
       expect(fork[0]).to.equal(sourOnion);
       expect(fork[1]).to.equal(destOnion);
     }
 
-    let fork = await getDestFork(chainId, forkKey, 0);
+    const fork = await dest.getHashOnionFork(chainId, forkKey, 0);
 
     expect(fork[0]).to.equal(hashOnion);
 
@@ -298,12 +274,10 @@ describe("sourceToDest", function () {
 
   it("only zbond on dest", async function () {
     await source.extractHashOnion(chainId);
-    expect(await (await getChild(chainId)).sourceHashOnion()).to.equal(
-      hashOnion
-    );
-    expect(await (await getChild(chainId)).onWorkHashOnion()).to.equal(
-      hashOnion
-    );
+    const hashOnionInfo = await dest.getHashOnionInfo(chainId);
+    
+    expect(hashOnionInfo.sourceHashOnion).to.equal(hashOnion);
+    expect(hashOnionInfo.onWorkHashOnion).to.equal(hashOnion);
 
     let sourOnion: string = ethers.constants.HashZero;
     let keySourOnion = [sourOnion];
@@ -348,18 +322,13 @@ describe("sourceToDest", function () {
     for (let i = keySourOnion.length - 1; i > 0; i--) {
       let x = (i - 1) * ONEFORK_MAX_LENGTH;
       let y = i * ONEFORK_MAX_LENGTH;
-      let forkIndex = await getDestForkIndex(chainId, keySourOnion[i], 0);
-      let preForkIndex = await getDestForkIndex(
-        chainId,
-        keySourOnion[i - 1],
-        0
-      );
+
       // console.log(forkIndex, preForkIndex)
       // console.log(await getDestFork(chainId,keySourOnion[i-1],0))
       await dest.zbond(
         chainId,
-        forkIndex,
-        preForkIndex,
+        keySourOnion[i],
+        keySourOnion[i - 1],
         transferDatas.slice(x, y),
         commitAddresslist.slice(x, y)
       );

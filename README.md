@@ -176,7 +176,7 @@ The following settings are made in the source contract of pizza bridge. The keyP
    // true performer 
    contract DestChildContract{
    		uint256 forkKeyID;
-       mapping(uint256 => Data.HashOnionFork) public hashOnionForks;
+       mapping(uint256 => Fork.Info) public hashOnionForks;
        mapping(bytes32 => mapping(uint256 => uint256)) public forkKeysMap; 
        
        function zFork(uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external;

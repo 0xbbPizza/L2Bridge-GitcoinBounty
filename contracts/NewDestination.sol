@@ -6,29 +6,22 @@ import "./libraries/Data.sol";
 import "./libraries/Fork.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./DestChildContract.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
-import "hardhat/console.sol";
 
 contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     using SafeERC20 for IERC20;
-
-    // New
     using HashOnions for mapping(uint256 => HashOnions.Info);
     using Fork for mapping(bytes32 => Fork.Info);
 
+    address private tokenAddress;
+
     mapping(bytes32 => Fork.Info) public hashOnionForks;
-    mapping(uint256 => mapping(bytes32 => bool)) public isRespondOnions;
-    mapping(uint256 => HashOnions.Info) public hashOnions;
-    mapping(bytes32 => address) public onionsAddress; // !!! Conflict with using zk scheme, new scheme needs to be considered when using zk
+    mapping(uint256 => mapping(bytes32 => bool)) private isRespondOnions;
+    mapping(uint256 => HashOnions.Info) private hashOnions;
+    mapping(bytes32 => address) private onionsAddress; // !!! Conflict with using zk scheme, new scheme needs to be considered when using zk
 
-    address tokenAddress;
-
-    // x
-    mapping(uint256 => address) public chainId_childs;
-
-    mapping(address => uint256) public sourc_chainIds;
+    mapping(address => uint256) private source_chainIds;
 
     mapping(address => bool) private _commiterDeposit; // Submitter's bond record
 
@@ -55,20 +48,24 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         override
     {
         require(_sourChainId != 0, "ZERO_CHAINID");
-        require(sourc_chainIds[_sourceSender] == _sourChainId, "NOTAPPROVE");
+        require(source_chainIds[_sourceSender] == _sourChainId, "NOTAPPROVE");
     }
 
     /*
-        call from source 
-    */
+     * call from source
+     * TODO it is not already ok
+     */
     function bondSourceHashOnion(uint256 chainId, bytes32 hashOnion)
         external
         sourceSafe
     {
-        DestChildContract(chainId_childs[chainId]).bondSourceHashOnion(
-            hashOnion
-        );
-        // Settlement for bond
+        HashOnions.Info memory info = hashOnions[chainId];
+
+        if (info.onWorkHashOnion == "" || info.onWorkHashOnion == hashOnion) {
+            hashOnions[chainId].onWorkHashOnion = hashOnion;
+        }
+
+        hashOnions[chainId].sourceHashOnion = hashOnion;
     }
 
     /**
@@ -78,20 +75,39 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         bytes32 forkKey = Fork.generateInfoKey(chainId, bytes32(0), 0);
         require(hashOnionForks.isExist(forkKey) == false);
 
-        hashOnionForks.update(forkKey, Fork.Info(
-            bytes32(0),
-            bytes32(0),
-            0,
-            ONEFORK_MAX_LENGTH,
-            address(0),
-            false
-        ));
-        sourc_chainIds[source] = chainId;
+        hashOnionForks.update(
+            forkKey,
+            Fork.Info(
+                bytes32(0),
+                bytes32(0),
+                0,
+                ONEFORK_MAX_LENGTH,
+                address(0),
+                false
+            )
+        );
+        source_chainIds[source] = chainId;
     }
 
     // TODO need deposit ETH
     function becomeCommiter() external {
         _commiterDeposit[msg.sender] = true;
+    }
+
+    function getHashOnionFork(
+        uint256 chainId,
+        bytes32 hashOnion,
+        uint8 index
+    ) external view returns (Fork.Info memory) {
+        return hashOnionForks.findOne(chainId, hashOnion, index);
+    }
+
+    function getHashOnionInfo(uint256 chainId)
+        external
+        view
+        returns (HashOnions.Info memory)
+    {
+        return hashOnions[chainId];
     }
 
     /* 
@@ -126,37 +142,13 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         uint256 fee,
         bool _isRespond
     ) external override {
-        // Take out the Fork
-        bytes32 workForkKey = Fork.generateInfoKey(chainId, hashOnion, 0);
-        Fork.Info memory workFork = hashOnionForks[workForkKey];
+        (Fork.Info memory workFork, Fork.Info memory newFork) = hashOnionForks
+            .zFork(chainId, hashOnion, dest, amount, fee);
 
         if (_commiterDeposit[msg.sender] == false) {
             // If same commiter, don't need deposit
             require(msg.sender == workFork.lastCommiterAddress, "a2");
         }
-
-        // Create a new Fork
-        Fork.Info memory newFork;
-
-        // set newFork
-        newFork.onionHead = keccak256(
-            abi.encode(
-                workFork.onionHead,
-                keccak256(abi.encode(dest, amount, fee))
-            )
-        );
-        bytes32 newForkKey = Fork.generateInfoKey(
-            chainId,
-            newFork.onionHead,
-            0
-        );
-
-        // Determine whether there is a fork with newForkKey
-        require(hashOnionForks.isExist(newForkKey) == false, "c1");
-
-        newFork.destOnionHead = keccak256(
-            abi.encode(workFork.destOnionHead, newFork.onionHead, msg.sender)
-        );
 
         // Determine whether the maker only submits or submits and responds
         if (_isRespond) {
@@ -165,14 +157,6 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
             // !!! Whether to add the identification position of the index
             isRespondOnions[chainId][newFork.onionHead] = true;
         }
-
-        newFork.allAmount += amount + fee;
-        newFork.length = 1;
-        newFork.lastCommiterAddress = msg.sender;
-        newFork.needBond = true;
-
-        // storage
-        hashOnionForks.update(newForkKey, newFork);
 
         // Locks the new committer's bond, unlocks the previous committer's bond state
         if (workFork.lastCommiterAddress != msg.sender) {
@@ -186,7 +170,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // just deppend
     function claim(
         uint256 chainId,
-        uint256 forkKeyNum,
+        bytes32 hashOnion,
         uint256 _workIndex,
         Data.TransferData[] calldata _transferDatas,
         bool[] calldata _isResponds
@@ -194,10 +178,9 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");
 
-        DestChildContract child = DestChildContract(chainId_childs[chainId]);
-
         // positioning fork
-        Fork.Info memory workFork = child.getFork(forkKeyNum);
+        bytes32 workForkKey = Fork.generateInfoKey(chainId, hashOnion, 0);
+        Fork.Info memory workFork = hashOnionForks[workForkKey];
 
         // Determine whether this fork exists
         require(workFork.length > 0, "fork is null"); //use length
@@ -230,7 +213,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
                 );
             } else {
                 // TODO need change to transferData hash
-                child.setIsRepondOnion(onionHead, true);
+                isRespondOnions[chainId][onionHead] = true;
             }
             destOnionHead = keccak256(
                 abi.encode(destOnionHead, onionHead, msg.sender)
@@ -262,7 +245,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         });
 
         // storage
-        child.setForkWithForkKey(forkKeyNum, workFork);
+        hashOnionForks.update(workForkKey, workFork);
     }
 
     // if source index % ONEFORK_MAX_LENGTH != 0
@@ -277,8 +260,6 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // Determine whether tx.origin is eligible to submit
         require(_commiterDeposit[msg.sender] == true, "a3");
 
-        DestChildContract child = DestChildContract(chainId_childs[chainId]);
-
         // Create a new Fork
         Fork.Info memory newFork;
 
@@ -287,7 +268,12 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
             abi.encode(_lastOnionHead, keccak256(abi.encode(_transferData)))
         );
         // Determine whether there is a fork with newFork.destOnionHead as the key
-        require(child.getForkKeyNum(newFork.onionHead, _index) == 0, "c1");
+        bytes32 newForkKey = Fork.generateInfoKey(
+            chainId,
+            newFork.onionHead,
+            _index
+        );
+        require(hashOnionForks.isExist(newForkKey) == false, "c1");
 
         newFork.destOnionHead = keccak256(
             abi.encode(_lastDestOnionHead, newFork.onionHead, msg.sender)
@@ -301,7 +287,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
                 _transferData.amount
             );
         } else {
-            child.setIsRepondOnion(newFork.onionHead, true);
+            isRespondOnions[chainId][newFork.onionHead] = true;
         }
 
         newFork.allAmount += _transferData.amount + _transferData.fee;
@@ -309,7 +295,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         newFork.lastCommiterAddress = msg.sender;
 
         // storage
-        child.setFork(newFork.onionHead, _index, newFork);
+        hashOnionForks.update(newForkKey, newFork);
 
         // Freeze Margin
         _commiterDeposit[msg.sender] = false;
@@ -318,8 +304,8 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // clearing zfork
     function zbond(
         uint256 chainId,
-        uint256 forkKeyNum,
-        uint256 _preForkKeyNum,
+        bytes32 hashOnion,
+        bytes32 _preHashOnion,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
     ) external override {
@@ -327,17 +313,24 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         require(_transferDatas.length > 0, "a1");
         require(_commiters.length == _transferDatas.length, "a2");
 
-        DestChildContract child = DestChildContract(chainId_childs[chainId]);
-
-        Fork.Info memory workFork = child.getFork(forkKeyNum);
+        bytes32 workForkKey = Fork.generateInfoKey(chainId, hashOnion, 0);
+        Fork.Info memory workFork = hashOnionForks[workForkKey];
 
         // Judging whether this fork exists && Judging that the fork needs to be settled
         require(workFork.needBond, "a3");
 
         // Determine whether the onion of the fork has been recognized
-        require(workFork.onionHead == child.onWorkHashOnion(), "a4"); //use length
+        require(
+            workFork.onionHead == hashOnions[chainId].onWorkHashOnion,
+            "a4"
+        ); //use length
 
-        Fork.Info memory preWorkFork = child.getFork(_preForkKeyNum);
+        bytes32 preWorkForkKey = Fork.generateInfoKey(
+            chainId,
+            _preHashOnion,
+            0
+        );
+        Fork.Info memory preWorkFork = hashOnionForks[preWorkForkKey];
 
         // Determine whether this fork exists
         require(preWorkFork.length > 0, "fork is null"); //use length
@@ -349,8 +342,8 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
             onionHead = keccak256(
                 abi.encode(onionHead, keccak256(abi.encode(_transferDatas[i])))
             );
-            if (child.getIsRepondOnion(onionHead)) {
-                address onionAddress = child.onionsAddress(onionHead);
+            if (isRespondOnions[chainId][onionHead]) {
+                address onionAddress = onionsAddress[onionHead];
                 if (onionAddress != address(0)) {
                     IERC20(tokenAddress).safeTransfer(
                         onionAddress,
@@ -378,10 +371,14 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
 
         // storage workFork
         workFork.needBond = false;
-        child.setForkWithForkKey(forkKeyNum, workFork);
+        hashOnionForks.update(workForkKey, workFork);
 
         // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
-        child.setOnWorkHashOnion(preWorkFork.onionHead, preWorkFork.needBond);
+        this.setOnWorkHashOnion(
+            chainId,
+            preWorkFork.onionHead,
+            preWorkFork.needBond
+        );
 
         // !!! Reward bonder
     }
@@ -390,7 +387,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     function mbond(
         uint256 chainId,
         Data.MForkData[] calldata _mForkDatas,
-        uint256 forkKeyNum,
+        bytes32 hashOnion,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
     ) external override {
@@ -400,9 +397,8 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         require(_transferDatas.length == ONEFORK_MAX_LENGTH, "a1");
         require(_transferDatas.length == _commiters.length, "a2");
 
-        DestChildContract child = DestChildContract(chainId_childs[chainId]);
-
-        Fork.Info memory preWorkFork = child.getFork(forkKeyNum);
+        bytes32 preWorkForkKey = Fork.generateInfoKey(chainId, hashOnion, 0);
+        Fork.Info memory preWorkFork = hashOnionForks[preWorkForkKey];
 
         // Determine whether this fork exists
         require(preWorkFork.length > 0, "fork is null"); //use length
@@ -430,8 +426,8 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
                 y += 1;
                 // !!! Calculate the reward, and reward the bond at the end, the reward fee is the number of forks * margin < margin equal to the wrongtx gaslimit overhead brought by 50 Wrongtx in this method * common gasPrice>
             }
-            if (child.getIsRepondOnion(onionHead)) {
-                address onionAddress = child.onionsAddress(onionHead);
+            if (isRespondOnions[chainId][onionHead]) {
+                address onionAddress = onionsAddress[onionHead];
                 if (onionAddress != address(0)) {
                     IERC20(tokenAddress).safeTransfer(
                         onionAddress,
@@ -455,17 +451,22 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         }
 
         // Assert the replay result, indicating that the fork is legal
-        require(onionHead == child.onWorkHashOnion(), "a2");
+        require(onionHead == hashOnions[chainId].onWorkHashOnion, "a2");
         // Assert that the replay result is equal to the stored value of the fork, which means that the incoming _transferdatas are valid
 
-        require(
-            destOnionHead ==
-                child.getFork(_mForkDatas[y].forkKeyNum).destOnionHead,
-            "a4"
-        );
+        // TODO
+        // require(
+        //     destOnionHead ==
+        //         child.getFork(_mForkDatas[y].forkKeyNum).destOnionHead,
+        //     "a4"
+        // );
 
         // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
-        child.setOnWorkHashOnion(preWorkFork.onionHead, preWorkFork.needBond);
+        this.setOnWorkHashOnion(
+            chainId,
+            preWorkFork.onionHead,
+            preWorkFork.needBond
+        );
 
         // !!! Reward bonder
     }
@@ -484,41 +485,41 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     //     }
     // }
 
-    function checkForkData(
-        Data.MForkData calldata preForkData,
-        Data.MForkData calldata forkData,
-        bytes32 preForkOnionHead,
-        bytes32 onionHead,
-        uint256 i,
-        uint256 chainId
-    ) internal {
-        DestChildContract child = DestChildContract(chainId_childs[chainId]);
+    // function checkForkData(
+    //     Data.MForkData calldata preForkData,
+    //     Data.MForkData calldata forkData,
+    //     bytes32 preForkOnionHead,
+    //     bytes32 onionHead,
+    //     uint256 i,
+    //     uint256 chainId
+    // ) internal {
+    //     DestChildContract child = DestChildContract(chainId_childs[chainId]);
 
-        require(child.getFork(forkData.forkKeyNum).needBond == true, "b1");
-        if (i != 0) {
-            // Calculate the onionHead of the parallel fork based on the preonion and the tx of the original path
-            preForkOnionHead = keccak256(
-                abi.encode(preForkOnionHead, forkData.wrongtxHash[0])
-            );
-            // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
-            require(preForkOnionHead != onionHead, "a2");
-            // After passing, continue to calculate AFok
-            uint256 x = 1;
-            while (x < forkData.wrongtxHash.length) {
-                preForkOnionHead = keccak256(
-                    abi.encode(preForkOnionHead, forkData.wrongtxHash[x])
-                );
-                x++;
-            }
-            // Judging that the incoming _wrongTxHash is in line with the facts, avoid bond forgery AFork.nextOnion == BFork.nextOnion
-            require(
-                preForkOnionHead ==
-                    child.getFork(preForkData.forkKeyNum).onionHead
-            );
-        }
+    //     require(child.getFork(forkData.forkKeyNum).needBond == true, "b1");
+    //     if (i != 0) {
+    //         // Calculate the onionHead of the parallel fork based on the preonion and the tx of the original path
+    //         preForkOnionHead = keccak256(
+    //             abi.encode(preForkOnionHead, forkData.wrongtxHash[0])
+    //         );
+    //         // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
+    //         require(preForkOnionHead != onionHead, "a2");
+    //         // After passing, continue to calculate AFok
+    //         uint256 x = 1;
+    //         while (x < forkData.wrongtxHash.length) {
+    //             preForkOnionHead = keccak256(
+    //                 abi.encode(preForkOnionHead, forkData.wrongtxHash[x])
+    //             );
+    //             x++;
+    //         }
+    //         // Judging that the incoming _wrongTxHash is in line with the facts, avoid bond forgery AFork.nextOnion == BFork.nextOnion
+    //         require(
+    //             preForkOnionHead ==
+    //                 child.getFork(preForkData.forkKeyNum).onionHead
+    //         );
+    //     }
 
-        child.setNeedBond(forkData.forkKeyNum, false);
-    }
+    //     child.setNeedBond(forkData.forkKeyNum, false);
+    // }
 
     // function checkForkData (Data.MForkData calldata preForkData, Data.MForkData calldata forkData, bytes32 preForkOnionHead, bytes32 onionHead,uint256 i,uint256 chainId) internal {
 
@@ -548,14 +549,11 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         bytes32 preHashOnion,
         Data.TransferData calldata _transferData
     ) external override {
-        DestChildContract child = DestChildContract(chainId_childs[chainId]);
-
         bytes32 key = keccak256(
             abi.encode(preHashOnion, keccak256(abi.encode(_transferData)))
         );
-        require(child.getIsRepondOnion(key), "a1");
-        address onionAddress = child.onionsAddress(key);
-        require(onionAddress == address(0), "a1");
+        require(isRespondOnions[chainId][key], "a1");
+        require(onionsAddress[key] == address(0), "a2");
 
         IERC20(tokenAddress).safeTransferFrom(
             msg.sender,
@@ -563,7 +561,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
             _transferData.amount
         );
 
-        child.setOnionAddress(key, msg.sender);
+        onionsAddress[key] = msg.sender;
     }
 
     // max deposit block Limit
@@ -572,7 +570,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
 
     // deposit and
     function depositWithOneFork(uint256 chainId, uint256 forkKeyNum) external {
-        DestChildContract child = DestChildContract(chainId_childs[chainId]);
+        // DestChildContract child = DestChildContract(chainId_childs[chainId]);
         // fork is deposit = true
     }
 
@@ -604,4 +602,19 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         uint256 _forkKey,
         uint256 _forkId
     ) external override {}
+
+    function setOnWorkHashOnion(
+        uint256 chainId,
+        bytes32 onion,
+        bool equal
+    ) external {
+        HashOnions.Info memory info = hashOnions[chainId];
+        if (equal) {
+            info.onWorkHashOnion = onion;
+        } else {
+            // If no settlement is required, it means that the previous round of settlement is completed, and a new value is set
+            info.onWorkHashOnion = info.sourceHashOnion;
+        }
+        hashOnions[chainId] = info;
+    }
 }

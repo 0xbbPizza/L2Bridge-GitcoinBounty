@@ -24,7 +24,7 @@ interface IDestinationContract {
 
     function claim(
         uint256 chainId,
-        uint256 forkKeyNum,
+        bytes32 hashOnion,
         uint256 _workIndex,
         Data.TransferData[] calldata _transferDatas,
         bool[] calldata _isResponds
@@ -41,8 +41,8 @@ interface IDestinationContract {
 
     function zbond(
         uint256 chainId,
-        uint256 forkKeyNum,
-        uint256 _preForkKeyNum,
+        bytes32 hashOnion,
+        bytes32 _preHashOnion,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
     ) external;
@@ -50,7 +50,7 @@ interface IDestinationContract {
     function mbond(
         uint256 chainId,
         Data.MForkData[] calldata _mForkDatas,
-        uint256 forkKeyNum,
+        bytes32 hashOnion,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
     ) external;

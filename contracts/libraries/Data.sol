@@ -14,14 +14,4 @@ library Data {
         uint256 forkKeyNum;
         bytes32[] wrongtxHash;
     }
-
-    // Deprecated, move to Fork.Info
-    struct HashOnionFork {
-        bytes32 onionHead;
-        bytes32 destOnionHead;
-        uint256 allAmount; // can delete
-        uint256 length; // can add new length to mean needBond
-        address lastCommiterAddress; // can storage by uint256 ID
-        bool needBond; // true is need to settle
-    }
 }

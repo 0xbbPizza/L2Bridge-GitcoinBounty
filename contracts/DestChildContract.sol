@@ -10,11 +10,14 @@ import "./libraries/Fork.sol";
 
 contract DestChildContract {
     uint256 forkKeyID;
+
+    // x
     mapping(uint256 => Fork.Info) public hashOnionForks;
     mapping(bytes32 => mapping(uint256 => uint256)) public forkKeysMap; // Submitter's bond record
 
     // mapping(address => uint256) public lPBalance;
 
+    // x
     mapping(bytes32 => bool) isRespondOnions; // Whether it is a Onion that is not responded to
     mapping(bytes32 => address) public onionsAddress; // !!! Conflict with using zk scheme, new scheme needs to be considered when using zk
 
@@ -123,6 +126,7 @@ contract DestChildContract {
     }
 
     // TODO it is not already ok
+    // x Move to NewDestination.bondSourceHashOnion
     function bondSourceHashOnion(bytes32 _sourceHashOnion) external {
         if (onWorkHashOnion == "" || onWorkHashOnion == sourceHashOnion) {
             onWorkHashOnion = _sourceHashOnion;

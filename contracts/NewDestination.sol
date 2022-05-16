@@ -99,7 +99,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         bytes32 hashOnion,
         uint8 index
     ) external view returns (Fork.Info memory) {
-        return hashOnionForks.findOne(chainId, hashOnion, index);
+        return hashOnionForks.get(chainId, hashOnion, index);
     }
 
     function getHashOnionInfo(uint256 chainId)

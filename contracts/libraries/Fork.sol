@@ -42,7 +42,7 @@ library Fork {
         self[forkKey] = forkInfo;
     }
 
-    function findOne(
+    function get(
         mapping(bytes32 => Fork.Info) storage self,
         uint256 chainId,
         bytes32 hashOnion,

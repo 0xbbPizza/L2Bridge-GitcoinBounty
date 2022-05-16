@@ -70,8 +70,8 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
 
         chainId_Onions[chainId] = DomainStruct(
             0,
-            0x0000000000000000000000000000000000000000000000000000000000000000,
-            0x0000000000000000000000000000000000000000000000000000000000000000,
+            bytes32(0),
+            bytes32(0),
             destContract
         );
     }

@@ -98,6 +98,9 @@ export default {
     gasPrice: 21,
     enabled: process.env.REPORT_GAS ? true : false,
   },
+  mocha: {
+    timeout: 6000000
+  },
   networks: {
     mainnet: {
       url: process.env.mainnetRPC,

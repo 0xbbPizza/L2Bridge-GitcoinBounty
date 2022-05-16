@@ -90,17 +90,6 @@ describe("sourceToDest", function () {
     return domainStruct[1];
   }
 
-  async function getDestForkIndex(
-    _chainId: number,
-    _destOnion: string,
-    _index: number
-  ) {
-    let childAddress = await dest.chainId_childs(_chainId);
-    let Child = await ethers.getContractFactory("DestChildContract");
-    const child = Child.attach(childAddress);
-    return await child.forkKeysMap(_destOnion, _index);
-  }
-
   it("transfer on SourceContract, change hashOnion", async function () {
     let amount = await fakeToken.balanceOf(users[1].getAddress());
     let fee = BigNumber.from(0);
@@ -135,12 +124,12 @@ describe("sourceToDest", function () {
   });
 
   it("transferWithDest on SourceContract, change hashOnion", async function () {
-    let user = users[2];
-    let allAmount = await fakeToken.balanceOf(await user.getAddress());
-    let fee = BigNumber.from(10000);
-    let amount = allAmount.sub(fee);
-    let userAddress = await user.getAddress();
-    let userAddress3 = await users[3].getAddress();
+    const user = users[2]; 
+    const allAmount = await fakeToken.balanceOf(await user.getAddress());
+    const fee = BigNumber.from(10000);
+    const amount = allAmount.sub(fee);
+    const userAddress = await user.getAddress();
+    const userAddress3 = await users[3].getAddress();
 
     sourceAmount = sourceAmount.add(allAmount);
 
@@ -151,24 +140,24 @@ describe("sourceToDest", function () {
     expect(await fakeToken.balanceOf(userAddress)).to.equal(0);
     expect(await fakeToken.balanceOf(dest.address)).to.equal(sourceAmount);
 
-    let txABI = ethers.utils.defaultAbiCoder.encode(
+    const txEncode = ethers.utils.defaultAbiCoder.encode(
       ["address", "uint", "uint"],
       [userAddress3, amount, fee]
     );
-    let txHash = ethers.utils.keccak256(txABI);
-    let onionABI = ethers.utils.defaultAbiCoder.encode(
+    const txHash = ethers.utils.keccak256(txEncode);
+    const onionEncode = ethers.utils.defaultAbiCoder.encode(
       ["bytes32", "bytes32"],
       [hashOnion, txHash]
     );
-    hashOnion = ethers.utils.keccak256(onionABI);
+    hashOnion = ethers.utils.keccak256(onionEncode);
 
     expect(await getSourceHashOnion(chainId)).to.equal(hashOnion);
     txs.push([userAddress3, amount, fee]);
   });
 
   it("creat long hashOnion on SourceContract", async function () {
-    let user;
-    let userAddress;
+    let user: Signer;
+    let userAddress: string;
     let allAmount: BigNumber;
     let fee: BigNumber;
     let amount: BigNumber;
@@ -187,16 +176,16 @@ describe("sourceToDest", function () {
       expect(await fakeToken.balanceOf(userAddress)).to.equal(0);
       expect(await fakeToken.balanceOf(dest.address)).to.equal(sourceAmount);
 
-      let txABI = ethers.utils.defaultAbiCoder.encode(
+      const txEncode = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint", "uint"],
         [userAddress, amount, fee]
       );
-      let txHash = ethers.utils.keccak256(txABI);
-      let onionABI = ethers.utils.defaultAbiCoder.encode(
+      const txHash = ethers.utils.keccak256(txEncode);
+      const onionEncode = ethers.utils.defaultAbiCoder.encode(
         ["bytes32", "bytes32"],
         [hashOnion, txHash]
       );
-      hashOnion = ethers.utils.keccak256(onionABI);
+      hashOnion = ethers.utils.keccak256(onionEncode);
 
       expect(await getSourceHashOnion(chainId)).to.equal(hashOnion);
       txs.push([userAddress, amount, fee]);

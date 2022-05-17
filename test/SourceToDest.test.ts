@@ -57,11 +57,6 @@ describe("sourceToDest", function () {
     await dest.deployed();
     console.log("destContract Address", dest.address);
 
-    const Child = await ethers.getContractFactory("DestChildContract");
-    const child = await Child.deploy(dest.address);
-    await child.deployed();
-    console.log("childContract Address", child.address);
-
     // deploy source contract 1
     const Source = await ethers.getContractFactory("SourceContract");
     source = await Source.deploy(
@@ -84,6 +79,18 @@ describe("sourceToDest", function () {
     makers = accounts.slice(18);
     txs = [];
   });
+
+  async function pushToTxs(
+    tx: [string, BigNumber, BigNumber],
+    sourceUser?: Signer
+  ) {
+    txs.push(tx);
+
+    const sourceUserAddress = sourceUser ? await sourceUser.getAddress() : "";
+    console.log(
+      `Tx: [${tx[0]}, ${tx[1]}, ${tx[2]}]. sourceUserAddress: ${sourceUserAddress}`
+    );
+  }
 
   async function getSourceHashOnion(_chainId: number) {
     let domainStruct = await source.chainId_Onions(_chainId);
@@ -120,7 +127,7 @@ describe("sourceToDest", function () {
 
     expect(await getSourceHashOnion(chainId)).to.equal(hashOnion);
 
-    txs.push([address1, amount, fee]);
+    await pushToTxs([address1, amount, fee], users[1]);
   });
 
   it("transferWithDest on SourceContract, change hashOnion", async function () {
@@ -152,7 +159,7 @@ describe("sourceToDest", function () {
     hashOnion = ethers.utils.keccak256(onionEncode);
 
     expect(await getSourceHashOnion(chainId)).to.equal(hashOnion);
-    txs.push([userAddress3, amount, fee]);
+    await pushToTxs([userAddress3, amount, fee], user);
   });
 
   it("creat long hashOnion on SourceContract", async function () {
@@ -188,14 +195,17 @@ describe("sourceToDest", function () {
       hashOnion = ethers.utils.keccak256(onionEncode);
 
       expect(await getSourceHashOnion(chainId)).to.equal(hashOnion);
-      txs.push([userAddress, amount, fee]);
+      await pushToTxs([userAddress, amount, fee], user);
     }
   });
 
   it("only zFork and Claim on dest", async function () {
     expect(ONEFORK_MAX_LENGTH).to.equal(await dest.ONEFORK_MAX_LENGTH());
 
-    const amount = await fakeToken.balanceOf(accounts[0].getAddress());
+    const committer: Signer = accounts[0];
+    const amount: BigNumber = await fakeToken.balanceOf(
+      await committer.getAddress()
+    );
 
     await dest.becomeCommiter();
     await fakeToken.approve(dest.address, amount);
@@ -218,7 +228,7 @@ describe("sourceToDest", function () {
       sourOnion = ethers.utils.keccak256(onionEncode);
       const destOnionEncode = ethers.utils.defaultAbiCoder.encode(
         ["bytes32", "bytes32", "address"],
-        [destOnion, sourOnion, await accounts[0].getAddress()]
+        [destOnion, sourOnion, await committer.getAddress()]
       );
       destOnion = ethers.utils.keccak256(destOnionEncode);
 
@@ -239,7 +249,13 @@ describe("sourceToDest", function () {
           chainId,
           forkKey,
           index,
-          [{ destination: txs[i][0], amount: txs[i][1], fee: txs[i][2] }],
+          [
+            {
+              destination: txs[i][0],
+              amount: txs[i][1],
+              fee: txs[i][2],
+            },
+          ],
           [true]
         );
       }
@@ -268,24 +284,24 @@ describe("sourceToDest", function () {
     expect(hashOnionInfo.sourceHashOnion).to.equal(hashOnion);
     expect(hashOnionInfo.onWorkHashOnion).to.equal(hashOnion);
 
-    let sourOnion: string = ethers.constants.HashZero;
+    let sourOnion = ethers.constants.HashZero;
     let keySourOnion = [sourOnion];
 
-    let index;
+    let index: number;
     let transferDatas = [];
     let commitAddresslist = [];
 
     for (let i = 0; i < txs.length; i++) {
-      let txABI = ethers.utils.defaultAbiCoder.encode(
+      const txEncode = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint", "uint"],
         txs[i]
       );
-      let txHash = ethers.utils.keccak256(txABI);
-      let onionABI = ethers.utils.defaultAbiCoder.encode(
+      const txHash = ethers.utils.keccak256(txEncode);
+      const onionEncode = ethers.utils.defaultAbiCoder.encode(
         ["bytes32", "bytes32"],
         [sourOnion, txHash]
       );
-      sourOnion = ethers.utils.keccak256(onionABI);
+      sourOnion = ethers.utils.keccak256(onionEncode);
 
       index = i % ONEFORK_MAX_LENGTH;
       if (index == 0) {

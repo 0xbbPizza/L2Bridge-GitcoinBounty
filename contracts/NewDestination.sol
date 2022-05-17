@@ -72,20 +72,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
      * Add domain. Init hashOnionForks, bind source & chainId
      */
     function addDomain(uint256 chainId, address source) external onlyOwner {
-        bytes32 forkKey = Fork.generateInfoKey(chainId, bytes32(0), 0);
-        require(hashOnionForks.isExist(forkKey) == false);
-
-        hashOnionForks.update(
-            forkKey,
-            Fork.Info(
-                bytes32(0),
-                bytes32(0),
-                0,
-                ONEFORK_MAX_LENGTH,
-                address(0),
-                false
-            )
-        );
+        hashOnionForks.initialize(chainId, ONEFORK_MAX_LENGTH);
         source_chainIds[source] = chainId;
     }
 
@@ -143,7 +130,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         bool _isRespond
     ) external override {
         (Fork.Info memory workFork, Fork.Info memory newFork) = hashOnionForks
-            .zFork(chainId, hashOnion, dest, amount, fee);
+            .createZFork(chainId, hashOnion, dest, amount, fee);
 
         if (_commiterDeposit[msg.sender] == false) {
             // If same commiter, don't need deposit

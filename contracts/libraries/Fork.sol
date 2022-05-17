@@ -21,39 +21,40 @@ library Fork {
         bool needBond; // true is need to settle
     }
 
-    function isExist(
-        mapping(bytes32 => Fork.Info) storage self,
-        bytes32 forkKey
-    ) internal view returns (bool) {
+    function isExist(mapping(bytes32 => Info) storage self, bytes32 forkKey)
+        internal
+        view
+        returns (bool)
+    {
         return self[forkKey].length > 0;
     }
 
-    function remove(mapping(bytes32 => Fork.Info) storage self, bytes32 forkKey)
+    function remove(mapping(bytes32 => Info) storage self, bytes32 forkKey)
         internal
     {
         delete self[forkKey];
     }
 
     function update(
-        mapping(bytes32 => Fork.Info) storage self,
+        mapping(bytes32 => Info) storage self,
         bytes32 forkKey,
-        Fork.Info memory forkInfo
+        Info memory forkInfo
     ) internal {
         self[forkKey] = forkInfo;
     }
 
     function get(
-        mapping(bytes32 => Fork.Info) storage self,
+        mapping(bytes32 => Info) storage self,
         uint256 chainId,
         bytes32 hashOnion,
         uint8 index
-    ) internal view returns (Fork.Info memory) {
-        bytes32 forkKey = Fork.generateInfoKey(chainId, hashOnion, index);
+    ) internal view returns (Info memory) {
+        bytes32 forkKey = generateInfoKey(chainId, hashOnion, index);
         return self[forkKey];
     }
 
     /// @param chainId Chain's id
-    /// @param hashOnion Equal to Fork.Info.onionHead
+    /// @param hashOnion Equal to fork's first Info.onionHead
     /// @param index Fork's index
     function generateInfoKey(
         uint256 chainId,
@@ -63,20 +64,38 @@ library Fork {
         return keccak256(abi.encode(chainId, hashOnion, index));
     }
 
-    function zFork(
-        mapping(bytes32 => Fork.Info) storage self,
+    /// @param chainId Chain's id
+    /// @param maxLength OneFork max length
+    function initialize(
+        mapping(bytes32 => Info) storage self,
+        uint256 chainId,
+        uint256 maxLength
+    ) internal {
+        bytes32 forkKey = generateInfoKey(chainId, bytes32(0), 0);
+        require(isExist(self, forkKey) == false);
+
+        update(
+            self,
+            forkKey,
+            Info(bytes32(0), bytes32(0), 0, maxLength, address(0), false)
+        );
+    }
+
+    /// @param hashOnion Current work fork's hash
+    function createZFork(
+        mapping(bytes32 => Info) storage self,
         uint256 chainId,
         bytes32 hashOnion,
         address dest,
         uint256 amount,
         uint256 fee
-    ) internal returns (Fork.Info memory _workFork, Fork.Info memory _newFork) {
+    ) internal returns (Info memory _workFork, Info memory _newFork) {
         // Take out the Fork
-        bytes32 workForkKey = Fork.generateInfoKey(chainId, hashOnion, 0);
-        Fork.Info memory workFork = self[workForkKey];
+        bytes32 workForkKey = generateInfoKey(chainId, hashOnion, 0);
+        Info memory workFork = self[workForkKey];
 
         // Create a new Fork
-        Fork.Info memory newFork;
+        Info memory newFork;
 
         // set newFork
         newFork.onionHead = keccak256(
@@ -85,14 +104,10 @@ library Fork {
                 keccak256(abi.encode(dest, amount, fee))
             )
         );
-        bytes32 newForkKey = Fork.generateInfoKey(
-            chainId,
-            newFork.onionHead,
-            0
-        );
+        bytes32 newForkKey = generateInfoKey(chainId, newFork.onionHead, 0);
 
         // Determine whether there is a fork with newForkKey
-        require(Fork.isExist(self, newForkKey) == false, "c1");
+        require(isExist(self, newForkKey) == false, "c1");
 
         newFork.destOnionHead = keccak256(
             abi.encode(workFork.destOnionHead, newFork.onionHead, msg.sender)
@@ -104,7 +119,7 @@ library Fork {
         newFork.needBond = true;
 
         // storage
-        Fork.update(self, newForkKey, newFork);
+        update(self, newForkKey, newFork);
 
         _workFork = workFork;
         _newFork = newFork;

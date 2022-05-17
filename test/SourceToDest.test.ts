@@ -124,7 +124,7 @@ describe("sourceToDest", function () {
   });
 
   it("transferWithDest on SourceContract, change hashOnion", async function () {
-    const user = users[2]; 
+    const user = users[2];
     const allAmount = await fakeToken.balanceOf(await user.getAddress());
     const fee = BigNumber.from(10000);
     const amount = allAmount.sub(fee);
@@ -195,32 +195,32 @@ describe("sourceToDest", function () {
   it("only zFork and Claim on dest", async function () {
     expect(ONEFORK_MAX_LENGTH).to.equal(await dest.ONEFORK_MAX_LENGTH());
 
-    let amount = await fakeToken.balanceOf(accounts[0].getAddress());
+    const amount = await fakeToken.balanceOf(accounts[0].getAddress());
 
     await dest.becomeCommiter();
     await fakeToken.approve(dest.address, amount);
 
     let forkKey = ethers.constants.HashZero;
     let index = 0;
-    let sourOnion: string = ethers.constants.HashZero;
-    let destOnion: string = ethers.constants.HashZero;
+    let sourOnion = ethers.constants.HashZero;
+    let destOnion = ethers.constants.HashZero;
 
     for (let i = 0; i < txs.length; i++) {
-      let txABI = ethers.utils.defaultAbiCoder.encode(
+      const txEncode = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint", "uint"],
         txs[i]
       );
-      let txHash = ethers.utils.keccak256(txABI);
-      let onionABI = ethers.utils.defaultAbiCoder.encode(
+      const txHash = ethers.utils.keccak256(txEncode);
+      const onionEncode = ethers.utils.defaultAbiCoder.encode(
         ["bytes32", "bytes32"],
         [sourOnion, txHash]
       );
-      sourOnion = ethers.utils.keccak256(onionABI);
-      let destOnionABI = ethers.utils.defaultAbiCoder.encode(
+      sourOnion = ethers.utils.keccak256(onionEncode);
+      const destOnionEncode = ethers.utils.defaultAbiCoder.encode(
         ["bytes32", "bytes32", "address"],
         [destOnion, sourOnion, await accounts[0].getAddress()]
       );
-      destOnion = ethers.utils.keccak256(destOnionABI);
+      destOnion = ethers.utils.keccak256(destOnionEncode);
 
       index = i % ONEFORK_MAX_LENGTH;
 
@@ -264,7 +264,7 @@ describe("sourceToDest", function () {
   it("only zbond on dest", async function () {
     await source.extractHashOnion(chainId);
     const hashOnionInfo = await dest.getHashOnionInfo(chainId);
-    
+
     expect(hashOnionInfo.sourceHashOnion).to.equal(hashOnion);
     expect(hashOnionInfo.onWorkHashOnion).to.equal(hashOnion);
 

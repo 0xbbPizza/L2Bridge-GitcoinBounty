@@ -472,33 +472,30 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         uint256 i,
         uint256 chainId
     ) internal {
-        DestChildContract child = DestChildContract(chainId_childs[chainId]);
-
-        require(child.getFork(forkData.forkKeyNum).needBond == true, "b1");
-
-        if (i != 0) {
-            // Calculate the onionHead of the parallel fork based on the preonion and the tx of the original path
-            preForkOnionHead = keccak256(
-                abi.encode(preForkOnionHead, forkData.wrongtxHash[0])
-            );
-            // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
-            require(preForkOnionHead != onionHead, "a2");
-            // After passing, continue to calculate AFok
-            uint256 x = 1;
-            while (x < forkData.wrongtxHash.length) {
-                preForkOnionHead = keccak256(
-                    abi.encode(preForkOnionHead, forkData.wrongtxHash[x])
-                );
-                x++;
-            }
-            // Judging that the incoming _wrongTxHash is in line with the facts, avoid bond forgery AFork.nextOnion == BFork.nextOnion
-            require(
-                preForkOnionHead ==
-                    child.getFork(preForkData.forkKeyNum).onionHead
-            );
-        }
-
-        child.setNeedBond(forkData.forkKeyNum, false);
+        // DestChildContract child = DestChildContract(chainId_childs[chainId]);
+        // require(child.getFork(forkData.forkKeyNum).needBond == true, "b1");
+        // if (i != 0) {
+        //     // Calculate the onionHead of the parallel fork based on the preonion and the tx of the original path
+        //     preForkOnionHead = keccak256(
+        //         abi.encode(preForkOnionHead, forkData.wrongtxHash[0])
+        //     );
+        //     // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
+        //     require(preForkOnionHead != onionHead, "a2");
+        //     // After passing, continue to calculate AFok
+        //     uint256 x = 1;
+        //     while (x < forkData.wrongtxHash.length) {
+        //         preForkOnionHead = keccak256(
+        //             abi.encode(preForkOnionHead, forkData.wrongtxHash[x])
+        //         );
+        //         x++;
+        //     }
+        //     // Judging that the incoming _wrongTxHash is in line with the facts, avoid bond forgery AFork.nextOnion == BFork.nextOnion
+        //     require(
+        //         preForkOnionHead ==
+        //             child.getFork(preForkData.forkKeyNum).onionHead
+        //     );
+        // }
+        // child.setNeedBond(forkData.forkKeyNum, false);
     }
 
     function buyOneOnion(

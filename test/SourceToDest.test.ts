@@ -253,7 +253,7 @@ describe("sourceToDest", function () {
             {
               destination: txs[i][0],
               amount: txs[i][1],
-              fee: txs[i][2],
+              fee: txs[i][2].add(200),
             },
           ],
           [true]

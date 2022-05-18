@@ -285,7 +285,7 @@ describe("sourceToDest", function () {
     expect(hashOnionInfo.onWorkHashOnion).to.equal(hashOnion);
 
     let sourOnion = ethers.constants.HashZero;
-    let keySourOnion = [sourOnion];
+    let keySourOnions = [sourOnion];
 
     let index: number;
     let transferDatas = [];
@@ -305,7 +305,7 @@ describe("sourceToDest", function () {
 
       index = i % ONEFORK_MAX_LENGTH;
       if (index == 0) {
-        keySourOnion.push(sourOnion);
+        keySourOnions.push(sourOnion);
       }
 
       transferDatas.push({
@@ -324,7 +324,7 @@ describe("sourceToDest", function () {
     // console.log(await fakeToken.balanceOf(accounts[0].getAddress()))
     // console.log(await fakeToken.balanceOf(dest.address))
 
-    for (let i = keySourOnion.length - 1; i > 0; i--) {
+    for (let i = keySourOnions.length - 1; i > 0; i--) {
       let x = (i - 1) * ONEFORK_MAX_LENGTH;
       let y = i * ONEFORK_MAX_LENGTH;
 
@@ -332,8 +332,8 @@ describe("sourceToDest", function () {
       // console.log(await getDestFork(chainId,keySourOnion[i-1],0))
       await dest.zbond(
         chainId,
-        keySourOnion[i],
-        keySourOnion[i - 1],
+        keySourOnions[i],
+        keySourOnions[i - 1],
         transferDatas.slice(x, y),
         commitAddresslist.slice(x, y)
       );

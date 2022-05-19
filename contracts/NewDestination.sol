@@ -383,24 +383,23 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // incoming data length is correct
         require(_transferDatas.length == ONEFORK_MAX_LENGTH, "a1");
         require(_transferDatas.length == _commiters.length, "a2");
+        // bytes32[] memory _onionHeads;
+        // checkForkData(_mForkDatas[0], _mForkDatas[0], _onionHeads, 0, chainId);
 
-        bytes32 preWorkForkKey = Fork.generateInfoKey(chainId, hashOnion, 0);
-        Fork.Info memory preWorkFork = hashOnionForks[preWorkForkKey];
+        Fork.Info memory preWorkFork = hashOnionForks[
+            Fork.generateInfoKey(chainId, hashOnion, 0)
+        ];
 
         // Determine whether this fork exists
         require(preWorkFork.length > 0, "fork is null"); //use length
 
-        bytes32 destOnionHead = preWorkFork.destOnionHead;
-        bytes32 onionHead = preWorkFork.onionHead;
-        uint256 y = 0;
+        (bytes32[] memory onionHeads, bytes32 destOnionHead) = Fork
+            .getMbondOnionHeads(preWorkFork, _transferDatas, _commiters);
 
         // repeat
-        for (uint256 i; i < _transferDatas.length; i++) {
-            bytes32 preForkOnionHead = onionHead;
-            onionHead = keccak256(
-                abi.encode(onionHead, keccak256(abi.encode(_transferDatas[i])))
-            );
-
+        uint256 y = 0;
+        uint256 i = 0;
+        for (; i < _transferDatas.length; i++) {
             /* 
                 If this is a fork point, make two judgments
                 1. Whether the parallel fork points of the fork point are the same, if they are the same, it means that the fork point is invalid, that is, the bond is invalid. And submissions at invalid fork points will not be compensated
@@ -409,18 +408,17 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
             if (_mForkDatas[y].forkIndex == i) {
                 // Determine whether the fork needs to be settled, and also determine whether the fork exists
                 checkForkData(
+                    chainId,
                     _mForkDatas[y - 1],
                     _mForkDatas[y],
-                    preForkOnionHead,
-                    onionHead,
-                    i,
-                    chainId
+                    onionHeads,
+                    i
                 );
                 y += 1;
                 // !!! Calculate the reward, and reward the bond at the end, the reward fee is the number of forks * margin < margin equal to the wrongtx gaslimit overhead brought by 50 Wrongtx in this method * common gasPrice>
             }
-            if (isRespondOnions[chainId][onionHead]) {
-                address onionAddress = onionsAddress[onionHead];
+            if (isRespondOnions[chainId][onionHeads[i + 1]]) {
+                address onionAddress = onionsAddress[onionHeads[i + 1]];
                 if (onionAddress != address(0)) {
                     IERC20(tokenAddress).safeTransfer(
                         onionAddress,
@@ -438,13 +436,10 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
                     _transferDatas[i].amount + _transferDatas[i].fee
                 );
             }
-            destOnionHead = keccak256(
-                abi.encode(destOnionHead, onionHead, _commiters[i])
-            );
         }
 
         // Assert the replay result, indicating that the fork is legal
-        require(onionHead == hashOnions[chainId].onWorkHashOnion, "a2");
+        require(onionHeads[i] == hashOnions[chainId].onWorkHashOnion, "a2");
         // Assert that the replay result is equal to the stored value of the fork, which means that the incoming _transferdatas are valid
 
         // TODO
@@ -465,22 +460,25 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     }
 
     function checkForkData(
+        uint256 chainId,
         Data.MForkData calldata preForkData,
         Data.MForkData calldata forkData,
-        bytes32 preForkOnionHead,
-        bytes32 onionHead,
-        uint256 i,
-        uint256 chainId
+        bytes32[] memory onionHeads,
+        uint256 index
     ) internal {
+        bytes32 preForkOnionHead = onionHeads[index];
+        bytes32 onionHead = onionHeads[index + 1];
+
         // DestChildContract child = DestChildContract(chainId_childs[chainId]);
         // require(child.getFork(forkData.forkKeyNum).needBond == true, "b1");
-        // if (i != 0) {
+        // if (index != 0) {
         //     // Calculate the onionHead of the parallel fork based on the preonion and the tx of the original path
         //     preForkOnionHead = keccak256(
         //         abi.encode(preForkOnionHead, forkData.wrongtxHash[0])
         //     );
         //     // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
         //     require(preForkOnionHead != onionHead, "a2");
+            
         //     // After passing, continue to calculate AFok
         //     uint256 x = 1;
         //     while (x < forkData.wrongtxHash.length) {

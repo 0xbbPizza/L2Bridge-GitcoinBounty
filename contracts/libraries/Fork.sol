@@ -2,6 +2,7 @@
 
 pragma solidity 0.8.4;
 
+import "./Data.sol";
 import "hardhat/console.sol";
 
 library HashOnions {
@@ -125,75 +126,32 @@ library Fork {
         _newFork = newFork;
     }
 
-    function settlementMbond(
-        mapping(bytes32 => Info) storage self,
-        uint256 chainId,
+    function getMbondOnionHeads(
         Info memory preWorkFork,
-
-    ) internal {
-
-        require(_mForkDatas.length > 1, "a1");
-
-        // incoming data length is correct
-        require(_transferDatas.length == ONEFORK_MAX_LENGTH, "a1");
-        require(_transferDatas.length == _commiters.length, "a2");
-
-        bytes32 preWorkForkKey = Fork.generateInfoKey(chainId, hashOnion, 0);
-        Fork.Info memory preWorkFork = hashOnionForks[preWorkForkKey];
-
+        Data.TransferData[] calldata _transferDatas,
+        address[] calldata _commiters
+    )
+        internal
+        pure
+        returns (bytes32[] memory onionHeads, bytes32 destOnionHead)
+    {
         // Determine whether this fork exists
-        require(preWorkFork.length > 0, "fork is null"); //use length
+        require(preWorkFork.length > 0, "Fork is null"); //use length
 
-        bytes32 destOnionHead = preWorkFork.destOnionHead;
-        bytes32 onionHead = preWorkFork.onionHead;
-        uint256 y = 0;
+        destOnionHead = preWorkFork.destOnionHead;
+        onionHeads[0] = preWorkFork.onionHead;
 
         // repeat
         for (uint256 i; i < _transferDatas.length; i++) {
-            bytes32 preForkOnionHead = onionHead;
-            onionHead = keccak256(
-                abi.encode(onionHead, keccak256(abi.encode(_transferDatas[i])))
+            onionHeads[i + 1] = keccak256(
+                abi.encode(
+                    onionHeads[i],
+                    keccak256(abi.encode(_transferDatas[i]))
+                )
             );
 
-            /* 
-                If this is a fork point, make two judgments
-                1. Whether the parallel fork points of the fork point are the same, if they are the same, it means that the fork point is invalid, that is, the bond is invalid. And submissions at invalid fork points will not be compensated
-                2. Whether the headOnion of the parallel fork point can be calculated by the submission of the bond, if so, the incoming parameters of the bond are considered valid
-            */
-            if (_mForkDatas[y].forkIndex == i) {
-                // Determine whether the fork needs to be settled, and also determine whether the fork exists
-                checkForkData(
-                    _mForkDatas[y - 1],
-                    _mForkDatas[y],
-                    preForkOnionHead,
-                    onionHead,
-                    i,
-                    chainId
-                );
-                y += 1;
-                // !!! Calculate the reward, and reward the bond at the end, the reward fee is the number of forks * margin < margin equal to the wrongtx gaslimit overhead brought by 50 Wrongtx in this method * common gasPrice>
-            }
-            if (isRespondOnions[chainId][onionHead]) {
-                address onionAddress = onionsAddress[onionHead];
-                if (onionAddress != address(0)) {
-                    IERC20(tokenAddress).safeTransfer(
-                        onionAddress,
-                        _transferDatas[i].amount + _transferDatas[i].fee
-                    );
-                } else {
-                    IERC20(tokenAddress).safeTransfer(
-                        _transferDatas[i].destination,
-                        _transferDatas[i].amount + _transferDatas[i].fee
-                    );
-                }
-            } else {
-                IERC20(tokenAddress).safeTransfer(
-                    _commiters[i],
-                    _transferDatas[i].amount + _transferDatas[i].fee
-                );
-            }
             destOnionHead = keccak256(
-                abi.encode(destOnionHead, onionHead, _commiters[i])
+                abi.encode(destOnionHead, onionHeads[i + 1], _commiters[i])
             );
         }
     }

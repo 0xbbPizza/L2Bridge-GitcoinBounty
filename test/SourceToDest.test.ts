@@ -2,6 +2,7 @@ import { ethers } from "hardhat";
 import { Signer, BigNumber, Contract } from "ethers";
 // import "ethers";
 import { expect } from "chai";
+import { generateForkKey } from "./utils";
 
 describe("sourceToDest", function () {
   let accounts: Signer[];
@@ -80,18 +81,6 @@ describe("sourceToDest", function () {
     txs = [];
   });
 
-  async function pushToTxs(
-    tx: [string, BigNumber, BigNumber],
-    sourceUser?: Signer
-  ) {
-    txs.push(tx);
-
-    const sourceUserAddress = sourceUser ? await sourceUser.getAddress() : "";
-    console.log(
-      `Tx: [${tx[0]}, ${tx[1]}, ${tx[2]}]. sourceUserAddress: ${sourceUserAddress}`
-    );
-  }
-
   async function getSourceHashOnion(_chainId: number) {
     let domainStruct = await source.chainId_Onions(_chainId);
     return domainStruct[1];
@@ -127,7 +116,7 @@ describe("sourceToDest", function () {
 
     expect(await getSourceHashOnion(chainId)).to.equal(hashOnion);
 
-    await pushToTxs([address1, amount, fee], users[1]);
+    txs.push([address1, amount, fee]);
   });
 
   it("transferWithDest on SourceContract, change hashOnion", async function () {
@@ -159,7 +148,7 @@ describe("sourceToDest", function () {
     hashOnion = ethers.utils.keccak256(onionEncode);
 
     expect(await getSourceHashOnion(chainId)).to.equal(hashOnion);
-    await pushToTxs([userAddress3, amount, fee], user);
+    txs.push([userAddress3, amount, fee]);
   });
 
   it("creat long hashOnion on SourceContract", async function () {
@@ -195,11 +184,138 @@ describe("sourceToDest", function () {
       hashOnion = ethers.utils.keccak256(onionEncode);
 
       expect(await getSourceHashOnion(chainId)).to.equal(hashOnion);
-      await pushToTxs([userAddress, amount, fee], user);
+      txs.push([userAddress, amount, fee]);
     }
   });
 
   it("only zFork and Claim on dest", async function () {
+    // expect(ONEFORK_MAX_LENGTH).to.equal(await dest.ONEFORK_MAX_LENGTH());
+    // const committer: Signer = accounts[0];
+    // const amount: BigNumber = await fakeToken.balanceOf(
+    //   await committer.getAddress()
+    // );
+    // await dest.becomeCommiter();
+    // await fakeToken.approve(dest.address, amount);
+    // let forkOnion = ethers.constants.HashZero;
+    // let index = 0;
+    // let sourOnion = ethers.constants.HashZero;
+    // let destOnion = ethers.constants.HashZero;
+    // for (let i = 0; i < txs.length; i++) {
+    //   const txEncode = ethers.utils.defaultAbiCoder.encode(
+    //     ["address", "uint", "uint"],
+    //     txs[i]
+    //   );
+    //   const txHash = ethers.utils.keccak256(txEncode);
+    //   const onionEncode = ethers.utils.defaultAbiCoder.encode(
+    //     ["bytes32", "bytes32"],
+    //     [sourOnion, txHash]
+    //   );
+    //   sourOnion = ethers.utils.keccak256(onionEncode);
+    //   const destOnionEncode = ethers.utils.defaultAbiCoder.encode(
+    //     ["bytes32", "bytes32", "address"],
+    //     [destOnion, sourOnion, await committer.getAddress()]
+    //   );
+    //   destOnion = ethers.utils.keccak256(destOnionEncode);
+    //   index = i % ONEFORK_MAX_LENGTH;
+    //   if (index == 0) {
+    //     await dest.zFork(
+    //       chainId,
+    //       forkOnion,
+    //       txs[i][0],
+    //       txs[i][1],
+    //       txs[i][2],
+    //       true
+    //     );
+    //     forkOnion = sourOnion;
+    //   } else {
+    //     await dest.claim(
+    //       chainId,
+    //       forkOnion,
+    //       index,
+    //       [
+    //         {
+    //           destination: txs[i][0],
+    //           amount: txs[i][1],
+    //           fee: txs[i][2],
+    //         },
+    //       ],
+    //       [true]
+    //     );
+    //   }
+    //   const fork = await dest.getHashOnionFork(chainId, forkOnion, 0);
+    //   expect(fork[0]).to.equal(sourOnion);
+    //   expect(fork[1]).to.equal(destOnion);
+    // }
+    // const fork = await dest.getHashOnionFork(chainId, forkOnion, 0);
+    // expect(fork[0]).to.equal(hashOnion);
+    // let userAddress = await users[2].getAddress();
+    // expect(await fakeToken.balanceOf(userAddress)).to.equal(0);
+    // let userAddress2 = await users[3].getAddress();
+    // let user2Amount = txs[1][1].add(txs[2][1]);
+    // expect(await fakeToken.balanceOf(userAddress2)).to.equal(user2Amount);
+  });
+
+  it("only zbond on dest", async function () {
+    // await source.extractHashOnion(chainId);
+    // const hashOnionInfo = await dest.getHashOnionInfo(chainId);
+    // expect(hashOnionInfo.sourceHashOnion).to.equal(hashOnion);
+    // expect(hashOnionInfo.onWorkHashOnion).to.equal(hashOnion);
+    // let sourOnion = ethers.constants.HashZero;
+    // let keySourOnions = [sourOnion];
+    // let index: number;
+    // let transferDatas = [];
+    // let commitAddresslist = [];
+    // for (let i = 0; i < txs.length; i++) {
+    //   const txEncode = ethers.utils.defaultAbiCoder.encode(
+    //     ["address", "uint", "uint"],
+    //     txs[i]
+    //   );
+    //   const txHash = ethers.utils.keccak256(txEncode);
+    //   const onionEncode = ethers.utils.defaultAbiCoder.encode(
+    //     ["bytes32", "bytes32"],
+    //     [sourOnion, txHash]
+    //   );
+    //   sourOnion = ethers.utils.keccak256(onionEncode);
+    //   index = i % ONEFORK_MAX_LENGTH;
+    //   if (index == 0) {
+    //     keySourOnions.push(sourOnion);
+    //   }
+    //   transferDatas.push({
+    //     destination: txs[i][0],
+    //     amount: txs[i][1],
+    //     fee: txs[i][2],
+    //   });
+    //   commitAddresslist.push(accounts[0].getAddress());
+    // }
+    // let sourceAmount = await fakeToken.balanceOf(dest.address);
+    // let bonderAmount = await fakeToken.balanceOf(accounts[0].getAddress());
+    // // await fakeToken.transfer(dest.address,sourceAmount)
+    // // expect(await fakeToken.balanceOf(dest.address)).to.equal(sourceAmount)
+    // // expect(await fakeToken.balanceOf(accounts[0].getAddress())).to.equal(bonderAmount.sub(sourceAmount))
+    // // console.log(await fakeToken.balanceOf(accounts[0].getAddress()))
+    // // console.log(await fakeToken.balanceOf(dest.address))
+    // for (let i = keySourOnions.length - 1; i > 0; i--) {
+    //   let x = (i - 1) * ONEFORK_MAX_LENGTH;
+    //   let y = i * ONEFORK_MAX_LENGTH;
+    //   // console.log(forkIndex, preForkIndex)
+    //   // console.log(await getDestFork(chainId,keySourOnion[i-1],0))
+    //   await dest.zbond(
+    //     chainId,
+    //     keySourOnions[i],
+    //     keySourOnions[i - 1],
+    //     transferDatas.slice(x, y),
+    //     commitAddresslist.slice(x, y)
+    //   );
+    // }
+    // // console.log(await fakeToken.balanceOf(accounts[0].getAddress()))
+    // // console.log(await fakeToken.balanceOf(dest.address))
+    // // console.log(bonderAmount)
+    // // console.log(sourceAmount)
+    // expect(await fakeToken.balanceOf(dest.address)).to.equal(0);
+    // // expect(await fakeToken.balanceOf(accounts[0].getAddress())).to.equal(bonderAmount.sub(sourceAmount))
+  });
+
+  it("mFork and Claim on dest", async function () {
     expect(ONEFORK_MAX_LENGTH).to.equal(await dest.ONEFORK_MAX_LENGTH());
 
     const committer: Signer = accounts[0];
@@ -210,7 +326,7 @@ describe("sourceToDest", function () {
     await dest.becomeCommiter();
     await fakeToken.approve(dest.address, amount);
 
-    let forkKey = ethers.constants.HashZero;
+    let forkKey = generateForkKey(chainId, ethers.constants.HashZero, 0);
     let index = 0;
     let sourOnion = ethers.constants.HashZero;
     let destOnion = ethers.constants.HashZero;
@@ -243,7 +359,9 @@ describe("sourceToDest", function () {
           txs[i][2],
           true
         );
-        forkKey = sourOnion;
+        forkKey = generateForkKey(chainId, sourOnion, 0);
+      } else if (index == 3) {
+        // mFork
       } else {
         await dest.claim(
           chainId,
@@ -260,13 +378,13 @@ describe("sourceToDest", function () {
         );
       }
 
-      const fork = await dest.getHashOnionFork(chainId, forkKey, 0);
+      const fork = await dest.hashOnionForks(forkKey);
 
       expect(fork[0]).to.equal(sourOnion);
       expect(fork[1]).to.equal(destOnion);
     }
 
-    const fork = await dest.getHashOnionFork(chainId, forkKey, 0);
+    const fork = await dest.hashOnionForks(forkKey);
 
     expect(fork[0]).to.equal(hashOnion);
 
@@ -277,7 +395,7 @@ describe("sourceToDest", function () {
     expect(await fakeToken.balanceOf(userAddress2)).to.equal(user2Amount);
   });
 
-  it("only zbond on dest", async function () {
+  it("mbond on dest", async function () {
     await source.extractHashOnion(chainId);
     const hashOnionInfo = await dest.getHashOnionInfo(chainId);
 

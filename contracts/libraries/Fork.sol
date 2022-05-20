@@ -82,17 +82,16 @@ library Fork {
         );
     }
 
-    /// @param hashOnion Current work fork's hash
+    /// @param workForkKey Current work fork's key
     function createZFork(
         mapping(bytes32 => Info) storage self,
         uint256 chainId,
-        bytes32 hashOnion,
+        bytes32 workForkKey,
         address dest,
         uint256 amount,
         uint256 fee
     ) internal returns (Info memory _workFork, Info memory _newFork) {
         // Take out the Fork
-        bytes32 workForkKey = generateInfoKey(chainId, hashOnion, 0);
         Info memory workFork = self[workForkKey];
 
         // Create a new Fork

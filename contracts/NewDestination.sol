@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
+import "hardhat/console.sol";
 
 contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     using SafeERC20 for IERC20;
@@ -123,14 +124,14 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // if index % ONEFORK_MAX_LENGTH == 0
     function zFork(
         uint256 chainId,
-        bytes32 hashOnion,
+        bytes32 forkKey,
         address dest,
         uint256 amount,
         uint256 fee,
         bool _isRespond
     ) external override {
         (Fork.Info memory workFork, Fork.Info memory newFork) = hashOnionForks
-            .createZFork(chainId, hashOnion, dest, amount, fee);
+            .createZFork(chainId, forkKey, dest, amount, fee);
 
         if (_committerDeposits[msg.sender] == false) {
             // If same commiter, don't need deposit
@@ -157,7 +158,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // just deppend
     function claim(
         uint256 chainId,
-        bytes32 hashOnion,
+        bytes32 workForkKey,
         uint256 _workIndex,
         Data.TransferData[] calldata _transferDatas,
         bool[] calldata _isResponds
@@ -166,8 +167,10 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         require(_transferDatas.length > 0, "a1");
 
         // positioning fork
-        bytes32 workForkKey = Fork.generateInfoKey(chainId, hashOnion, 0);
         Fork.Info memory workFork = hashOnionForks[workForkKey];
+
+        console.log("workForkKey: ");
+        console.logBytes32(workForkKey);
 
         // Determine whether this fork exists
         require(workFork.length > 0, "fork is null"); //use length
@@ -238,6 +241,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // if source index % ONEFORK_MAX_LENGTH != 0
     function mFork(
         uint256 chainId,
+        bytes32 newForkKey,
         bytes32 _lastOnionHead,
         bytes32 _lastDestOnionHead,
         uint8 _index,
@@ -255,11 +259,6 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
             abi.encode(_lastOnionHead, keccak256(abi.encode(_transferData)))
         );
         // Determine whether there is a fork with newFork.destOnionHead as the key
-        bytes32 newForkKey = Fork.generateInfoKey(
-            chainId,
-            newFork.onionHead,
-            _index
-        );
         require(hashOnionForks.isExist(newForkKey) == false, "c1");
 
         newFork.destOnionHead = keccak256(
@@ -373,8 +372,9 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // Settlement non-zero fork
     function mbond(
         uint256 chainId,
+        bytes32 preForkHashOnion,
+        uint8 preForkIndex,
         Data.MForkData[] calldata _mForkDatas,
-        bytes32 hashOnion,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
     ) external override {
@@ -387,7 +387,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // checkForkData(_mForkDatas[0], _mForkDatas[0], _onionHeads, 0, chainId);
 
         Fork.Info memory preWorkFork = hashOnionForks[
-            Fork.generateInfoKey(chainId, hashOnion, 0)
+            Fork.generateInfoKey(chainId, preForkHashOnion, preForkIndex)
         ];
 
         // Determine whether this fork exists
@@ -478,7 +478,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         //     );
         //     // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
         //     require(preForkOnionHead != onionHead, "a2");
-            
+
         //     // After passing, continue to calculate AFok
         //     uint256 x = 1;
         //     while (x < forkData.wrongtxHash.length) {

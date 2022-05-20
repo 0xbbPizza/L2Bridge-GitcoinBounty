@@ -32,6 +32,7 @@ interface IDestinationContract {
 
     function mFork(
         uint256 chainId,
+        bytes32 newForkKey,
         bytes32 _lastOnionHead,
         bytes32 _lastDestOnionHead,
         uint8 _index,
@@ -49,8 +50,9 @@ interface IDestinationContract {
 
     function mbond(
         uint256 chainId,
+        bytes32 preForkHashOnion,
+        uint8 preForkIndex,
         Data.MForkData[] calldata _mForkDatas,
-        bytes32 hashOnion,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
     ) external;

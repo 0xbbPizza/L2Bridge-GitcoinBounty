@@ -256,11 +256,8 @@ describe("sourceToDest", function () {
 
         if (testMFork) {
           await dest.becomeCommiter();
-
-          forkKey = generateForkKey(chainId, sourOnion, index);
           await dest.mFork(
             chainId,
-            forkKey,
             sourOnion,
             destOnion,
             index,
@@ -293,11 +290,12 @@ describe("sourceToDest", function () {
               [destOnion, sourOnion, await committer.getAddress()]
             )
           );
+
+          forkKey = generateForkKey(chainId, sourOnion, index);
         }
       }
 
       const fork = await dest.hashOnionForks(forkKey);
-
       expect(fork[0]).to.equal(sourOnion);
       expect(fork[1]).to.equal(destOnion);
     }
@@ -314,11 +312,13 @@ describe("sourceToDest", function () {
     const hashOnionInfo = await dest.getHashOnionInfo(chainId);
     expect(hashOnionInfo.sourceHashOnion).to.equal(hashOnion);
     expect(hashOnionInfo.onWorkHashOnion).to.equal(hashOnion);
+
     let sourOnion = ethers.constants.HashZero;
     let keySourOnions = [sourOnion];
     let index: number;
     let transferDatas = [];
     let commitAddresslist = [];
+
     for (let i = 0; i < txs.length; i++) {
       const txEncode = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint", "uint"],
@@ -341,6 +341,7 @@ describe("sourceToDest", function () {
       });
       commitAddresslist.push(accounts[0].getAddress());
     }
+
     let sourceAmount = await fakeToken.balanceOf(dest.address);
     let bonderAmount = await fakeToken.balanceOf(accounts[0].getAddress());
     // await fakeToken.transfer(dest.address,sourceAmount)
@@ -348,6 +349,7 @@ describe("sourceToDest", function () {
     // expect(await fakeToken.balanceOf(accounts[0].getAddress())).to.equal(bonderAmount.sub(sourceAmount))
     // console.log(await fakeToken.balanceOf(accounts[0].getAddress()))
     // console.log(await fakeToken.balanceOf(dest.address))
+
     for (let i = keySourOnions.length - 1; i > 0; i--) {
       let x = (i - 1) * ONEFORK_MAX_LENGTH;
       let y = i * ONEFORK_MAX_LENGTH;
@@ -361,6 +363,7 @@ describe("sourceToDest", function () {
         commitAddresslist.slice(x, y)
       );
     }
+
     // console.log(await fakeToken.balanceOf(accounts[0].getAddress()))
     // console.log(await fakeToken.balanceOf(dest.address))
     // console.log(bonderAmount)

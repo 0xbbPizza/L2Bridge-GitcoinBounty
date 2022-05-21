@@ -50,14 +50,14 @@ library Fork {
         bytes32 hashOnion,
         uint8 index
     ) internal view returns (Info memory) {
-        bytes32 forkKey = generateInfoKey(chainId, hashOnion, index);
+        bytes32 forkKey = generateForkKey(chainId, hashOnion, index);
         return self[forkKey];
     }
 
     /// @param chainId Chain's id
     /// @param hashOnion Equal to fork's first Info.onionHead
     /// @param index Fork's index
-    function generateInfoKey(
+    function generateForkKey(
         uint256 chainId,
         bytes32 hashOnion,
         uint8 index
@@ -72,7 +72,7 @@ library Fork {
         uint256 chainId,
         uint256 maxLength
     ) internal {
-        bytes32 forkKey = generateInfoKey(chainId, bytes32(0), 0);
+        bytes32 forkKey = generateForkKey(chainId, bytes32(0), 0);
         require(isExist(self, forkKey) == false);
 
         update(
@@ -104,7 +104,7 @@ library Fork {
                 keccak256(abi.encode(dest, amount, fee))
             )
         );
-        bytes32 newForkKey = generateInfoKey(chainId, newFork.onionHead, 0);
+        bytes32 newForkKey = generateForkKey(chainId, newFork.onionHead, 0);
 
         // Determine whether there is a fork with newForkKey
         require(isExist(self, newForkKey) == false, "c1");
@@ -122,6 +122,46 @@ library Fork {
         update(self, newForkKey, newFork);
 
         _workFork = workFork;
+        _newFork = newFork;
+    }
+
+    /// @param _lastOnionHead Before wrong fork's onionHead
+    /// @param _lastDestOnionHead Before wrong fork's destOnionHead
+    function createMFork(
+        mapping(bytes32 => Info) storage self,
+        uint256 chainId,
+        bytes32 _lastOnionHead,
+        bytes32 _lastDestOnionHead,
+        uint8 _index,
+        Data.TransferData calldata _transferData
+    ) internal returns (Info memory _newFork) {
+        // Create a new Fork
+        Fork.Info memory newFork;
+
+        // set newFork
+        newFork.onionHead = keccak256(
+            abi.encode(_lastOnionHead, keccak256(abi.encode(_transferData)))
+        );
+        bytes32 newForkKey = Fork.generateForkKey(
+            chainId,
+            newFork.onionHead,
+            _index
+        );
+
+        // Determine whether there is a fork with newFork.destOnionHead as the key
+        require(isExist(self, newForkKey) == false, "c1");
+
+        newFork.destOnionHead = keccak256(
+            abi.encode(_lastDestOnionHead, newFork.onionHead, msg.sender)
+        );
+
+        newFork.allAmount += _transferData.amount + _transferData.fee;
+        newFork.length = _index + 1;
+        newFork.lastCommiterAddress = msg.sender;
+
+        // storage
+        update(self, newForkKey, newFork);
+
         _newFork = newFork;
     }
 

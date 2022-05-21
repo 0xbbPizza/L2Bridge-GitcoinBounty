@@ -124,14 +124,14 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // if index % ONEFORK_MAX_LENGTH == 0
     function zFork(
         uint256 chainId,
-        bytes32 forkKey,
+        bytes32 workForkKey,
         address dest,
         uint256 amount,
         uint256 fee,
         bool _isRespond
     ) external override {
         (Fork.Info memory workFork, Fork.Info memory newFork) = hashOnionForks
-            .createZFork(chainId, forkKey, dest, amount, fee);
+            .createZFork(chainId, workForkKey, dest, amount, fee);
 
         if (_committerDeposits[msg.sender] == false) {
             // If same commiter, don't need deposit
@@ -238,7 +238,6 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // if source index % ONEFORK_MAX_LENGTH != 0
     function mFork(
         uint256 chainId,
-        bytes32 newForkKey,
         bytes32 _lastOnionHead,
         bytes32 _lastDestOnionHead,
         uint8 _index,
@@ -248,19 +247,12 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // Determine whether tx.origin is eligible to submit
         require(_committerDeposits[msg.sender] == true, "a3");
 
-        // Create a new Fork
-        Fork.Info memory newFork;
-
-        // set newFork
-        newFork.onionHead = keccak256(
-            abi.encode(_lastOnionHead, keccak256(abi.encode(_transferData)))
-        );
-
-        // Determine whether there is a fork with newFork.destOnionHead as the key
-        require(hashOnionForks.isExist(newForkKey) == false, "c1");
-
-        newFork.destOnionHead = keccak256(
-            abi.encode(_lastDestOnionHead, newFork.onionHead, msg.sender)
+        Fork.Info memory newFork = hashOnionForks.createMFork(
+            chainId,
+            _lastOnionHead,
+            _lastDestOnionHead,
+            _index,
+            _transferData
         );
 
         // Determine whether the maker only submits or submits and also responds, so as to avoid the large amount of unresponsiveness of the maker and block subsequent commints
@@ -273,13 +265,6 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         } else {
             isRespondOnions[chainId][newFork.onionHead] = true;
         }
-
-        newFork.allAmount += _transferData.amount + _transferData.fee;
-        newFork.length = _index + 1;
-        newFork.lastCommiterAddress = msg.sender;
-
-        // storage
-        hashOnionForks.update(newForkKey, newFork);
 
         // Freeze Margin
         _committerDeposits[msg.sender] = false;
@@ -297,7 +282,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         require(_transferDatas.length > 0, "a1");
         require(_commiters.length == _transferDatas.length, "a2");
 
-        bytes32 workForkKey = Fork.generateInfoKey(chainId, hashOnion, 0);
+        bytes32 workForkKey = Fork.generateForkKey(chainId, hashOnion, 0);
         Fork.Info memory workFork = hashOnionForks[workForkKey];
 
         // Judging whether this fork exists && Judging that the fork needs to be settled
@@ -309,7 +294,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
             "a4"
         ); //use length
 
-        bytes32 preWorkForkKey = Fork.generateInfoKey(
+        bytes32 preWorkForkKey = Fork.generateForkKey(
             chainId,
             _preHashOnion,
             0
@@ -385,7 +370,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // checkForkData(_mForkDatas[0], _mForkDatas[0], _onionHeads, 0, chainId);
 
         Fork.Info memory preWorkFork = hashOnionForks[
-            Fork.generateInfoKey(chainId, preForkHashOnion, preForkIndex)
+            Fork.generateForkKey(chainId, preForkHashOnion, preForkIndex)
         ];
 
         // Determine whether this fork exists

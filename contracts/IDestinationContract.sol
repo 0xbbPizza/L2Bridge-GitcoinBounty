@@ -32,7 +32,6 @@ interface IDestinationContract {
 
     function mFork(
         uint256 chainId,
-        bytes32 newForkKey,
         bytes32 _lastOnionHead,
         bytes32 _lastDestOnionHead,
         uint8 _index,

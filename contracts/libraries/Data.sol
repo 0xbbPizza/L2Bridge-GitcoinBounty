@@ -10,8 +10,8 @@ library Data {
     }
 
     struct MForkData {
-        uint256 forkIndex;
-        uint256 forkKeyNum;
+        uint8 forkIndex;
+        bytes32 forkKey;
         bytes32[] wrongtxHash;
     }
 }

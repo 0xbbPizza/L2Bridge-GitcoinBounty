@@ -169,9 +169,6 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // positioning fork
         Fork.Info memory workFork = hashOnionForks[workForkKey];
 
-        console.log("workForkKey: ");
-        console.logBytes32(workForkKey);
-
         // Determine whether this fork exists
         require(workFork.length > 0, "fork is null"); //use length
 
@@ -258,6 +255,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         newFork.onionHead = keccak256(
             abi.encode(_lastOnionHead, keccak256(abi.encode(_transferData)))
         );
+
         // Determine whether there is a fork with newFork.destOnionHead as the key
         require(hashOnionForks.isExist(newForkKey) == false, "c1");
 
@@ -277,7 +275,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         }
 
         newFork.allAmount += _transferData.amount + _transferData.fee;
-        newFork.length = _index;
+        newFork.length = _index + 1;
         newFork.lastCommiterAddress = msg.sender;
 
         // storage

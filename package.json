@@ -27,6 +27,7 @@
   },
   "scripts": {
     "start": "SET NODE_ENV=dev && node server.js",
-    "test:std": "hardhat test ./test/SourceToDest.test.ts"
+    "test:std": "hardhat test ./test/SourceToDest.test.ts",
+    "test:std_mfork": "hardhat test ./test/SourceToDestMFork.test.ts"
   }
 }

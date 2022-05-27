@@ -49,8 +49,7 @@ interface IDestinationContract {
 
     function mbond(
         uint256 chainId,
-        bytes32 preForkHashOnion,
-        uint8 preForkIndex,
+        bytes32 preWorkForkKey,
         Data.MForkData[] calldata _mForkDatas,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters

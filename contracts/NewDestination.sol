@@ -355,8 +355,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // Settlement non-zero fork
     function mbond(
         uint256 chainId,
-        bytes32 preForkHashOnion,
-        uint8 preForkIndex,
+        bytes32 preWorkForkKey,
         Data.MForkData[] calldata _mForkDatas,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
@@ -369,9 +368,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // bytes32[] memory _onionHeads;
         // checkForkData(_mForkDatas[0], _mForkDatas[0], _onionHeads, 0, chainId);
 
-        Fork.Info memory preWorkFork = hashOnionForks[
-            Fork.generateForkKey(chainId, preForkHashOnion, preForkIndex)
-        ];
+        Fork.Info memory preWorkFork = hashOnionForks[preWorkForkKey];
 
         // Determine whether this fork exists
         require(preWorkFork.length > 0, "fork is null"); //use length
@@ -388,18 +385,18 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
                 1. Whether the parallel fork points of the fork point are the same, if they are the same, it means that the fork point is invalid, that is, the bond is invalid. And submissions at invalid fork points will not be compensated
                 2. Whether the headOnion of the parallel fork point can be calculated by the submission of the bond, if so, the incoming parameters of the bond are considered valid
             */
-            if (_mForkDatas[y].forkIndex == i) {
-                // Determine whether the fork needs to be settled, and also determine whether the fork exists
-                checkForkData(
-                    chainId,
-                    _mForkDatas[y - 1],
-                    _mForkDatas[y],
-                    onionHeads,
-                    i
-                );
-                y += 1;
-                // !!! Calculate the reward, and reward the bond at the end, the reward fee is the number of forks * margin < margin equal to the wrongtx gaslimit overhead brought by 50 Wrongtx in this method * common gasPrice>
-            }
+            // if (_mForkDatas[y].forkIndex == i) {
+            //     // Determine whether the fork needs to be settled, and also determine whether the fork exists
+            //     checkForkData(
+            //         chainId,
+            //         _mForkDatas[y - 1],
+            //         _mForkDatas[y],
+            //         onionHeads,
+            //         i
+            //     );
+            //     y += 1;
+            //     // !!! Calculate the reward, and reward the bond at the end, the reward fee is the number of forks * margin < margin equal to the wrongtx gaslimit overhead brought by 50 Wrongtx in this method * common gasPrice>
+            // }
             if (isRespondOnions[chainId][onionHeads[i + 1]]) {
                 address onionAddress = onionsAddress[onionHeads[i + 1]];
                 if (onionAddress != address(0)) {
@@ -422,15 +419,17 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         }
 
         // Assert the replay result, indicating that the fork is legal
+        console.logBytes32(onionHeads[i]);
+        console.logBytes32(hashOnions[chainId].onWorkHashOnion);
         require(onionHeads[i] == hashOnions[chainId].onWorkHashOnion, "a2");
         // Assert that the replay result is equal to the stored value of the fork, which means that the incoming _transferdatas are valid
 
-        // TODO
-        // require(
-        //     destOnionHead ==
-        //         child.getFork(_mForkDatas[y].forkKeyNum).destOnionHead,
-        //     "a4"
-        // );
+        // Check destOnionHead
+        require(
+            destOnionHead ==
+                hashOnionForks[_mForkDatas[y].forkKey].destOnionHead,
+            "a4"
+        );
 
         // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
         this.setOnWorkHashOnion(

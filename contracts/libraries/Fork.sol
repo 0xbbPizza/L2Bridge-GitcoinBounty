@@ -177,8 +177,9 @@ library Fork {
         // Determine whether this fork exists
         require(preWorkFork.length > 0, "Fork is null"); //use length
 
-        destOnionHead = preWorkFork.destOnionHead;
+        onionHeads = new bytes32[](_transferDatas.length + 1);
         onionHeads[0] = preWorkFork.onionHead;
+        destOnionHead = preWorkFork.destOnionHead;
 
         // repeat
         for (uint256 i; i < _transferDatas.length; i++) {

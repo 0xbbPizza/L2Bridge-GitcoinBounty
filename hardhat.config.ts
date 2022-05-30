@@ -36,13 +36,13 @@ const getMnemonic = (): string => {
   return "";
 };
 
-const getAcounts = (): any => {
-  if (process.env.accountType == "PrivateKey") {
-    return getPrivateKey();
-  } else {
+const getAcounts = () => {
+  if (process.env.accountType == "Mnemonic") {
     return {
       mnemonic: getMnemonic(),
     };
+  } else {
+    return getPrivateKey();
   }
 };
 
@@ -52,7 +52,7 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();
 
   for (const account of accounts) {
-    console.log(await account.address);
+    console.log(account.address);
   }
 });
 
@@ -62,7 +62,7 @@ task("accountsBalance", "Account eth balance", async (args, hre) => {
   for (const account of accounts) {
     let balance = await account.getBalance();
 
-    console.log(await account.address, hre.ethers.utils.formatEther(balance));
+    console.log(account.address, hre.ethers.utils.formatEther(balance));
   }
 });
 
@@ -76,7 +76,7 @@ task("GBAccounts", "Give balance to Account", async (args, hre) => {
 
   for (const account of accounts) {
     let balance = await account.getBalance();
-    let address = await account.address;
+    let address = account.address;
     if (balance.eq(0)) {
       const tx = accounts[0].sendTransaction({
         to: address,
@@ -99,43 +99,43 @@ export default {
     enabled: process.env.REPORT_GAS ? true : false,
   },
   mocha: {
-    timeout: 6000000
+    timeout: 6000000,
   },
   networks: {
     mainnet: {
       url: process.env.mainnetRPC,
-      accounts: getPrivateKey(),
+      accounts: getAcounts(),
     },
     rinkeby: {
       url: process.env.rinkebyRPC,
-      accounts: getPrivateKey(),
+      accounts: getAcounts(),
     },
 
     arbitrum: {
       url: process.env.arbitrumRPC,
-      accounts: getPrivateKey(),
+      accounts: getAcounts(),
     },
     rinkebyArbitrum: {
       url: process.env.rinkebyArbitrumRPC,
-      accounts: getPrivateKey(),
+      accounts: getAcounts(),
     },
 
     polygon: {
       url: process.env.polygonRPC,
-      accounts: getPrivateKey(),
+      accounts: getAcounts(),
     },
     goerliPolygon: {
       url: process.env.goerliPolygonRPC,
-      accounts: getPrivateKey(),
+      accounts: getAcounts(),
     },
 
     optimism: {
       url: process.env.optimismRPC,
-      accounts: getPrivateKey(),
+      accounts: getAcounts(),
     },
     kovanOptimism: {
       url: process.env.kovanOptimismRPC,
-      accounts: getPrivateKey(),
+      accounts: getAcounts(),
     },
   },
   // gasReporter: {

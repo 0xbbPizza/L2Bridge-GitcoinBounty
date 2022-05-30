@@ -50,7 +50,7 @@ describe("sourceToDest", function () {
     console.log("dock_Mainnet Address:", dock_Mainnet.address);
 
     // set 2 to 3
-    relay.addDock(dock_Mainnet.address, chainId);
+    await relay.addDock(dock_Mainnet.address, chainId);
 
     // deploy dest contract 4
     const Dest = await ethers.getContractFactory("NewDestination");

@@ -52,7 +52,7 @@ describe("source", function () {
     // deploy raley contract
     let bridgeAddress = ethers.utils.getAddress("0x9a28e783c47bbeb813f32b861a431d0776681e95")
     let sourceaddress = ethers.utils.getAddress("0x6410a9aaca48d8A5772892896eA260ff06e4a643")
-    const Relay = await (await ethers.getContractFactory("Relay")).connect(l1Wallet)
+    const Relay = (await ethers.getContractFactory("Relay")).connect(l1Wallet)
     relay = await Relay.deploy(bridgeAddress, sourceaddress)
     await relay.deployed()
     console.log("Relay Address", relay.address)

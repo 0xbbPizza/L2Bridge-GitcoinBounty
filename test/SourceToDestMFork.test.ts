@@ -71,7 +71,7 @@ describe("sourceToDest", function () {
     console.log("dock_Mainnet Address:", dock_Mainnet.address);
 
     // set 2 to 3
-    relay.addDock(dock_Mainnet.address, chainId);
+    await relay.addDock(dock_Mainnet.address, chainId);
 
     // deploy dest contract 4
     const Dest = await ethers.getContractFactory("NewDestination");
@@ -97,8 +97,8 @@ describe("sourceToDest", function () {
     await source.addDestDomain(chainId, dest.address);
 
     sourceAmount = BigNumber.from(0);
-    users = accounts.slice(1, 17);
-    makers = accounts.slice(18);
+    users = accounts.slice(1, 12);
+    makers = accounts.slice(13);
     txs = [];
   });
 
@@ -215,6 +215,9 @@ describe("sourceToDest", function () {
   });
 
   it("mFork and Claim on dest", async function () {
+    // Debug
+    console.warn("txs.length: ", txs.length);
+
     expect(ONEFORK_MAX_LENGTH).to.equal(await dest.ONEFORK_MAX_LENGTH());
 
     const committer: Signer = accounts[0];
@@ -244,16 +247,18 @@ describe("sourceToDest", function () {
         ["bytes32", "bytes32", "address"],
         [destOnion, sourOnion, committerAddress]
       );
-      destOnion = ethers.utils.keccak256(destOnionEncode);      
+      destOnion = ethers.utils.keccak256(destOnionEncode);
 
-      console.warn('onionEncode: ', sourOnion, ', destOnion: ', destOnion);
+      console.warn("onionEncode: ", sourOnion, ", destOnion: ", destOnion);
     };
 
     for (let i = 0; i < txs.length; i++) {
       const index = i % ONEFORK_MAX_LENGTH;
 
       if (index == 0) {
-        console.warn('----------------------------------------------------------------zFork----------------------------------------------------------------');
+        console.warn(
+          "----------------------------------------------------------------zFork----------------------------------------------------------------"
+        );
         refreshWorkOnions(txs[i]);
 
         await dest.zFork(
@@ -303,7 +308,9 @@ describe("sourceToDest", function () {
             true
           );
 
-          console.warn('----------------------------------------------------------------mFork----------------------------------------------------------------');
+          console.warn(
+            "----------------------------------------------------------------mFork----------------------------------------------------------------"
+          );
           refreshWorkOnions(txs[i]);
 
           forkKey = addForkData(chainId, sourOnion, index);

@@ -302,7 +302,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         Fork.Info memory preWorkFork = hashOnionForks[preWorkForkKey];
 
         // Determine whether this fork exists
-        require(preWorkFork.length > 0, "fork is null"); //use length
+        require(preWorkFork.length > 0, "Fork is null"); //use length
 
         bytes32 onionHead = preWorkFork.onionHead;
         bytes32 destOnionHead = preWorkFork.destOnionHead;
@@ -342,6 +342,11 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         workFork.needBond = false;
         hashOnionForks.update(workForkKey, workFork);
 
+        // wenbo
+        // if(type[forkkey] = 2){
+        //     token.transfer(haoren, fork.allmoney/5)
+        // }
+
         // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
         this.setOnWorkHashOnion(
             chainId,
@@ -371,7 +376,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         Fork.Info memory preWorkFork = hashOnionForks[preWorkForkKey];
 
         // Determine whether this fork exists
-        require(preWorkFork.length > 0, "fork is null"); //use length
+        require(preWorkFork.length > 0, "Fork is null"); //use length
 
         (bytes32[] memory onionHeads, bytes32 destOnionHead) = Fork
             .getMbondOnionHeads(preWorkFork, _transferDatas, _commiters);
@@ -385,18 +390,17 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
                 1. Whether the parallel fork points of the fork point are the same, if they are the same, it means that the fork point is invalid, that is, the bond is invalid. And submissions at invalid fork points will not be compensated
                 2. Whether the headOnion of the parallel fork point can be calculated by the submission of the bond, if so, the incoming parameters of the bond are considered valid
             */
-            // if (_mForkDatas[y].forkIndex == i) {
-            //     // Determine whether the fork needs to be settled, and also determine whether the fork exists
-            //     checkForkData(
-            //         chainId,
-            //         _mForkDatas[y - 1],
-            //         _mForkDatas[y],
-            //         onionHeads,
-            //         i
-            //     );
-            //     y += 1;
-            //     // !!! Calculate the reward, and reward the bond at the end, the reward fee is the number of forks * margin < margin equal to the wrongtx gaslimit overhead brought by 50 Wrongtx in this method * common gasPrice>
-            // }
+            if (y < _mForkDatas.length - 1 && _mForkDatas[y].forkIndex == i) {
+                // Determine whether the fork needs to be settled, and also determine whether the fork exists
+                checkForkData(
+                    _mForkDatas[y == 0 ? 0 : y - 1],
+                    _mForkDatas[y],
+                    onionHeads,
+                    i
+                );
+                y += 1;
+                // !!! Calculate the reward, and reward the bond at the end, the reward fee is the number of forks * margin < margin equal to the wrongtx gaslimit overhead brought by 50 Wrongtx in this method * common gasPrice>
+            }
             if (isRespondOnions[chainId][onionHeads[i + 1]]) {
                 address onionAddress = onionsAddress[onionHeads[i + 1]];
                 if (onionAddress != address(0)) {
@@ -418,9 +422,17 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
             }
         }
 
-        // Assert the replay result, indicating that the fork is legal
+        // wenbo
+        // type[fokrkey] = 2
+
+        // Debug
+        console.log("i: ", i);
         console.logBytes32(onionHeads[i]);
         console.logBytes32(hashOnions[chainId].onWorkHashOnion);
+        console.logBytes32(preWorkFork.onionHead);
+        console.log(preWorkFork.needBond);
+
+        // Assert the replay result, indicating that the fork is legal
         require(onionHeads[i] == hashOnions[chainId].onWorkHashOnion, "a2");
         // Assert that the replay result is equal to the stored value of the fork, which means that the incoming _transferdatas are valid
 
@@ -442,7 +454,6 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     }
 
     function checkForkData(
-        uint256 chainId,
         Data.MForkData calldata preForkData,
         Data.MForkData calldata forkData,
         bytes32[] memory onionHeads,
@@ -451,31 +462,30 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         bytes32 preForkOnionHead = onionHeads[index];
         bytes32 onionHead = onionHeads[index + 1];
 
-        // DestChildContract child = DestChildContract(chainId_childs[chainId]);
-        // require(child.getFork(forkData.forkKeyNum).needBond == true, "b1");
-        // if (index != 0) {
-        //     // Calculate the onionHead of the parallel fork based on the preonion and the tx of the original path
-        //     preForkOnionHead = keccak256(
-        //         abi.encode(preForkOnionHead, forkData.wrongtxHash[0])
-        //     );
-        //     // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
-        //     require(preForkOnionHead != onionHead, "a2");
+        require(hashOnionForks[forkData.forkKey].needBond == true, "b1");
+        if (index != 0) {
+            // Calculate the onionHead of the parallel fork based on the preonion and the tx of the original path
+            preForkOnionHead = keccak256(
+                abi.encode(preForkOnionHead, forkData.wrongtxHash[0])
+            );
+            // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
+            require(preForkOnionHead != onionHead, "a2");
 
-        //     // After passing, continue to calculate AFok
-        //     uint256 x = 1;
-        //     while (x < forkData.wrongtxHash.length) {
-        //         preForkOnionHead = keccak256(
-        //             abi.encode(preForkOnionHead, forkData.wrongtxHash[x])
-        //         );
-        //         x++;
-        //     }
-        //     // Judging that the incoming _wrongTxHash is in line with the facts, avoid bond forgery AFork.nextOnion == BFork.nextOnion
-        //     require(
-        //         preForkOnionHead ==
-        //             child.getFork(preForkData.forkKeyNum).onionHead
-        //     );
-        // }
-        // child.setNeedBond(forkData.forkKeyNum, false);
+            // After passing, continue to calculate AFork
+            uint256 x = 1;
+            while (x < forkData.wrongtxHash.length) {
+                preForkOnionHead = keccak256(
+                    abi.encode(preForkOnionHead, forkData.wrongtxHash[x])
+                );
+                x++;
+            }
+            // Judging that the incoming _wrongTxHash is in line with the facts, avoid bond forgery AFork.nextOnion == BFork.nextOnion
+            require(
+                preForkOnionHead ==
+                    hashOnionForks[preForkData.forkKey].onionHead
+            );
+        }
+        hashOnionForks[forkData.forkKey].needBond = false;
     }
 
     function buyOneOnion(
@@ -501,20 +511,31 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // max deposit block Limit
     // min deposit funds rate
     // max deposit funds
-
-    // deposit and
-    function depositWithOneFork(uint256 chainId, uint256 forkKeyNum) external {
+    function depositWithOneFork(uint256 chainId, bytes32 forkKey) external {
         // DestChildContract child = DestChildContract(chainId_childs[chainId]);
         // fork is deposit = true
+        // erc20（tokenAddress）.transferfrom(sender,self,fork.allAmount/10)
     }
+
+    // mfork
+    function depositwithMutiMFork(uint256 chainId) external {}
 
     // block Depostit one fork
     function blockDepositOneFork(uint256 chainId, uint256 forkKeyNum) external {
         // fork is block = true
+        // erc20（tokenAddress）.transferfrom(sender,self,fork.allAmount/10)
     }
 
     // create bond token
-    function creatBondToken(uint256 chainId, uint256 forkKeyNum) external {}
+    function creatPToken(uint256 chainId, uint256 forkKeyNum) external {
+        // requer(type[forkkey] == 1)
+        // requer(blocknum[forkkey] + mintime >= nowblocknum )
+        // ptoken.mint(fork.allAmount)
+        // rentContranct.jieqian(fork.allAmount){
+        //     ptoken.transferfrom(sender,self,fork.allamount)
+        //     token.transfer(sender)
+        // }
+    }
 
     function settlement(uint256 chainId, uint256 forkKeyNum) external {
         // if fork.deposit = true and fork.isblock = false and fork.depositValidBlockNum >= nowBlockNum

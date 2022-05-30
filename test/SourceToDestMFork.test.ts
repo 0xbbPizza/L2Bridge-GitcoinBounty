@@ -181,9 +181,9 @@ describe("sourceToDest", function () {
 
     for (let i = 3; i < users.length; i++) {
       // Debug
-      if (txs.length >= 5) {
-        break;
-      }
+      // if (txs.length >= 5) {
+      //   break;
+      // }
 
       user = users[i];
       userAddress = await users[i].getAddress();
@@ -218,9 +218,8 @@ describe("sourceToDest", function () {
     expect(ONEFORK_MAX_LENGTH).to.equal(await dest.ONEFORK_MAX_LENGTH());
 
     const committer: Signer = accounts[0];
-    const amount: BigNumber = await fakeToken.balanceOf(
-      await committer.getAddress()
-    );
+    const committerAddress = await committer.getAddress();
+    const amount: BigNumber = await fakeToken.balanceOf(committerAddress);
 
     await dest.becomeCommiter();
     await fakeToken.approve(dest.address, amount);
@@ -228,11 +227,12 @@ describe("sourceToDest", function () {
     let forkKey = addForkData(chainId, ethers.constants.HashZero);
     let sourOnion = ethers.constants.HashZero;
     let destOnion = ethers.constants.HashZero;
-    console.warn("txs.length: ", txs.length);
-    for (let i = 0; i < txs.length; i++) {
+
+    // Refresh sourOnion & destOnion with tx
+    const refreshWorkOnions = (tx: [string, BigNumber, BigNumber]) => {
       const txEncode = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint", "uint"],
-        txs[i]
+        tx
       );
       const txHash = ethers.utils.keccak256(txEncode);
       const onionEncode = ethers.utils.defaultAbiCoder.encode(
@@ -242,13 +242,20 @@ describe("sourceToDest", function () {
       sourOnion = ethers.utils.keccak256(onionEncode);
       const destOnionEncode = ethers.utils.defaultAbiCoder.encode(
         ["bytes32", "bytes32", "address"],
-        [destOnion, sourOnion, await committer.getAddress()]
+        [destOnion, sourOnion, committerAddress]
       );
-      destOnion = ethers.utils.keccak256(destOnionEncode);
+      destOnion = ethers.utils.keccak256(destOnionEncode);      
 
+      console.warn('onionEncode: ', sourOnion, ', destOnion: ', destOnion);
+    };
+
+    for (let i = 0; i < txs.length; i++) {
       const index = i % ONEFORK_MAX_LENGTH;
 
       if (index == 0) {
+        console.warn('----------------------------------------------------------------zFork----------------------------------------------------------------');
+        refreshWorkOnions(txs[i]);
+
         await dest.zFork(
           chainId,
           forkKey,
@@ -259,27 +266,33 @@ describe("sourceToDest", function () {
         );
         forkKey = addForkData(chainId, sourOnion);
       } else {
-        const testMFork = index == 3;
+        const mockMFork = index == 3;
         const transferData = {
           destination: txs[i][0],
           amount: txs[i][1],
           fee: txs[i][2],
         };
 
-        await dest.claim(
-          chainId,
-          forkKey,
-          index,
-          [
-            {
-              ...transferData,
-              fee: testMFork ? transferData.fee.add(20000) : transferData.fee,
-            },
-          ],
-          [true]
-        );
+        if (!mockMFork) {
+          // Normal
+          refreshWorkOnions(txs[i]);
+          await dest.claim(chainId, forkKey, index, [transferData], [true]);
+        } else {
+          // Mock wrong
+          await dest.claim(
+            chainId,
+            forkKey,
+            index,
+            [
+              {
+                ...transferData,
+                fee: 10,
+              },
+            ],
+            [true]
+          );
 
-        if (testMFork) {
+          // mFork
           await dest.becomeCommiter();
           await dest.mFork(
             chainId,
@@ -290,31 +303,8 @@ describe("sourceToDest", function () {
             true
           );
 
-          sourOnion = utils.keccak256(
-            utils.defaultAbiCoder.encode(
-              ["bytes32", "bytes32"],
-              [
-                sourOnion,
-                utils.keccak256(
-                  utils.defaultAbiCoder.encode(
-                    ["address", "uint256", "uint256"],
-                    [
-                      transferData.destination,
-                      transferData.amount,
-                      transferData.fee,
-                    ]
-                  )
-                ),
-              ]
-            )
-          );
-
-          destOnion = utils.keccak256(
-            utils.defaultAbiCoder.encode(
-              ["bytes32", "bytes32", "address"],
-              [destOnion, sourOnion, await committer.getAddress()]
-            )
-          );
+          console.warn('----------------------------------------------------------------mFork----------------------------------------------------------------');
+          refreshWorkOnions(txs[i]);
 
           forkKey = addForkData(chainId, sourOnion, index);
         }
@@ -333,6 +323,12 @@ describe("sourceToDest", function () {
   });
 
   it("mbond on dest", async function () {
+    // Debug
+    for (const forkDatas of forkDatasArr) {
+      for (const item of forkDatas) {
+        (<any>item)["fork"] = await dest.hashOnionForks(item.forkKey);
+      }
+    }
     console.log(JSON.stringify(forkDatasArr));
 
     await source.extractHashOnion(chainId);
@@ -359,7 +355,6 @@ describe("sourceToDest", function () {
       const pre_mForkDatas = forkDatasArr[i - 1];
       const preWorkForkKey = pre_mForkDatas[pre_mForkDatas.length - 1].forkKey;
 
-      console.warn("preWorkForkKey: ", preWorkForkKey);
       await dest.mbond(
         chainId,
         preWorkForkKey,

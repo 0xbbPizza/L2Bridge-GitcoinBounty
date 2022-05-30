@@ -158,6 +158,7 @@ library Fork {
         newFork.allAmount += _transferData.amount + _transferData.fee;
         newFork.length = _index + 1;
         newFork.lastCommiterAddress = msg.sender;
+        newFork.needBond = true;
 
         // storage
         update(self, newForkKey, newFork);

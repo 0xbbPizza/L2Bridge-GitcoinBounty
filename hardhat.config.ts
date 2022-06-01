@@ -36,7 +36,7 @@ const getMnemonic = (): string => {
   return "";
 };
 
-const getAcounts = () => {
+const getAccounts = () => {
   if (process.env.accountType == "Mnemonic") {
     return {
       mnemonic: getMnemonic(),
@@ -96,7 +96,7 @@ export default {
   gasReporter: {
     currency: "USD",
     gasPrice: 21,
-    enabled: process.env.REPORT_GAS ? true : false,
+    enabled: !!process.env.REPORT_GAS,
   },
   mocha: {
     timeout: 6000000,
@@ -104,44 +104,41 @@ export default {
   networks: {
     mainnet: {
       url: process.env.mainnetRPC,
-      accounts: getAcounts(),
+      accounts: getAccounts(),
     },
     rinkeby: {
       url: process.env.rinkebyRPC,
-      accounts: getAcounts(),
+      accounts: getAccounts(),
     },
 
     arbitrum: {
       url: process.env.arbitrumRPC,
-      accounts: getAcounts(),
+      accounts: getAccounts(),
     },
     rinkebyArbitrum: {
       url: process.env.rinkebyArbitrumRPC,
-      accounts: getAcounts(),
+      accounts: getAccounts(),
     },
 
     polygon: {
       url: process.env.polygonRPC,
-      accounts: getAcounts(),
+      accounts: getAccounts(),
     },
     goerliPolygon: {
       url: process.env.goerliPolygonRPC,
-      accounts: getAcounts(),
+      accounts: getAccounts(),
     },
 
     optimism: {
       url: process.env.optimismRPC,
-      accounts: getAcounts(),
+      accounts: getAccounts(),
     },
     kovanOptimism: {
       url: process.env.kovanOptimismRPC,
-      accounts: getAcounts(),
+      accounts: getAccounts(),
     },
   },
-  // gasReporter: {
-  //   enabled: process.env.REPORT_GAS !== undefined,
-  //   currency: "USD",
-  // },
+
   etherscan: {
     apiKey: {
       mainnet: process.env.ETHERSCAN_API_KEY,
@@ -149,6 +146,9 @@ export default {
 
       arbitrumOne: process.env.ARBISCAN_API_KEY,
       arbitrumTestnet: process.env.ARBISCAN_API_KEY,
+
+      optimisticEthereum: process.env.OPTIMISTIC_API_KEY,
+      optimisticKovan: process.env.OPTIMISTIC_API_KEY,
     },
   },
 };

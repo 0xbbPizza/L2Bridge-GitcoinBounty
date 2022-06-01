@@ -119,7 +119,8 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
         uint256 amount,
         uint256 fee
     ) external payable {
-        require(chainId_Onions[chainId].destAddress != address(0));
+        // Todo For pizza frontend
+        // require(chainId_Onions[chainId].destAddress != address(0));
 
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
         IERC20(tokenAddress).safeTransferFrom(

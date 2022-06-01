@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     using SafeERC20 for IERC20;
@@ -426,11 +426,11 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // type[fokrkey] = 2
 
         // Debug
-        console.log("i: ", i);
-        console.logBytes32(onionHeads[i]);
-        console.logBytes32(hashOnions[chainId].onWorkHashOnion);
-        console.logBytes32(preWorkFork.onionHead);
-        console.log(preWorkFork.needBond);
+        // console.log("i: ", i);
+        // console.logBytes32(onionHeads[i]);
+        // console.logBytes32(hashOnions[chainId].onWorkHashOnion);
+        // console.logBytes32(preWorkFork.onionHead);
+        // console.log(preWorkFork.needBond);
 
         // Assert the replay result, indicating that the fork is legal
         require(onionHeads[i] == hashOnions[chainId].onWorkHashOnion, "a2");

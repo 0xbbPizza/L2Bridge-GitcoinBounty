@@ -1,6 +1,6 @@
 // import "ethers";
 import { expect } from "chai";
-import { BigNumber, Contract, Signer, utils } from "ethers";
+import { BigNumber, Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { generateForkKey } from "./utils";
 

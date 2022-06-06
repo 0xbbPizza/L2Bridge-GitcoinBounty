@@ -17,7 +17,7 @@ describe("PoolToken", function () {
 
     // Deploy BasicToken
     const BasicToken = await ethers.getContractFactory("BasicToken");
-    basicToken = await BasicToken.deploy(ethers.utils.parseEther("10000"));
+    basicToken = await BasicToken.deploy(ethers.utils.parseEther("80000"));
     await basicToken.deployed();
     console.log("BasicToken address:", basicToken.address);
 

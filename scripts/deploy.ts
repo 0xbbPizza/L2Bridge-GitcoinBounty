@@ -11,8 +11,7 @@ async function main() {
   let tokenAddress = process.env["TOKEN_ADDRESS"];
   if (!tokenAddress) {
     const FakeToken = await ethers.getContractFactory("BasicToken");
-    let amount = BigNumber.from(8000000000000000); // no use , the amount is in contract
-    let fakeToken = await FakeToken.deploy(amount);
+    let fakeToken = await FakeToken.deploy(ethers.utils.parseEther("80000"));
     await fakeToken.deployed();
     tokenAddress = fakeToken.address;
   }

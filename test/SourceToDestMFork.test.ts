@@ -47,8 +47,7 @@ describe("sourceToDest", function () {
 
     // deploy token contract
     const FakeToken = await ethers.getContractFactory("BasicToken");
-    let amount = BigNumber.from(1000000000000);
-    fakeToken = await FakeToken.deploy(amount);
+    fakeToken = await FakeToken.deploy(ethers.utils.parseEther("80000"));
     await fakeToken.deployed();
     console.log("FakeToken address:", fakeToken.address);
 

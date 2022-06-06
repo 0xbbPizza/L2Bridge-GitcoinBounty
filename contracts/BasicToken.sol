@@ -7,8 +7,8 @@ import "hardhat/console.sol";
 
 // Example class - a mock class using delivering from ERC20
 contract BasicToken is ERC20 {
-    constructor(uint256 initialBalance) public ERC20("Pizza", "Pizza") {
+    constructor(uint256 initialBalance) ERC20("Pizza", "Pizza") {
         console.log("initialBalance: ", initialBalance);
-        _mint(msg.sender, 800000000000000000000000000);
+        _mint(msg.sender, initialBalance);
     }
 }

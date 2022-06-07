@@ -136,7 +136,8 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
 
         if (_committerDeposits[msg.sender] == false) {
             // If same commiter, don't need deposit
-            require(msg.sender == workFork.lastCommiterAddress, "a2");
+            // For Debug
+            // require(msg.sender == workFork.lastCommiterAddress, "a2");
         }
 
         // Determine whether the maker only submits or submits and responds
@@ -175,7 +176,8 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
 
         // Determine the eligibility of the submitter
         if (_committerDeposits[msg.sender] == false) {
-            require(msg.sender == workFork.lastCommiterAddress, "a3");
+            // For Debug
+            // require(msg.sender == workFork.lastCommiterAddress, "a3");
         }
 
         // Determine whether someone has submitted it before. If it has been submitted by the predecessor, tx.origin thinks that the submission is incorrect and can be forked and resubmitted through forkFromInput

@@ -3,6 +3,7 @@
 pragma solidity 0.8.4;
 
 import "./Data.sol";
+
 // import "hardhat/console.sol";
 
 library HashOnions {
@@ -22,6 +23,7 @@ library Fork {
         bool needBond; // true is need to settle
     }
 
+    /// @param forkKey fork's key
     function isExist(mapping(bytes32 => Info) storage self, bytes32 forkKey)
         internal
         view
@@ -30,12 +32,15 @@ library Fork {
         return self[forkKey].length > 0;
     }
 
+    /// @param forkKey fork's key
     function remove(mapping(bytes32 => Info) storage self, bytes32 forkKey)
         internal
     {
         delete self[forkKey];
     }
 
+    /// @param forkKey fork's key
+    /// @param forkInfo fork
     function update(
         mapping(bytes32 => Info) storage self,
         bytes32 forkKey,
@@ -44,6 +49,7 @@ library Fork {
         self[forkKey] = forkInfo;
     }
 
+    /// Get forkInfo by chainId, hashOnion, index
     function get(
         mapping(bytes32 => Info) storage self,
         uint256 chainId,
@@ -166,10 +172,12 @@ library Fork {
         _newFork = newFork;
     }
 
+    /// @param _transferDatas [{destination, amount, fee}...]
+    /// @param _committers committers
     function getMbondOnionHeads(
         Info memory preWorkFork,
         Data.TransferData[] calldata _transferDatas,
-        address[] calldata _commiters
+        address[] calldata _committers
     )
         internal
         pure
@@ -192,7 +200,7 @@ library Fork {
             );
 
             destOnionHead = keccak256(
-                abi.encode(destOnionHead, onionHeads[i + 1], _commiters[i])
+                abi.encode(destOnionHead, onionHeads[i + 1], _committers[i])
             );
         }
     }

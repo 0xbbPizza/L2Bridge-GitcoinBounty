@@ -33,6 +33,8 @@ describe("PoolToken", function () {
     await poolToken.deployed();
     console.log("PoolToken address:", poolToken.address);
 
+    await poolTokenTest.bindPoolTokenAddress(poolToken.address);
+
     // Transfer 100ether BasicToken to poolToken from accounts[0]
     await basicToken.transfer(
       poolToken.address,
@@ -43,15 +45,9 @@ describe("PoolToken", function () {
   it("Test exchangeBasicToken", async function () {
     const poolTokenAmount = ethers.utils.parseEther("1");
 
-    await poolTokenTest.exchangeBasicToken(
-      poolToken.address,
-      basicToken.address,
-      poolTokenAmount
-    );
+    await poolTokenTest.exchangeBasicToken(basicToken.address, poolTokenAmount);
 
-    const balanceBasicToken = await basicToken.balanceOf(
-      poolTokenTest.address
-    );
+    const balanceBasicToken = await basicToken.balanceOf(poolTokenTest.address);
     expect(balanceBasicToken).to.equal(poolTokenAmount.mul(10));
     console.log("balanceBasicToken: ", balanceBasicToken + "");
 

@@ -3,16 +3,17 @@
 pragma solidity 0.8.4;
 
 import "../PoolToken.sol";
+import "../PoolTokenApprovable.sol";
+import "hardhat/console.sol";
 
-contract PoolTokenTest {
+contract PoolTokenTest is PoolTokenApprovable {
     function exchangeBasicToken(
-        address poolToken,
         address exToken,
         uint256 amount
     ) external returns (bool) {
-        PoolToken(poolToken).mint(address(this), amount);
+        poolToken().mint(amount);
 
-        PoolToken(poolToken).exchange(exToken, amount);
+        poolToken().exchange(exToken, amount);
 
         return true;
     }

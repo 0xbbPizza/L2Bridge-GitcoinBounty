@@ -5,7 +5,6 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 
 contract PoolToken is ERC20, Ownable {
     uint32 private _scale = 10;
@@ -28,7 +27,7 @@ contract PoolToken is ERC20, Ownable {
     }
 
     // TODO For debug
-    function mint(address account, uint256 amount) external {
-        _mint(account, amount);
+    function mint(uint256 amount) external onlyOwner {
+        _mint(_msgSender(), amount);
     }
 }

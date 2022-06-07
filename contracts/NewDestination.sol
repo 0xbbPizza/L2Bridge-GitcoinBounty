@@ -4,19 +4,27 @@ pragma solidity 0.8.4;
 
 import "./libraries/Data.sol";
 import "./libraries/Fork.sol";
+import "./libraries/ForkDeposit.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
+import "./PoolTokenApprovable.sol";
+
 // import "hardhat/console.sol";
 
-contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
+contract NewDestination is
+    IDestinationContract,
+    CrossDomainHelper,
+    Ownable,
+    PoolTokenApprovable
+{
     using SafeERC20 for IERC20;
     using HashOnions for mapping(uint256 => HashOnions.Info);
     using Fork for mapping(bytes32 => Fork.Info);
+    using ForkDeposit for mapping(bytes32 => Fork.InfoDeposit[]);
 
     address private tokenAddress;
-    address private poolTokenAddress;
 
     mapping(bytes32 => Fork.Info) public hashOnionForks;
     mapping(uint256 => mapping(bytes32 => bool)) private isRespondOnions;
@@ -27,8 +35,12 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
 
     mapping(address => bool) private _committerDeposits; // Submitter's bond record
 
+    mapping(bytes32 => Fork.InfoDeposit[]) private hashOnionForkDeposits;
+
     uint256 public immutable ONEFORK_MAX_LENGTH = 5; // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
     uint256 public immutable DEPOSIT_AMOUNT = 1 * 10**18; // !!! The final value is 2 * 10**17
+    uint256 public immutable FORK_DEPOSIT_SCALE = 10;
+    uint256 public immutable FORK_DEPOSIT_DURATION = 1800; // During this duration, can be denied(second)
 
     /*
 	1. every LP need deposit `DEPOSIT_AMOUNT` ETH, DEPOSIT_AMOUNT = OnebondGaslimit * max_fork.length * Average_gasPrice 
@@ -514,23 +526,25 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     // max deposit block Limit
     // min deposit funds rate
     // max deposit funds
-    function depositWithOneFork(uint256 chainId, bytes32 forkKey) external {
-        // DestChildContract child = DestChildContract(chainId_childs[chainId]);
+    function depositWithOneFork(bytes32 forkKey) external {
         // fork is deposit = true
         // erc20（tokenAddress）.transferfrom(sender,self,fork.allAmount/10)
+        if (hashOnionForkDeposits[forkKey].length > 0) {
+
+        }
     }
 
     // mfork
-    function depositwithMutiMFork(uint256 chainId) external {}
+    function depositWithMutiMFork(bytes32[] memory forkKeys) external {}
 
-    // block Depostit one fork
-    function blockDepositOneFork(uint256 chainId, uint256 forkKeyNum) external {
-        // fork is block = true
+    // Deny depostit one fork
+    function denyDepositOneFork(bytes32 forkKey) external {
+        // fork is prevent = true
         // erc20（tokenAddress）.transferfrom(sender,self,fork.allAmount/10)
     }
 
     // create bond token
-    function creatPToken(uint256 chainId, uint256 forkKeyNum) external {
+    function createPToken(bytes32 forkKey) external {
         // requer(type[forkkey] == 1)
         // requer(blocknum[forkkey] + mintime >= nowblocknum )
         // ptoken.mint(fork.allAmount)
@@ -540,7 +554,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
         // }
     }
 
-    function settlement(uint256 chainId, uint256 forkKeyNum) external {
+    function settlement(bytes32 forkKey) external {
         // if fork.deposit = true and fork.isblock = false and fork.depositValidBlockNum >= nowBlockNum
         // if token.balanceof(this) < forkAmount do creatBondToken count to self
         // if token.balanceof(lpcontract) >= forkAmount send bondToken to lpContract , and claim token to this
@@ -552,7 +566,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     function loanFromLPPool(uint256 amount) internal {
         // send bondToken to LPPool
         // LPPool send real token to dest
-        
+        poolToken().exchange(tokenAddress, amount);
     }
 
     // buy bond token

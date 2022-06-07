@@ -16,6 +16,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     using Fork for mapping(bytes32 => Fork.Info);
 
     address private tokenAddress;
+    address private poolTokenAddress;
 
     mapping(bytes32 => Fork.Info) public hashOnionForks;
     mapping(uint256 => mapping(bytes32 => bool)) private isRespondOnions;
@@ -549,6 +550,7 @@ contract NewDestination is IDestinationContract, CrossDomainHelper, Ownable {
     function loanFromLPPool(uint256 amount) internal {
         // send bondToken to LPPool
         // LPPool send real token to dest
+        
     }
 
     // buy bond token

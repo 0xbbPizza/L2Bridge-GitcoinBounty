@@ -22,7 +22,7 @@ contract NewDestination is
     using SafeERC20 for IERC20;
     using HashOnions for mapping(uint256 => HashOnions.Info);
     using Fork for mapping(bytes32 => Fork.Info);
-    using ForkDeposit for mapping(bytes32 => Fork.InfoDeposit[]);
+    using ForkDeposit for mapping(bytes32 => ForkDeposit.Info[]);
 
     address private tokenAddress;
 
@@ -35,7 +35,7 @@ contract NewDestination is
 
     mapping(address => bool) private _committerDeposits; // Submitter's bond record
 
-    mapping(bytes32 => Fork.InfoDeposit[]) private hashOnionForkDeposits;
+    mapping(bytes32 => ForkDeposit.Info[]) private hashOnionForkDeposits;
 
     uint256 public immutable ONEFORK_MAX_LENGTH = 5; // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
     uint256 public immutable DEPOSIT_AMOUNT = 1 * 10**18; // !!! The final value is 2 * 10**17

@@ -11,18 +11,23 @@ library ForkDeposit {
     }
 
     /// @param forkKey Fork's key
-    function deposit(mapping(bytes32 => Info[]) storage self, bytes32 forkKey, uint256 amount)
-        internal
-    {
-        if (self[forkKey].length > 0) {
-
+    function deposit(
+        mapping(bytes32 => Info[]) storage self,
+        bytes32 forkKey,
+        uint256 amount
+    ) internal {
+        uint256 length = self[forkKey].length;
+        if (length > 0) {
+            Info memory lastInfo = self[forkKey][length - 1];
         } else {
-            
+            self[forkKey].push(Info(msg.sender, true, amount, block.timestamp));
         }
     }
 
     /// @param forkKey Fork's key
-    function denyDeposit(mapping(bytes32 => Info[]) storage self, bytes32 forkKey, uint256 amount)
-        internal
-    {}
+    function denyDeposit(
+        mapping(bytes32 => Info[]) storage self,
+        bytes32 forkKey,
+        uint256 amount
+    ) internal {}
 }

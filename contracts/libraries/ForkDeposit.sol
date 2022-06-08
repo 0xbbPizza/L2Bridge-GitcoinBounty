@@ -3,31 +3,50 @@
 pragma solidity 0.8.4;
 
 library ForkDeposit {
+    uint256 internal constant DEPOSIT_SCALE = 10;
+    uint256 internal constant DEPOSIT_BLOCK_NUMBER = 2; // During this number
+
     struct Info {
-        address depositter;
-        bool accept; // true: Accept, false: Deny
+        address endorser;
+        address denyer;
         uint256 amount;
-        uint256 timestamp; // block timestamp
+        uint256 prevBlockNumber; // Prev deposit block number
     }
 
     /// @param forkKey Fork's key
     function deposit(
-        mapping(bytes32 => Info[]) storage self,
+        mapping(bytes32 => Info) storage self,
         bytes32 forkKey,
-        uint256 amount
+        uint256 amount,
+        bool deny
     ) internal {
-        uint256 length = self[forkKey].length;
-        if (length > 0) {
-            Info memory lastInfo = self[forkKey][length - 1];
-        } else {
-            self[forkKey].push(Info(msg.sender, true, amount, block.timestamp));
-        }
-    }
+        Info memory info = self[forkKey];
 
-    /// @param forkKey Fork's key
-    function denyDeposit(
-        mapping(bytes32 => Info[]) storage self,
-        bytes32 forkKey,
-        uint256 amount
-    ) internal {}
+        if (info.prevBlockNumber > 0) {
+            require(
+                block.number - info.prevBlockNumber < DEPOSIT_BLOCK_NUMBER,
+                "ForkDeposit deposit: more than block number"
+            );
+        }
+
+        if (deny) {
+            require(
+                info.denyer == address(0),
+                "ForkDeposit deposit: exist denyer"
+            );
+
+            info.denyer = msg.sender;
+        } else {
+            require(
+                info.endorser == address(0),
+                "ForkDeposit deposit: exist endorser"
+            );
+
+            info.endorser = msg.sender;
+        }
+
+        info.amount = amount;
+        info.prevBlockNumber = block.number;
+        self[forkKey] = info;
+    }
 }

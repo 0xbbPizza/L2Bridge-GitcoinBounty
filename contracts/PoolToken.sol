@@ -10,7 +10,7 @@ contract PoolToken is ERC20, Ownable {
     uint32 private _scale = 10;
 
     constructor(address owner_) ERC20("Orbiter Pool Token", "PToken") {
-        Ownable._transferOwnership(owner_);
+        Ownable.transferOwnership(owner_);
     }
 
     function scale() public view returns (uint32) {

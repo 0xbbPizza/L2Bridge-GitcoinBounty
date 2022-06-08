@@ -22,7 +22,7 @@ contract NewDestination is
     using SafeERC20 for IERC20;
     using HashOnions for mapping(uint256 => HashOnions.Info);
     using Fork for mapping(bytes32 => Fork.Info);
-    using ForkDeposit for mapping(bytes32 => ForkDeposit.Info[]);
+    using ForkDeposit for mapping(bytes32 => ForkDeposit.Info);
 
     address private tokenAddress;
 
@@ -35,12 +35,10 @@ contract NewDestination is
 
     mapping(address => bool) private _committerDeposits; // Submitter's bond record
 
-    mapping(bytes32 => ForkDeposit.Info[]) private hashOnionForkDeposits;
+    mapping(bytes32 => ForkDeposit.Info) private hashOnionForkDeposits;
 
     uint256 public immutable ONEFORK_MAX_LENGTH = 5; // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
     uint256 public immutable DEPOSIT_AMOUNT = 1 * 10**18; // !!! The final value is 2 * 10**17
-    uint256 public immutable FORK_DEPOSIT_SCALE = 10;
-    uint256 public immutable FORK_DEPOSIT_DURATION = 1800; // During this duration, can be denied(second)
 
     /*
 	1. every LP need deposit `DEPOSIT_AMOUNT` ETH, DEPOSIT_AMOUNT = OnebondGaslimit * max_fork.length * Average_gasPrice 
@@ -148,8 +146,7 @@ contract NewDestination is
 
         if (_committerDeposits[msg.sender] == false) {
             // If same commiter, don't need deposit
-            // For Debug
-            // require(msg.sender == workFork.lastCommiterAddress, "a2");
+            require(msg.sender == workFork.lastCommiterAddress, "a2");
         }
 
         // Determine whether the maker only submits or submits and responds
@@ -188,8 +185,7 @@ contract NewDestination is
 
         // Determine the eligibility of the submitter
         if (_committerDeposits[msg.sender] == false) {
-            // For Debug
-            // require(msg.sender == workFork.lastCommiterAddress, "a3");
+            require(msg.sender == workFork.lastCommiterAddress, "a3");
         }
 
         // Determine whether someone has submitted it before. If it has been submitted by the predecessor, tx.origin thinks that the submission is incorrect and can be forked and resubmitted through forkFromInput
@@ -357,11 +353,6 @@ contract NewDestination is
         workFork.needBond = false;
         hashOnionForks.update(workForkKey, workFork);
 
-        // wenbo
-        // if(type[forkkey] = 2){
-        //     token.transfer(haoren, fork.allmoney/5)
-        // }
-
         // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
         this.setOnWorkHashOnion(
             chainId,
@@ -436,16 +427,6 @@ contract NewDestination is
                 );
             }
         }
-
-        // wenbo
-        // type[fokrkey] = 2
-
-        // Debug
-        // console.log("i: ", i);
-        // console.logBytes32(onionHeads[i]);
-        // console.logBytes32(hashOnions[chainId].onWorkHashOnion);
-        // console.logBytes32(preWorkFork.onionHead);
-        // console.log(preWorkFork.needBond);
 
         // Assert the replay result, indicating that the fork is legal
         require(onionHeads[i] == hashOnions[chainId].onWorkHashOnion, "a2");
@@ -523,15 +504,16 @@ contract NewDestination is
         onionsAddress[key] = msg.sender;
     }
 
-    // max deposit block Limit
-    // min deposit funds rate
-    // max deposit funds
+    // Depostit one fork
     function depositWithOneFork(bytes32 forkKey) external {
-        // fork is deposit = true
-        // erc20（tokenAddress）.transferfrom(sender,self,fork.allAmount/10)
-        if (hashOnionForkDeposits[forkKey].length > 0) {
+        Fork.Info memory fork = hashOnionForks[forkKey];
+        require(fork.length > 0, "Fork is null");
 
-        }
+        uint256 amount = fork.allAmount / ForkDeposit.DEPOSIT_SCALE;
+
+        IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
+
+        hashOnionForkDeposits.deposit(forkKey, amount, false);
     }
 
     // mfork
@@ -539,8 +521,14 @@ contract NewDestination is
 
     // Deny depostit one fork
     function denyDepositOneFork(bytes32 forkKey) external {
-        // fork is prevent = true
-        // erc20（tokenAddress）.transferfrom(sender,self,fork.allAmount/10)
+        Fork.Info memory fork = hashOnionForks[forkKey];
+        require(fork.length > 0, "Fork is null");
+
+        uint256 amount = fork.allAmount / ForkDeposit.DEPOSIT_SCALE;
+
+        IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
+
+        hashOnionForkDeposits.deposit(forkKey, amount, true);
     }
 
     // create bond token
@@ -579,10 +567,10 @@ contract NewDestination is
     function setOnWorkHashOnion(
         uint256 chainId,
         bytes32 onion,
-        bool equal
+        bool needBond
     ) external {
         HashOnions.Info memory info = hashOnions[chainId];
-        if (equal) {
+        if (needBond) {
             info.onWorkHashOnion = onion;
         } else {
             // If no settlement is required, it means that the previous round of settlement is completed, and a new value is set

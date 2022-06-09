@@ -513,25 +513,31 @@ contract NewDestination is
 
     // mFork
     function depositWithMutiMFork(
-        bytes32 _lastOnionHead,
         Data.MForkData[] calldata _mForkDatas,
         Data.TransferData[] calldata _transferDatas
     ) external {
-        uint256 y = 0;
-        uint256 i = 0;
-        for (; i < _transferDatas.length; i++) {
-            // Over y
-            if (y >= _mForkDatas.length) {
-                break;
-            }
+        bytes32 unitedForkKey = bytes32(0);
+        uint256 allAmount = 0;
 
+        uint16 fi = 0;
+        for (uint16 i = 0; i < _transferDatas.length; i++) {
             Data.TransferData memory transferData = _transferDatas[i];
-            // _lastOnionHead = ;
 
-            if (_mForkDatas[y].forkIndex == i) {
-                y += 1;
+            allAmount += transferData.amount + transferData.fee;
+            if (_mForkDatas[fi].forkIndex == i) {
+                unitedForkKey = keccak256(
+                    abi.encode(unitedForkKey, _mForkDatas[fi].forkKey)
+                );
+
+                fi += 1;
             }
         }
+
+        uint256 amount = allAmount / ForkDeposit.DEPOSIT_SCALE;
+
+        IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
+
+        hashOnionForkDeposits.deposit(unitedForkKey, amount, true);
     }
 
     // Deny depostit one fork

@@ -13,6 +13,21 @@ library ForkDeposit {
         uint256 prevBlockNumber; // Prev deposit block number
     }
 
+    function getDepositEnsure(
+        mapping(bytes32 => Info) storage self,
+        bytes32 forkKey
+    ) internal view returns (Info memory) {
+        Info memory forkDeposit = self[forkKey];
+
+        require(
+            forkDeposit.endorser != address(0) ||
+                forkDeposit.denyer != address(0),
+            "ForkDeposit is null"
+        );
+
+        return forkDeposit;
+    }
+
     /// @param forkKey Fork's key
     function deposit(
         mapping(bytes32 => Info) storage self,

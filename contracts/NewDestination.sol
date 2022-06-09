@@ -299,7 +299,7 @@ contract NewDestination is
         require(
             workFork.onionHead == hashOnions[chainId].onWorkHashOnion,
             "a4"
-        ); //use length
+        );
 
         bytes32 preWorkForkKey = Fork.generateForkKey(
             chainId,
@@ -511,8 +511,8 @@ contract NewDestination is
         hashOnionForkDeposits.deposit(forkKey, amount, false);
     }
 
-    // mFork
-    function depositWithMutiMFork(
+    // Deposit mForks
+    function depositMForks(
         Data.MForkData[] calldata _mForkDatas,
         Data.TransferData[] calldata _transferDatas
     ) external {
@@ -537,7 +537,7 @@ contract NewDestination is
 
         IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
 
-        hashOnionForkDeposits.deposit(unitedForkKey, amount, true);
+        hashOnionForkDeposits.deposit(unitedForkKey, amount, false);
     }
 
     // Deny depostit one fork
@@ -562,7 +562,31 @@ contract NewDestination is
         // }
     }
 
-    function settlement(bytes32 forkKey) external {
+    function settlement(
+        uint256 chainId,
+        bytes32 forkKey,
+        bytes32 _preForkKey,
+        Data.TransferData[] calldata _transferDatas,
+        address[] calldata _commiters
+    ) external {
+        // if fork.deposit = true and fork.isblock = false and fork.depositValidBlockNum >= nowBlockNum
+        // if token.balanceof(this) < forkAmount do creatBondToken count to self
+        // if token.balanceof(lpcontract) >= forkAmount send bondToken to lpContract , and claim token to this
+        // if token.balanceof(lpcontract) < forkAmount share token is change to bondToken
+        // do zfork , send token to user
+        // // if token.balanceof(this) >= forkAmount  do  zfork
+        ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits
+            .getDepositEnsure(forkKey);
+
+        require(forkDeposit.denyer != address(0), "Fork settlement: dispute");
+
+        Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
+    }
+
+    function settlementMForks(
+        Data.MForkData[] calldata _mForkDatas,
+        Data.TransferData[] calldata _transferDatas
+    ) external {
         // if fork.deposit = true and fork.isblock = false and fork.depositValidBlockNum >= nowBlockNum
         // if token.balanceof(this) < forkAmount do creatBondToken count to self
         // if token.balanceof(lpcontract) >= forkAmount send bondToken to lpContract , and claim token to this
@@ -599,3 +623,34 @@ contract NewDestination is
         hashOnions[chainId] = info;
     }
 }
+
+
+// 链上
+// 1创造fork
+// 1.1 zfork ()
+// 1.2 mfork
+
+// 2完成fork
+// claim
+
+// 3质押 
+
+// 3.1 质押zfork
+// 3.2 拼装mfork => zfork  (preForkKey,mforkdatas[],txinfos[])
+//  event(prekey , newkey)
+
+// 4反对
+
+// 5结算
+
+// 6纠纷解决
+// 6.1 接到source数据
+// 6.2 zbond 解决 好/坏
+// 6.3 newfunction 解决 坏/好 (分叉Forkkey, after分叉forkkey-好，好hash， after分叉forkkey-坏s，坏hashs)
+
+// event
+// 
+
+// 链下---
+
+// 链上方法，链上input，链下的方法，链下的input，链上event、、

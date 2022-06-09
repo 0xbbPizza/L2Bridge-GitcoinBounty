@@ -177,11 +177,7 @@ contract NewDestination is
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");
 
-        // positioning fork
-        Fork.Info memory workFork = hashOnionForks[workForkKey];
-
-        // Determine whether this fork exists
-        require(workFork.length > 0, "fork is null"); //use length
+        Fork.Info memory workFork = hashOnionForks.getForkEnsure(workForkKey);
 
         // Determine the eligibility of the submitter
         if (_committerDeposits[msg.sender] == false) {
@@ -200,9 +196,7 @@ contract NewDestination is
         uint256 allAmount = 0;
         // just append
         for (uint256 i; i < _transferDatas.length; i++) {
-            onionHead = keccak256(
-                abi.encode(onionHead, keccak256(abi.encode(_transferDatas[i])))
-            );
+            onionHead = Fork.generateOnionHead(onionHead, _transferDatas[i]);
             if (_isResponds[i]) {
                 IERC20(tokenAddress).safeTransferFrom(
                     msg.sender,
@@ -213,8 +207,10 @@ contract NewDestination is
                 // TODO need change to transferData hash
                 isRespondOnions[chainId][onionHead] = true;
             }
-            destOnionHead = keccak256(
-                abi.encode(destOnionHead, onionHead, msg.sender)
+            destOnionHead = Fork.generateDestOnionHead(
+                destOnionHead,
+                onionHead,
+                msg.sender
             );
             allAmount += _transferDatas[i].amount + _transferDatas[i].fee;
 
@@ -310,18 +306,17 @@ contract NewDestination is
             _preHashOnion,
             0
         );
-        Fork.Info memory preWorkFork = hashOnionForks[preWorkForkKey];
 
-        // Determine whether this fork exists
-        require(preWorkFork.length > 0, "Fork is null"); //use length
+        Fork.Info memory preWorkFork = hashOnionForks.getForkEnsure(
+            preWorkForkKey
+        );
 
         bytes32 onionHead = preWorkFork.onionHead;
         bytes32 destOnionHead = preWorkFork.destOnionHead;
         // repeat
         for (uint256 i; i < _transferDatas.length; i++) {
-            onionHead = keccak256(
-                abi.encode(onionHead, keccak256(abi.encode(_transferDatas[i])))
-            );
+            onionHead = Fork.generateOnionHead(onionHead, _transferDatas[i]);
+
             if (isRespondOnions[chainId][onionHead]) {
                 address onionAddress = onionsAddress[onionHead];
                 if (onionAddress != address(0)) {
@@ -341,8 +336,10 @@ contract NewDestination is
                     _transferDatas[i].amount + _transferDatas[i].fee
                 );
             }
-            destOnionHead = keccak256(
-                abi.encode(destOnionHead, onionHead, _commiters[i])
+            destOnionHead = Fork.generateDestOnionHead(
+                destOnionHead,
+                onionHead,
+                _commiters[i]
             );
         }
 
@@ -379,10 +376,9 @@ contract NewDestination is
         // bytes32[] memory _onionHeads;
         // checkForkData(_mForkDatas[0], _mForkDatas[0], _onionHeads, 0, chainId);
 
-        Fork.Info memory preWorkFork = hashOnionForks[preWorkForkKey];
-
-        // Determine whether this fork exists
-        require(preWorkFork.length > 0, "Fork is null"); //use length
+        Fork.Info memory preWorkFork = hashOnionForks.getForkEnsure(
+            preWorkForkKey
+        );
 
         (bytes32[] memory onionHeads, bytes32 destOnionHead) = Fork
             .getMbondOnionHeads(preWorkFork, _transferDatas, _commiters);
@@ -506,8 +502,7 @@ contract NewDestination is
 
     // Depostit one fork
     function depositWithOneFork(bytes32 forkKey) external {
-        Fork.Info memory fork = hashOnionForks[forkKey];
-        require(fork.length > 0, "Fork is null");
+        Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
 
         uint256 amount = fork.allAmount / ForkDeposit.DEPOSIT_SCALE;
 
@@ -516,13 +511,32 @@ contract NewDestination is
         hashOnionForkDeposits.deposit(forkKey, amount, false);
     }
 
-    // mfork
-    function depositWithMutiMFork(bytes32[] memory forkKeys) external {}
+    // mFork
+    function depositWithMutiMFork(
+        bytes32 _lastOnionHead,
+        Data.MForkData[] calldata _mForkDatas,
+        Data.TransferData[] calldata _transferDatas
+    ) external {
+        uint256 y = 0;
+        uint256 i = 0;
+        for (; i < _transferDatas.length; i++) {
+            // Over y
+            if (y >= _mForkDatas.length) {
+                break;
+            }
+
+            Data.TransferData memory transferData = _transferDatas[i];
+            // _lastOnionHead = ;
+
+            if (_mForkDatas[y].forkIndex == i) {
+                y += 1;
+            }
+        }
+    }
 
     // Deny depostit one fork
     function denyDepositOneFork(bytes32 forkKey) external {
-        Fork.Info memory fork = hashOnionForks[forkKey];
-        require(fork.length > 0, "Fork is null");
+        Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
 
         uint256 amount = fork.allAmount / ForkDeposit.DEPOSIT_SCALE;
 

@@ -49,6 +49,18 @@ library Fork {
         self[forkKey] = forkInfo;
     }
 
+    /// Get fork by forkKey. When no exist, report error
+    function getForkEnsure(
+        mapping(bytes32 => Info) storage self,
+        bytes32 forkKey
+    ) internal view returns (Info memory) {
+        Info memory fork = self[forkKey];
+
+        require(fork.length > 0, "Fork is null"); //use length
+
+        return fork;
+    }
+
     /// Get forkInfo by chainId, hashOnion, index
     function get(
         mapping(bytes32 => Info) storage self,
@@ -69,6 +81,29 @@ library Fork {
         uint8 index
     ) internal pure returns (bytes32) {
         return keccak256(abi.encode(chainId, hashOnion, index));
+    }
+
+    /// @param prevOnionHead Prev onionHead
+    /// @param transferData Transfer's data
+    function generateOnionHead(
+        bytes32 prevOnionHead,
+        Data.TransferData memory transferData
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(prevOnionHead, keccak256(abi.encode(transferData)))
+            );
+    }
+
+    /// @param prevDestOnionHead Prev fork destOnionHead
+    /// @param onionHead Current fork onionHead
+    /// @param committer Fork committer
+    function generateDestOnionHead(
+        bytes32 prevDestOnionHead,
+        bytes32 onionHead,
+        address committer
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encode(prevDestOnionHead, onionHead, committer));
     }
 
     /// @param chainId Chain's id
@@ -104,19 +139,19 @@ library Fork {
         Info memory newFork;
 
         // set newFork
-        newFork.onionHead = keccak256(
-            abi.encode(
-                workFork.onionHead,
-                keccak256(abi.encode(dest, amount, fee))
-            )
+        newFork.onionHead = generateOnionHead(
+            workFork.onionHead,
+            Data.TransferData(dest, amount, fee)
         );
         bytes32 newForkKey = generateForkKey(chainId, newFork.onionHead, 0);
 
         // Determine whether there is a fork with newForkKey
         require(isExist(self, newForkKey) == false, "c1");
 
-        newFork.destOnionHead = keccak256(
-            abi.encode(workFork.destOnionHead, newFork.onionHead, msg.sender)
+        newFork.destOnionHead = generateDestOnionHead(
+            workFork.destOnionHead,
+            newFork.onionHead,
+            msg.sender
         );
 
         newFork.allAmount += amount + fee;
@@ -142,13 +177,14 @@ library Fork {
         Data.TransferData calldata _transferData
     ) internal returns (Info memory _newFork) {
         // Create a new Fork
-        Fork.Info memory newFork;
+        Info memory newFork;
 
         // set newFork
-        newFork.onionHead = keccak256(
-            abi.encode(_lastOnionHead, keccak256(abi.encode(_transferData)))
+        newFork.onionHead = Fork.generateOnionHead(
+            _lastOnionHead,
+            _transferData
         );
-        bytes32 newForkKey = Fork.generateForkKey(
+        bytes32 newForkKey = generateForkKey(
             chainId,
             newFork.onionHead,
             _index
@@ -157,8 +193,10 @@ library Fork {
         // Determine whether there is a fork with newFork.destOnionHead as the key
         require(isExist(self, newForkKey) == false, "c1");
 
-        newFork.destOnionHead = keccak256(
-            abi.encode(_lastDestOnionHead, newFork.onionHead, msg.sender)
+        newFork.destOnionHead = generateDestOnionHead(
+            _lastDestOnionHead,
+            newFork.onionHead,
+            msg.sender
         );
 
         newFork.allAmount += _transferData.amount + _transferData.fee;
@@ -183,24 +221,21 @@ library Fork {
         pure
         returns (bytes32[] memory onionHeads, bytes32 destOnionHead)
     {
-        // Determine whether this fork exists
-        require(preWorkFork.length > 0, "Fork is null"); //use length
-
         onionHeads = new bytes32[](_transferDatas.length + 1);
         onionHeads[0] = preWorkFork.onionHead;
         destOnionHead = preWorkFork.destOnionHead;
 
         // repeat
         for (uint256 i; i < _transferDatas.length; i++) {
-            onionHeads[i + 1] = keccak256(
-                abi.encode(
-                    onionHeads[i],
-                    keccak256(abi.encode(_transferDatas[i]))
-                )
+            onionHeads[i + 1] = generateOnionHead(
+                onionHeads[i],
+                _transferDatas[i]
             );
 
-            destOnionHead = keccak256(
-                abi.encode(destOnionHead, onionHeads[i + 1], _committers[i])
+            destOnionHead = generateDestOnionHead(
+                destOnionHead,
+                onionHeads[i + 1],
+                _committers[i]
             );
         }
     }

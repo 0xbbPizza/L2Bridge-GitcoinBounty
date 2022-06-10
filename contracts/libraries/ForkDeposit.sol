@@ -11,6 +11,7 @@ library ForkDeposit {
         address denyer;
         uint256 amount;
         uint256 prevBlockNumber; // Prev deposit block number
+        uint8 verifyStatus; // 0: No verify, 1: Verified - fork is real, 2: Verified - fork is fake
     }
 
     function getDepositEnsure(
@@ -39,27 +40,18 @@ library ForkDeposit {
 
         if (info.prevBlockNumber > 0) {
             require(
-                block.number - info.prevBlockNumber < DEPOSIT_BLOCK_NUMBER,
-                "ForkDeposit deposit: more than block number"
+                isBlockNumberArrive(info.prevBlockNumber) == false,
+                "More than block number"
             );
         }
 
         if (deny) {
-            require(
-                info.endorser != address(0),
-                "ForkDeposit deposit: no exist endorser"
-            );
-            require(
-                info.denyer == address(0),
-                "ForkDeposit deposit: exist denyer"
-            );
+            require(info.endorser != address(0), "No exist endorser");
+            require(info.denyer == address(0), "Exist denyer");
 
             info.denyer = msg.sender;
         } else {
-            require(
-                info.endorser == address(0),
-                "ForkDeposit deposit: exist endorser"
-            );
+            require(info.endorser == address(0), "Exist endorser");
 
             info.endorser = msg.sender;
         }
@@ -67,5 +59,13 @@ library ForkDeposit {
         info.amount = amount;
         info.prevBlockNumber = block.number;
         self[forkKey] = info;
+    }
+
+    function isBlockNumberArrive(uint256 prevBlockNumber)
+        internal
+        view
+        returns (bool)
+    {
+        return block.number - prevBlockNumber >= DEPOSIT_BLOCK_NUMBER;
     }
 }

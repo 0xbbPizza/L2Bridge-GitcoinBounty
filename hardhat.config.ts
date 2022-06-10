@@ -92,11 +92,20 @@ task("GBAccounts", "Give balance to Account", async (args, hre) => {
 // Go to https://hardhat.org/config/ to learn more
 
 export default {
-  solidity: "0.8.4",
+  solidity: {
+    version: "0.8.4",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 800,
+      },
+    },
+  },
   gasReporter: {
     currency: "USD",
     gasPrice: 21,
     enabled: !!process.env.REPORT_GAS,
+    // outputFile: "gas-report.txt",
   },
   mocha: {
     timeout: 6000000,

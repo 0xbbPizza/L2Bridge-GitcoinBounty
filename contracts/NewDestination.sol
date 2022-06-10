@@ -531,7 +531,10 @@ contract NewDestination is
             allAmount += transferData.amount + transferData.fee;
             if (_mForkDatas[fi].forkIndex == i) {
                 // Ensure fork exist
-                require(hashOnionForks.isExist(_mForkDatas[fi].forkKey), 'Fork is null');
+                require(
+                    hashOnionForks.isExist(_mForkDatas[fi].forkKey),
+                    "Fork is null"
+                );
 
                 unitedForkKey = keccak256(
                     abi.encode(unitedForkKey, _mForkDatas[fi].forkKey)
@@ -547,7 +550,6 @@ contract NewDestination is
         unitedFork.needBond = true;
 
         // jisuan destOnionHead
-        
 
         hashOnionForks.update(unitedForkKey, unitedFork);
 
@@ -556,15 +558,16 @@ contract NewDestination is
 
     // Deny depostit one fork
     function denyDepositOneFork(bytes32 forkKey) external {
-        Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
+        ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits
+            .getDepositEnsure(forkKey);
 
-        uint256 amount = fork.allAmount / ForkDeposit.DEPOSIT_SCALE;
+        IERC20(tokenAddress).transferFrom(
+            msg.sender,
+            address(this),
+            forkDeposit.amount
+        );
 
-        IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
-
-        hashOnionForkDeposits.deposit(forkKey, amount, true);
-
-        // Event
+        hashOnionForkDeposits.deposit(forkKey, forkDeposit.amount, true);
     }
 
     // create bond token
@@ -578,14 +581,14 @@ contract NewDestination is
         // }
     }
 
-    function settlement(
+    function earlyBond(
         bytes32 prevForkKey,
         bytes32 forkKey,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
     ) external {
-        // if fork.deposit = true and fork.isblock = false and fork.depositValidBlockNum >= nowBlockNum
-        // if token.balanceof(this) < forkAmount do creatBondToken count to self
+        // if fork.deposit = true and fork.isblock = false and fork.depositValidBlockNum >= nowBlockNum [✅]
+        // if token.balanceof(this) < forkAmount do creatBondToken count to self 
         // if token.balanceof(lpcontract) >= forkAmount send bondToken to lpContract , and claim token to this
         // if token.balanceof(lpcontract) < forkAmount share token is change to bondToken
         // do zfork , send token to user
@@ -593,7 +596,11 @@ contract NewDestination is
         ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits
             .getDepositEnsure(forkKey);
 
-        require(forkDeposit.denyer != address(0), "Fork settlement: dispute");
+        require(forkDeposit.denyer != address(0), "Dispute");
+        require(
+            ForkDeposit.isBlockNumberArrive(forkDeposit.prevBlockNumber),
+            "No arrive"
+        );
 
         Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
 
@@ -608,12 +615,8 @@ contract NewDestination is
         bytes32[] memory wrongForkHashs
     ) external {
         // 检查prevForkKey、fork是否存在，检查forkKey.isV
-
         // 检查wrongForkKeys是否存在且衔接于分叉点prevForkKey
-
         // 给错误fork的反对者回款
-
-        
     }
 
     function loanFromLPPool(uint256 amount) internal {

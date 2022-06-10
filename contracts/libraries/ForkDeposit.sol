@@ -46,6 +46,10 @@ library ForkDeposit {
 
         if (deny) {
             require(
+                info.endorser != address(0),
+                "ForkDeposit deposit: no exist endorser"
+            );
+            require(
                 info.denyer == address(0),
                 "ForkDeposit deposit: exist denyer"
             );

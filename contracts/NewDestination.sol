@@ -361,6 +361,7 @@ contract NewDestination is
     }
 
     // Settlement non-zero fork
+    // @Deprecated
     function mbond(
         uint256 chainId,
         bytes32 preWorkForkKey,
@@ -501,7 +502,7 @@ contract NewDestination is
     }
 
     // Depostit one fork
-    function depositWithOneFork(bytes32 forkKey) external {
+    function depositWithOneFork(bytes32 forkKey) public {
         Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
 
         uint256 amount = fork.allAmount / ForkDeposit.DEPOSIT_SCALE;
@@ -509,12 +510,16 @@ contract NewDestination is
         IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
 
         hashOnionForkDeposits.deposit(forkKey, amount, false);
+
+        // Event
     }
 
     // Deposit mForks
     function depositMForks(
+        bytes32 _prevForkKey,
         Data.MForkData[] calldata _mForkDatas,
-        Data.TransferData[] calldata _transferDatas
+        Data.TransferData[] calldata _transferDatas,
+        address[] calldata _commiters
     ) external {
         bytes32 unitedForkKey = bytes32(0);
         uint256 allAmount = 0;
@@ -525,6 +530,9 @@ contract NewDestination is
 
             allAmount += transferData.amount + transferData.fee;
             if (_mForkDatas[fi].forkIndex == i) {
+                // Ensure fork exist
+                require(hashOnionForks.isExist(_mForkDatas[fi].forkKey), 'Fork is null');
+
                 unitedForkKey = keccak256(
                     abi.encode(unitedForkKey, _mForkDatas[fi].forkKey)
                 );
@@ -533,11 +541,17 @@ contract NewDestination is
             }
         }
 
-        uint256 amount = allAmount / ForkDeposit.DEPOSIT_SCALE;
+        Fork.Info memory unitedFork;
+        unitedFork.allAmount = allAmount;
+        unitedFork.length = ONEFORK_MAX_LENGTH;
+        unitedFork.needBond = true;
 
-        IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
+        // jisuan destOnionHead
+        
 
-        hashOnionForkDeposits.deposit(unitedForkKey, amount, false);
+        hashOnionForks.update(unitedForkKey, unitedFork);
+
+        depositWithOneFork(unitedForkKey);
     }
 
     // Deny depostit one fork
@@ -549,6 +563,8 @@ contract NewDestination is
         IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
 
         hashOnionForkDeposits.deposit(forkKey, amount, true);
+
+        // Event
     }
 
     // create bond token
@@ -563,9 +579,8 @@ contract NewDestination is
     }
 
     function settlement(
-        uint256 chainId,
+        bytes32 prevForkKey,
         bytes32 forkKey,
-        bytes32 _preForkKey,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
     ) external {
@@ -581,18 +596,24 @@ contract NewDestination is
         require(forkDeposit.denyer != address(0), "Fork settlement: dispute");
 
         Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
+
+        // 检查destOnionHead
     }
 
-    function settlementMForks(
-        Data.MForkData[] calldata _mForkDatas,
-        Data.TransferData[] calldata _transferDatas
+    function disputeSolve(
+        bytes32 prevForkKey,
+        bytes32 forkKey,
+        bytes32 forkKeyHash,
+        bytes32[] memory wrongForkKeys,
+        bytes32[] memory wrongForkHashs
     ) external {
-        // if fork.deposit = true and fork.isblock = false and fork.depositValidBlockNum >= nowBlockNum
-        // if token.balanceof(this) < forkAmount do creatBondToken count to self
-        // if token.balanceof(lpcontract) >= forkAmount send bondToken to lpContract , and claim token to this
-        // if token.balanceof(lpcontract) < forkAmount share token is change to bondToken
-        // do zfork , send token to user
-        // // if token.balanceof(this) >= forkAmount  do  zfork
+        // 检查prevForkKey、fork是否存在，检查forkKey.isV
+
+        // 检查wrongForkKeys是否存在且衔接于分叉点prevForkKey
+
+        // 给错误fork的反对者回款
+
+        
     }
 
     function loanFromLPPool(uint256 amount) internal {
@@ -624,16 +645,21 @@ contract NewDestination is
     }
 }
 
+// 攻击场景：
+//  1. 长坏Fork攻击，gas费消耗高于奖励
+//  2. 大金额攻击，Fork金额过大，好人没有足够的钱
+//  3. 宕机
 
 // 链上
 // 1创造fork
-// 1.1 zfork ()
-// 1.2 mfork
+// TODO 1.1 成为committer
+// 1.2 zfork ()
+// 1.3 mfork
 
 // 2完成fork
 // claim
 
-// 3质押 
+// 3质押
 
 // 3.1 质押zfork
 // 3.2 拼装mfork => zfork  (preForkKey,mforkdatas[],txinfos[])
@@ -649,7 +675,7 @@ contract NewDestination is
 // 6.3 newfunction 解决 坏/好 (分叉Forkkey, after分叉forkkey-好，好hash， after分叉forkkey-坏s，坏hashs)
 
 // event
-// 
+//
 
 // 链下---
 

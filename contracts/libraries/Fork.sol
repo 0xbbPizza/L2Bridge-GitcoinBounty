@@ -21,6 +21,7 @@ library Fork {
         uint256 length;
         address lastCommiterAddress;
         bool needBond; // true is need to settle
+        // bool isV;
     }
 
     /// @param forkKey fork's key

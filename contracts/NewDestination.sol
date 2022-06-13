@@ -283,8 +283,8 @@ contract NewDestination is
     // clearing zfork
     function zbond(
         uint256 chainId,
-        bytes32 hashOnion,
-        bytes32 _preHashOnion,
+        bytes32 prevForkKey,
+        bytes32 forkKey,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
     ) external override {
@@ -292,8 +292,7 @@ contract NewDestination is
         require(_transferDatas.length > 0, "a1");
         require(_commiters.length == _transferDatas.length, "a2");
 
-        bytes32 workForkKey = Fork.generateForkKey(chainId, hashOnion, 0);
-        Fork.Info memory workFork = hashOnionForks[workForkKey];
+        Fork.Info memory workFork = hashOnionForks.getForkEnsure(forkKey);
 
         // Judging whether this fork exists && Judging that the fork needs to be settled
         require(workFork.needBond, "a3");
@@ -304,14 +303,8 @@ contract NewDestination is
             "a4"
         );
 
-        bytes32 preWorkForkKey = Fork.generateForkKey(
-            chainId,
-            _preHashOnion,
-            0
-        );
-
         Fork.Info memory preWorkFork = hashOnionForks.getForkEnsure(
-            preWorkForkKey
+            prevForkKey
         );
 
         bytes32 onionHead = preWorkFork.onionHead;
@@ -351,7 +344,7 @@ contract NewDestination is
 
         // storage workFork
         workFork.needBond = false;
-        hashOnionForks.update(workForkKey, workFork);
+        hashOnionForks.update(forkKey, workFork);
 
         // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
         this.setOnWorkHashOnion(
@@ -508,7 +501,11 @@ contract NewDestination is
     function depositWithOneFork(bytes32 forkKey) public {
         Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
 
-        require(fork.workIndex == 0, "Only zFork");
+        require(
+            fork.workIndex == 0 ||
+                fork.workIndex == ForkDeposit.MFORK_UNITED_WORK_INDEX,
+            "Only zFork"
+        );
 
         uint256 amount = fork.allAmount / ForkDeposit.DEPOSIT_SCALE;
 

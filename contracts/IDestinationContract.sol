@@ -34,7 +34,7 @@ interface IDestinationContract {
         uint256 chainId,
         bytes32 _lastOnionHead,
         bytes32 _lastDestOnionHead,
-        uint8 _index,
+        uint16 _index,
         Data.TransferData calldata _transferData,
         bool _isRespond
     ) external;

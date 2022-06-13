@@ -15,13 +15,14 @@ library HashOnions {
 
 library Fork {
     struct Info {
+        uint16 workIndex; // 0: zFork, >0: mFork
         bytes32 onionHead;
         bytes32 destOnionHead;
         uint256 allAmount;
         uint256 length;
         address lastCommiterAddress;
         bool needBond; // true is need to settle
-        // bool isV;
+        uint8 verifyStatus; // 0: No verify, 1: Verified - fork is real, 2: Verified - fork is fake
     }
 
     /// @param forkKey fork's key
@@ -62,24 +63,13 @@ library Fork {
         return fork;
     }
 
-    /// Get forkInfo by chainId, hashOnion, index
-    function get(
-        mapping(bytes32 => Info) storage self,
-        uint256 chainId,
-        bytes32 hashOnion,
-        uint8 index
-    ) internal view returns (Info memory) {
-        bytes32 forkKey = generateForkKey(chainId, hashOnion, index);
-        return self[forkKey];
-    }
-
     /// @param chainId Chain's id
     /// @param hashOnion Equal to fork's first Info.onionHead
     /// @param index Fork's index
     function generateForkKey(
         uint256 chainId,
         bytes32 hashOnion,
-        uint8 index
+        uint16 index
     ) internal pure returns (bytes32) {
         return keccak256(abi.encode(chainId, hashOnion, index));
     }
@@ -120,7 +110,7 @@ library Fork {
         update(
             self,
             forkKey,
-            Info(bytes32(0), bytes32(0), 0, maxLength, address(0), false)
+            Info(0, bytes32(0), bytes32(0), 0, maxLength, address(0), false, 0)
         );
     }
 
@@ -174,9 +164,9 @@ library Fork {
         uint256 chainId,
         bytes32 _lastOnionHead,
         bytes32 _lastDestOnionHead,
-        uint8 _index,
+        uint16 _index,
         Data.TransferData calldata _transferData
-    ) internal returns (Info memory _newFork) {
+    ) internal returns (Info memory) {
         // Create a new Fork
         Info memory newFork;
 
@@ -200,7 +190,8 @@ library Fork {
             msg.sender
         );
 
-        newFork.allAmount += _transferData.amount + _transferData.fee;
+        newFork.workIndex = _index;
+        newFork.allAmount = _transferData.amount + _transferData.fee;
         newFork.length = _index + 1;
         newFork.lastCommiterAddress = msg.sender;
         newFork.needBond = true;
@@ -208,7 +199,7 @@ library Fork {
         // storage
         update(self, newForkKey, newFork);
 
-        _newFork = newFork;
+        return newFork;
     }
 
     /// @param _transferDatas [{destination, amount, fee}...]

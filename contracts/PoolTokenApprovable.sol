@@ -20,12 +20,12 @@ contract PoolTokenApprovable is Ownable {
         _poolTokenAddress = poolTokenAddress_;
     }
 
-    function poolToken() public view returns (PoolToken) {
+    function poolTokenAddress() public view returns (address) {
         require(
             _poolTokenAddress != address(0),
             "PoolTokenApprovable poolToken: _poolTokenAddress is zero"
         );
 
-        return PoolToken(_poolTokenAddress);
+        return _poolTokenAddress;
     }
 }

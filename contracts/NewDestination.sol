@@ -96,9 +96,10 @@ contract NewDestination is
     function getHashOnionFork(
         uint256 chainId,
         bytes32 hashOnion,
-        uint8 index
+        uint16 index
     ) external view returns (Fork.Info memory) {
-        return hashOnionForks.get(chainId, hashOnion, index);
+        bytes32 forkKey = Fork.generateForkKey(chainId, hashOnion, index);
+        return hashOnionForks.getForkEnsure(forkKey);
     }
 
     function getHashOnionInfo(uint256 chainId)
@@ -229,14 +230,16 @@ contract NewDestination is
             _committerDeposits[msg.sender] = false;
         }
 
-        workFork = Fork.Info({
-            onionHead: onionHead,
-            destOnionHead: destOnionHead,
-            allAmount: allAmount + workFork.allAmount,
-            length: _workIndex + _transferDatas.length,
-            lastCommiterAddress: msg.sender,
-            needBond: workFork.needBond
-        });
+        workFork = Fork.Info(
+            0,
+            onionHead,
+            destOnionHead,
+            allAmount + workFork.allAmount,
+            _workIndex + _transferDatas.length,
+            msg.sender,
+            workFork.needBond,
+            0
+        );
 
         // storage
         hashOnionForks.update(workForkKey, workFork);
@@ -247,7 +250,7 @@ contract NewDestination is
         uint256 chainId,
         bytes32 _lastOnionHead,
         bytes32 _lastDestOnionHead,
-        uint8 _index,
+        uint16 _index,
         Data.TransferData calldata _transferData,
         bool _isRespond
     ) external override {
@@ -505,6 +508,8 @@ contract NewDestination is
     function depositWithOneFork(bytes32 forkKey) public {
         Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
 
+        require(fork.workIndex == 0, "Only zFork");
+
         uint256 amount = fork.allAmount / ForkDeposit.DEPOSIT_SCALE;
 
         IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
@@ -516,14 +521,26 @@ contract NewDestination is
 
     // Deposit mForks
     function depositMForks(
+        uint256 chainId,
         bytes32 _prevForkKey,
         Data.MForkData[] calldata _mForkDatas,
         Data.TransferData[] calldata _transferDatas,
-        address[] calldata _commiters
+        address[] calldata _committers
     ) external {
-        bytes32 unitedForkKey = bytes32(0);
-        uint256 allAmount = 0;
+        Fork.Info memory prevFork = hashOnionForks.getForkEnsure(_prevForkKey);
 
+        // Create unitedForkKey
+        bytes32 hashOnion = Fork.generateOnionHead(
+            prevFork.onionHead,
+            _transferDatas[0]
+        );
+        bytes32 unitedForkKey = Fork.generateForkKey(
+            chainId,
+            hashOnion,
+            ForkDeposit.MFORK_UNITED_WORK_INDEX
+        );
+
+        uint256 allAmount = 0;
         uint16 fi = 0;
         for (uint16 i = 0; i < _transferDatas.length; i++) {
             Data.TransferData memory transferData = _transferDatas[i];
@@ -536,10 +553,6 @@ contract NewDestination is
                     "Fork is null"
                 );
 
-                unitedForkKey = keccak256(
-                    abi.encode(unitedForkKey, _mForkDatas[fi].forkKey)
-                );
-
                 fi += 1;
             }
         }
@@ -549,7 +562,26 @@ contract NewDestination is
         unitedFork.length = ONEFORK_MAX_LENGTH;
         unitedFork.needBond = true;
 
-        // jisuan destOnionHead
+        // Set onionHead, destOnionHead and lastCommiterAddress
+        bytes32 onionHead = prevFork.onionHead;
+        bytes32 destOnionHead = prevFork.destOnionHead;
+        for (uint256 i; i < _transferDatas.length; i++) {
+            onionHead = Fork.generateOnionHead(onionHead, _transferDatas[i]);
+
+            // First transferData: onionHead
+            if (unitedFork.onionHead == bytes32(0)) {
+                unitedFork.onionHead = onionHead;
+            }
+
+            destOnionHead = Fork.generateDestOnionHead(
+                destOnionHead,
+                onionHead,
+                _committers[i]
+            );
+
+            unitedFork.lastCommiterAddress = _committers[i];
+        }
+        unitedFork.destOnionHead = destOnionHead;
 
         hashOnionForks.update(unitedForkKey, unitedFork);
 
@@ -570,29 +602,16 @@ contract NewDestination is
         hashOnionForkDeposits.deposit(forkKey, forkDeposit.amount, true);
     }
 
-    // create bond token
-    function createPToken(bytes32 forkKey) external {
-        // requer(type[forkkey] == 1)
-        // requer(blocknum[forkkey] + mintime >= nowblocknum )
-        // ptoken.mint(fork.allAmount)
-        // rentContranct.jieqian(fork.allAmount){
-        //     ptoken.transferfrom(sender,self,fork.allamount)
-        //     token.transfer(sender)
-        // }
-    }
-
     function earlyBond(
         bytes32 prevForkKey,
         bytes32 forkKey,
         Data.TransferData[] calldata _transferDatas,
-        address[] calldata _commiters
+        address[] calldata _committers
     ) external {
         // if fork.deposit = true and fork.isblock = false and fork.depositValidBlockNum >= nowBlockNum [✅]
-        // if token.balanceof(this) < forkAmount do creatBondToken count to self 
-        // if token.balanceof(lpcontract) >= forkAmount send bondToken to lpContract , and claim token to this
-        // if token.balanceof(lpcontract) < forkAmount share token is change to bondToken
-        // do zfork , send token to user
-        // // if token.balanceof(this) >= forkAmount  do  zfork
+        // if token.balanceof(this) < forkAmount do creatBondToken count to self [✅]
+        // if token.balanceof(lpcontract) >= forkAmount send bondToken to lpContract , and claim token to this[✅]
+        // if token.balanceof(lpcontract) < forkAmount share token is change to bondToken[❓]
         ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits
             .getDepositEnsure(forkKey);
 
@@ -602,27 +621,120 @@ contract NewDestination is
             "No arrive"
         );
 
+        Fork.Info memory prevFork = hashOnionForks.getForkEnsure(prevForkKey);
         Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
 
-        // 检查destOnionHead
+        // Check destOnionHead
+        bytes32 onionHead = prevFork.onionHead;
+        bytes32 destOnionHead = prevFork.destOnionHead;
+        for (uint256 i; i < _transferDatas.length; i++) {
+            onionHead = Fork.generateOnionHead(onionHead, _transferDatas[i]);
+
+            destOnionHead = Fork.generateDestOnionHead(
+                destOnionHead,
+                onionHead,
+                _committers[i]
+            );
+        }
+        require(destOnionHead == fork.destOnionHead, "Different destOnionHead");
+
+        // When token.balanceOf(this) < fork.allAmount, get token from LP
+        if (IERC20(tokenAddress).balanceOf(address(this)) < fork.allAmount) {
+            // Ensure LP has sufficient token
+            require(
+                IERC20(tokenAddress).balanceOf(poolTokenAddress()) >=
+                    fork.allAmount,
+                "Pool insufficient"
+            );
+
+            // Calculate lever
+            PoolToken poolToken = PoolToken(poolTokenAddress());
+            uint256 poolTokenAmount = fork.allAmount / poolToken.scale();
+
+            // TODO Debug, mint poolToken
+            poolToken.mint(poolTokenAmount);
+
+            // Exchange
+            poolToken.exchange(tokenAddress, poolTokenAmount);
+        }
+
+        // Send token to committers
+        for (uint256 i; i < _transferDatas.length; i++) {
+            IERC20(address(this)).transfer(
+                _committers[i],
+                _transferDatas[i].amount + _transferDatas[i].fee
+            );
+        }
+
+        // Send token to fork's endorser
+        IERC20(address(this)).transfer(
+            forkDeposit.endorser,
+            forkDeposit.amount
+        );
     }
 
     function disputeSolve(
+        uint256 chainId,
         bytes32 prevForkKey,
         bytes32 forkKey,
-        bytes32 forkKeyHash,
+        bytes32 forkTxHash,
         bytes32[] memory wrongForkKeys,
-        bytes32[] memory wrongForkHashs
+        bytes32[] memory wrongForkTxHashs
     ) external {
-        // 检查prevForkKey、fork是否存在，检查forkKey.isV
-        // 检查wrongForkKeys是否存在且衔接于分叉点prevForkKey
-        // 给错误fork的反对者回款
+        Fork.Info memory prevFork = hashOnionForks.getForkEnsure(prevForkKey);
+        Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
+
+        // Verify forkKey
+        bytes32 forkOnionHead = keccak256(
+            abi.encode(prevFork.onionHead, forkTxHash)
+        );
+        require(
+            Fork.generateForkKey(chainId, forkOnionHead, fork.workIndex) ==
+                forkKey,
+            "ForkKey verify faild"
+        );
+
+        require(fork.verifyStatus == 1, "Fork verify failed");
+
+        bytes32 wrongForkOnionHead = prevFork.onionHead;
+        for (uint256 i = 0; i < wrongForkKeys.length; i++) {
+            Fork.Info memory wrongFork = hashOnionForks.getForkEnsure(
+                wrongForkKeys[i]
+            );
+
+            // Verify wrong forkKey, verifyStatus
+            wrongForkOnionHead = keccak256(
+                abi.encode(wrongForkOnionHead, wrongForkTxHashs[i])
+            );
+            require(
+                Fork.generateForkKey(
+                    chainId,
+                    wrongForkOnionHead,
+                    wrongFork.workIndex
+                ) == wrongForkKeys[i],
+                "Wrong ForkKey verify faild"
+            );
+            require(wrongFork.verifyStatus != 0, "Exception verifyStatus");
+
+            // Check deposit
+            ForkDeposit.Info memory wrongForkDeposit = hashOnionForkDeposits
+                .getDepositEnsure(wrongForkKeys[i]);
+            require(wrongForkDeposit.denyer != address(0), "No exist denyer");
+
+            IERC20(tokenAddress).transfer(
+                wrongForkDeposit.denyer,
+                wrongForkDeposit.amount
+            );
+
+            // Change wrongFork.verifyStatus
+            wrongFork.verifyStatus = 2;
+            hashOnionForks.update(wrongForkKeys[i], wrongFork);
+        }
     }
 
     function loanFromLPPool(uint256 amount) internal {
-        // send bondToken to LPPool
-        // LPPool send real token to dest
-        poolToken().exchange(tokenAddress, amount);
+        // Send bondToken to LPPool, LPPool send real token to dest
+        PoolToken(poolTokenAddress()).exchange(tokenAddress, amount);
     }
 
     // buy bond token
@@ -647,39 +759,3 @@ contract NewDestination is
         hashOnions[chainId] = info;
     }
 }
-
-// 攻击场景：
-//  1. 长坏Fork攻击，gas费消耗高于奖励
-//  2. 大金额攻击，Fork金额过大，好人没有足够的钱
-//  3. 宕机
-
-// 链上
-// 1创造fork
-// TODO 1.1 成为committer
-// 1.2 zfork ()
-// 1.3 mfork
-
-// 2完成fork
-// claim
-
-// 3质押
-
-// 3.1 质押zfork
-// 3.2 拼装mfork => zfork  (preForkKey,mforkdatas[],txinfos[])
-//  event(prekey , newkey)
-
-// 4反对
-
-// 5结算
-
-// 6纠纷解决
-// 6.1 接到source数据
-// 6.2 zbond 解决 好/坏
-// 6.3 newfunction 解决 坏/好 (分叉Forkkey, after分叉forkkey-好，好hash， after分叉forkkey-坏s，坏hashs)
-
-// event
-//
-
-// 链下---
-
-// 链上方法，链上input，链下的方法，链下的input，链上event、、

@@ -4,14 +4,15 @@ pragma solidity 0.8.4;
 
 library ForkDeposit {
     uint256 internal constant DEPOSIT_SCALE = 10;
-    uint256 internal constant DEPOSIT_BLOCK_NUMBER = 2; // During this number
+    // uint256 internal constant DEPOSIT_BLOCK_NUMBER = 2; // During this number
+    uint256 internal constant DEPOSIT_BLOCK_NUMBER = 0; // TODO Debug. During this number
+    uint16 internal constant MFORK_UNITED_WORK_INDEX = 2**16 - 1;
 
     struct Info {
         address endorser;
         address denyer;
         uint256 amount;
         uint256 prevBlockNumber; // Prev deposit block number
-        uint8 verifyStatus; // 0: No verify, 1: Verified - fork is real, 2: Verified - fork is fake
     }
 
     function getDepositEnsure(

@@ -11,9 +11,9 @@ contract PoolTokenTest is PoolTokenApprovable {
         address exToken,
         uint256 amount
     ) external returns (bool) {
-        poolToken().mint(amount);
+        PoolToken(poolTokenAddress()).mint(amount);
 
-        poolToken().exchange(exToken, amount);
+        PoolToken(poolTokenAddress()).exchange(exToken, amount);
 
         return true;
     }

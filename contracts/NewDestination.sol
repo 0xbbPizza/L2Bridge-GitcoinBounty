@@ -11,7 +11,7 @@ import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
 import "./PoolTokenApprovable.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract NewDestination is
     IDestinationContract,
@@ -343,6 +343,7 @@ contract NewDestination is
         require(destOnionHead == workFork.destOnionHead, "a5");
 
         // storage workFork
+        workFork.verifyStatus = 1;
         workFork.needBond = false;
         hashOnionForks.update(forkKey, workFork);
 
@@ -501,15 +502,16 @@ contract NewDestination is
     function depositWithOneFork(bytes32 forkKey) public {
         Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
 
-        require(
-            fork.workIndex == 0 ||
-                fork.workIndex == ForkDeposit.MFORK_UNITED_WORK_INDEX,
-            "Only zFork"
-        );
+        require(fork.workIndex == 0, "Only zFork");
+        require(fork.length == ONEFORK_MAX_LENGTH, "Insufficient length");
 
         uint256 amount = fork.allAmount / ForkDeposit.DEPOSIT_SCALE;
 
-        IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
+        IERC20(tokenAddress).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
 
         hashOnionForkDeposits.deposit(forkKey, amount, false);
 
@@ -524,6 +526,11 @@ contract NewDestination is
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _committers
     ) external {
+        require(
+            _transferDatas.length == ONEFORK_MAX_LENGTH,
+            "Insufficient length"
+        );
+
         Fork.Info memory prevFork = hashOnionForks.getForkEnsure(_prevForkKey);
 
         // Create unitedForkKey
@@ -543,7 +550,7 @@ contract NewDestination is
             Data.TransferData memory transferData = _transferDatas[i];
 
             allAmount += transferData.amount + transferData.fee;
-            if (_mForkDatas[fi].forkIndex == i) {
+            if (fi < _mForkDatas.length && _mForkDatas[fi].forkIndex == i) {
                 // Ensure fork exist
                 require(
                     hashOnionForks.isExist(_mForkDatas[fi].forkKey),
@@ -565,11 +572,6 @@ contract NewDestination is
         for (uint256 i; i < _transferDatas.length; i++) {
             onionHead = Fork.generateOnionHead(onionHead, _transferDatas[i]);
 
-            // First transferData: onionHead
-            if (unitedFork.onionHead == bytes32(0)) {
-                unitedFork.onionHead = onionHead;
-            }
-
             destOnionHead = Fork.generateDestOnionHead(
                 destOnionHead,
                 onionHead,
@@ -578,6 +580,7 @@ contract NewDestination is
 
             unitedFork.lastCommiterAddress = _committers[i];
         }
+        unitedFork.onionHead = onionHead;
         unitedFork.destOnionHead = destOnionHead;
 
         hashOnionForks.update(unitedForkKey, unitedFork);
@@ -585,12 +588,21 @@ contract NewDestination is
         depositWithOneFork(unitedForkKey);
     }
 
+    // Todo Debug
+    function getForkDeposit(bytes32 forkKey)
+        external
+        view
+        returns (ForkDeposit.Info memory)
+    {
+        return hashOnionForkDeposits.getDepositEnsure(forkKey);
+    }
+
     // Deny depostit one fork
     function denyDepositOneFork(bytes32 forkKey) external {
         ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits
             .getDepositEnsure(forkKey);
 
-        IERC20(tokenAddress).transferFrom(
+        IERC20(tokenAddress).safeTransferFrom(
             msg.sender,
             address(this),
             forkDeposit.amount
@@ -612,7 +624,7 @@ contract NewDestination is
         ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits
             .getDepositEnsure(forkKey);
 
-        require(forkDeposit.denyer != address(0), "Dispute");
+        require(forkDeposit.denyer == address(0), "Dispute");
         require(
             ForkDeposit.isBlockNumberArrive(forkDeposit.prevBlockNumber),
             "No arrive"
@@ -657,14 +669,14 @@ contract NewDestination is
 
         // Send token to committers
         for (uint256 i; i < _transferDatas.length; i++) {
-            IERC20(address(this)).transfer(
+            IERC20(tokenAddress).safeTransfer(
                 _committers[i],
                 _transferDatas[i].amount + _transferDatas[i].fee
             );
         }
 
         // Send token to fork's endorser
-        IERC20(address(this)).transfer(
+        IERC20(tokenAddress).safeTransfer(
             forkDeposit.endorser,
             forkDeposit.amount
         );
@@ -718,7 +730,7 @@ contract NewDestination is
                 .getDepositEnsure(wrongForkKeys[i]);
             require(wrongForkDeposit.denyer != address(0), "No exist denyer");
 
-            IERC20(tokenAddress).transfer(
+            IERC20(tokenAddress).safeTransfer(
                 wrongForkDeposit.denyer,
                 wrongForkDeposit.amount
             );

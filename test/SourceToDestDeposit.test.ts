@@ -4,6 +4,9 @@ import { BigNumber, Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { generateForkKey } from "./utils";
 
+const DEPOSIT_MFORK_UNITED_WORK_INDEX = 2 ** 16 - 1;
+const DEPOSIT_SCALE = 10;
+
 describe("sourceToDest", function () {
   let accounts: Signer[];
   let fakeToken: Contract;
@@ -14,6 +17,8 @@ describe("sourceToDest", function () {
   let sourceAmount: BigNumber;
   let users: Signer[];
   let makers: Signer[];
+  let endorser: Signer;
+  let denyer: Signer;
   let txs: [string, BigNumber, BigNumber][];
   let ONEFORK_MAX_LENGTH: any;
   // let sourceToDestAmount: any;
@@ -54,7 +59,7 @@ describe("sourceToDest", function () {
 
     // set account token amount
     for (let i = 1; i < accounts.length; i++) {
-      let amount = i * 1000000000;
+      let amount = i * 10000000;
       await fakeToken.transfer(await accounts[i].getAddress(), amount);
     }
 
@@ -106,7 +111,14 @@ describe("sourceToDest", function () {
     sourceAmount = BigNumber.from(0);
     users = accounts.slice(1, 12);
     makers = accounts.slice(13);
+    endorser = accounts[14];
+    denyer = accounts[15];
     txs = [];
+
+    // Depositer extra amount
+    const extraAmount = 2000000000000;
+    await fakeToken.transfer(await endorser.getAddress(), extraAmount);
+    await fakeToken.transfer(await denyer.getAddress(), extraAmount);
   });
 
   async function getSourceHashOnion(_chainId: number) {
@@ -187,11 +199,6 @@ describe("sourceToDest", function () {
     let amount: BigNumber;
 
     for (let i = 3; i < users.length; i++) {
-      // Debug
-      // if (txs.length >= 5) {
-      //   break;
-      // }
-
       user = users[i];
       userAddress = await users[i].getAddress();
 
@@ -222,9 +229,6 @@ describe("sourceToDest", function () {
   });
 
   it("mFork and Claim on dest", async function () {
-    // Debug
-    console.warn("txs.length: ", txs.length);
-
     expect(ONEFORK_MAX_LENGTH).to.equal(await dest.ONEFORK_MAX_LENGTH());
 
     const committer: Signer = accounts[0];
@@ -298,7 +302,7 @@ describe("sourceToDest", function () {
             [
               {
                 ...transferData,
-                fee: 10,
+                fee: 10, // Mock wrong transfer
               },
             ],
             [true]
@@ -325,8 +329,9 @@ describe("sourceToDest", function () {
       }
 
       const fork = await dest.hashOnionForks(forkKey);
-      expect(fork[0]).to.equal(sourOnion);
-      expect(fork[1]).to.equal(destOnion);
+
+      expect(fork.onionHead).to.equal(sourOnion);
+      expect(fork.destOnionHead).to.equal(destOnion);
     }
 
     let userAddress = await users[2].getAddress();
@@ -337,52 +342,147 @@ describe("sourceToDest", function () {
   });
 
   it("Deposit mForks", async function () {
-    // Debug
-    for (const forkDatas of forkDatasArr) {
-      for (const item of forkDatas) {
-        (<any>item)["fork"] = await dest.hashOnionForks(item.forkKey);
+    const endorserDest = dest.connect(endorser);
+    await fakeToken
+      .connect(endorser)
+      .approve(dest.address, ethers.constants.MaxUint256);
+
+    let endorserBalancePrev = await fakeToken.balanceOf(
+      await endorser.getAddress()
+    );
+    let currentHashOnion = ethers.constants.HashZero;
+    let forkHashOnion = currentHashOnion;
+    let prevForkKey = generateForkKey(chainId, currentHashOnion, 0);
+    let forkAllAmount = BigNumber.from(0);
+    const committers = [];
+    const transferDatas = [];
+    let fdi = 1;
+    for (let i = 0; i < txs.length; i++) {
+      const tx = txs[i];
+      committers.push(await accounts[0].getAddress());
+      transferDatas.push({ destination: tx[0], amount: tx[1], fee: tx[2] });
+      forkAllAmount = forkAllAmount.add(tx[1]).add(tx[2]);
+
+      // Calculate hashOnion
+      const txHash = ethers.utils.keccak256(
+        ethers.utils.defaultAbiCoder.encode(["address", "uint", "uint"], tx)
+      );
+      currentHashOnion = ethers.utils.keccak256(
+        ethers.utils.defaultAbiCoder.encode(
+          ["bytes32", "bytes32"],
+          [currentHashOnion, txHash]
+        )
+      );
+
+      // When fork’s first tx
+      if (i % ONEFORK_MAX_LENGTH == 0) {
+        forkHashOnion = currentHashOnion;
+      }
+
+      // When fork’s last tx
+      if (i % ONEFORK_MAX_LENGTH == ONEFORK_MAX_LENGTH - 1) {
+        await endorserDest.depositMForks(
+          chainId,
+          prevForkKey,
+          forkDatasArr[fdi],
+          transferDatas,
+          committers
+        );
+
+        prevForkKey = generateForkKey(
+          chainId,
+          forkHashOnion,
+          DEPOSIT_MFORK_UNITED_WORK_INDEX
+        );
+
+        // Test
+        const endorserBalanceCurrent = await fakeToken.balanceOf(
+          await endorser.getAddress()
+        );
+        expect(endorserBalancePrev.sub(endorserBalanceCurrent)).to.equal(
+          forkAllAmount.div(DEPOSIT_SCALE)
+        );
+
+        endorserBalancePrev = endorserBalanceCurrent;
+        fdi++;
+        committers.length = 0;
+        transferDatas.length = 0;
+        forkAllAmount = BigNumber.from(0);
       }
     }
-    console.log(JSON.stringify(forkDatasArr));
+  });
 
-    await source.extractHashOnion(chainId);
-    const hashOnionInfo = await dest.getHashOnionInfo(chainId);
-    expect(hashOnionInfo.sourceHashOnion).to.equal(hashOnion);
-    expect(hashOnionInfo.onWorkHashOnion).to.equal(hashOnion);
+  it("EarlyBond", async function () {
+    const endorserDest = dest.connect(endorser);
+    await fakeToken
+      .connect(endorser)
+      .approve(dest.address, ethers.constants.MaxUint256);
 
+    // let endorserBalancePrev = await fakeToken.balanceOf(
+    //   await endorser.getAddress()
+    // );
+    let currentHashOnion = ethers.constants.HashZero;
+    let forkHashOnion = currentHashOnion;
+    let prevForkKey = generateForkKey(chainId, currentHashOnion, 0);
+    let forkAllAmount = BigNumber.from(0);
+    const committers = [];
     const transferDatas = [];
-    const commitAddresslist = [];
-
+    let fdi = 1;
     for (let i = 0; i < txs.length; i++) {
-      transferDatas.push({
-        destination: txs[i][0],
-        amount: txs[i][1],
-        fee: txs[i][2],
-      });
-      commitAddresslist.push(await accounts[0].getAddress());
-    }
+      const tx = txs[i];
+      committers.push(await accounts[0].getAddress());
+      transferDatas.push({ destination: tx[0], amount: tx[1], fee: tx[2] });
+      forkAllAmount = forkAllAmount.add(tx[1]).add(tx[2]);
 
-    for (let i = forkDatasArr.length - 1; i > 0; i--) {
-      let x = (i - 1) * ONEFORK_MAX_LENGTH;
-      let y = i * ONEFORK_MAX_LENGTH;
-
-      const pre_mForkDatas = forkDatasArr[i - 1];
-      const preWorkForkKey = pre_mForkDatas[pre_mForkDatas.length - 1].forkKey;
-
-      await dest.mbond(
-        chainId,
-        preWorkForkKey,
-        forkDatasArr[i],
-        transferDatas.slice(x, y),
-        commitAddresslist.slice(x, y)
+      // Calculate hashOnion
+      const txHash = ethers.utils.keccak256(
+        ethers.utils.defaultAbiCoder.encode(["address", "uint", "uint"], tx)
       );
-    }
+      currentHashOnion = ethers.utils.keccak256(
+        ethers.utils.defaultAbiCoder.encode(
+          ["bytes32", "bytes32"],
+          [currentHashOnion, txHash]
+        )
+      );
 
-    // console.log(await fakeToken.balanceOf(accounts[0].getAddress()))
-    // console.log(await fakeToken.balanceOf(dest.address))
-    // console.log(bonderAmount)
-    // console.log(sourceAmount)
-    expect(await fakeToken.balanceOf(dest.address)).to.equal(0);
-    // expect(await fakeToken.balanceOf(accounts[0].getAddress())).to.equal(bonderAmount.sub(sourceAmount))
+      // When fork’s first tx
+      if (i % ONEFORK_MAX_LENGTH == 0) {
+        forkHashOnion = currentHashOnion;
+      }
+
+      // When fork’s last tx
+      if (i % ONEFORK_MAX_LENGTH == ONEFORK_MAX_LENGTH - 1) {
+        // await endorserDest.depositMForks(
+        //   chainId,
+        //   prevForkKey,
+        //   forkDatasArr[fdi],
+        //   transferDatas,
+        //   committers
+        // );
+
+        const forkKey = generateForkKey(
+          chainId,
+          forkHashOnion,
+          DEPOSIT_MFORK_UNITED_WORK_INDEX
+        );
+
+        await dest.earlyBond(prevForkKey, forkKey, transferDatas, committers);
+
+        // Test
+        // const endorserBalanceCurrent = await fakeToken.balanceOf(
+        //   await endorser.getAddress()
+        // );
+        // expect(endorserBalancePrev.sub(endorserBalanceCurrent)).to.equal(
+        //   forkAllAmount.div(DEPOSIT_SCALE)
+        // );
+
+        // endorserBalancePrev = endorserBalanceCurrent;
+        prevForkKey = forkKey;
+        fdi++;
+        committers.length = 0;
+        transferDatas.length = 0;
+        forkAllAmount = BigNumber.from(0);
+      }
+    }
   });
 });

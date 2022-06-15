@@ -10,7 +10,7 @@ import { utils } from "ethers";
 export function generateForkKey(chainId: number, hashOnion: string, index = 0) {
   return utils.keccak256(
     utils.defaultAbiCoder.encode(
-      ["uint256", "bytes32", "uint8"],
+      ["uint256", "bytes32", "uint16"],
       [chainId, hashOnion, index]
     )
   );

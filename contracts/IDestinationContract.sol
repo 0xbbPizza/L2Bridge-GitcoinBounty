@@ -47,14 +47,6 @@ interface IDestinationContract {
         address[] calldata _commiters
     ) external;
 
-    function mbond(
-        uint256 chainId,
-        bytes32 preWorkForkKey,
-        Data.MForkData[] calldata _mForkDatas,
-        Data.TransferData[] calldata _transferDatas,
-        address[] calldata _commiters
-    ) external;
-
     function buyOneOnion(
         uint256 chainId,
         bytes32 preHashOnion,

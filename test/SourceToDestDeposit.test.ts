@@ -1,10 +1,10 @@
-// import "ethers";
 import { expect } from "chai";
 import { BigNumber, Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { generateForkKey } from "./utils";
 
 const DEPOSIT_MFORK_UNITED_WORK_INDEX = 2 ** 16 - 1;
+const DEPOSIT_BLOCK_SUB = 5;
 const DEPOSIT_SCALE = 10;
 
 describe("sourceToDest", function () {
@@ -19,6 +19,20 @@ describe("sourceToDest", function () {
   let makers: Signer[];
   let endorser: Signer;
   let denyer: Signer;
+  let endorsForkInfo: {
+    prevForkKey: string;
+    forkKey: string;
+    committers: string[];
+    transferDatas: any[];
+    forkAllAmount: BigNumber;
+  };
+  let denyForkInfo: {
+    prevForkKey: string;
+    forkKey: string;
+    committers: string[];
+    transferDatas: any[];
+    forkAllAmount: BigNumber;
+  };
   let txs: [string, BigNumber, BigNumber][];
   let ONEFORK_MAX_LENGTH: any;
   // let sourceToDestAmount: any;
@@ -342,6 +356,14 @@ describe("sourceToDest", function () {
   });
 
   it("Deposit mForks", async function () {
+    // Debug
+    for (const forkDatas of forkDatasArr) {
+      for (const item of forkDatas) {
+        (<any>item)["fork"] = await dest.hashOnionForks(item.forkKey);
+      }
+    }
+    console.log(JSON.stringify(forkDatasArr));
+
     const endorserDest = dest.connect(endorser);
     await fakeToken
       .connect(endorser)
@@ -354,8 +376,8 @@ describe("sourceToDest", function () {
     let forkHashOnion = currentHashOnion;
     let prevForkKey = generateForkKey(chainId, currentHashOnion, 0);
     let forkAllAmount = BigNumber.from(0);
-    const committers = [];
-    const transferDatas = [];
+    let committers = [];
+    let transferDatas = [];
     let fdi = 1;
     for (let i = 0; i < txs.length; i++) {
       const tx = txs[i];
@@ -389,11 +411,33 @@ describe("sourceToDest", function () {
           committers
         );
 
-        prevForkKey = generateForkKey(
+        const forkKey = generateForkKey(
           chainId,
           forkHashOnion,
           DEPOSIT_MFORK_UNITED_WORK_INDEX
         );
+
+        // Record endors fork
+        if (fdi == 1) {
+          endorsForkInfo = {
+            prevForkKey,
+            forkKey,
+            transferDatas,
+            committers,
+            forkAllAmount,
+          };
+        }
+
+        // Record deny fork
+        if (fdi == 2) {
+          denyForkInfo = {
+            prevForkKey,
+            forkKey,
+            transferDatas,
+            committers,
+            forkAllAmount,
+          };
+        }
 
         // Test
         const endorserBalanceCurrent = await fakeToken.balanceOf(
@@ -403,86 +447,115 @@ describe("sourceToDest", function () {
           forkAllAmount.div(DEPOSIT_SCALE)
         );
 
+        prevForkKey = forkKey;
         endorserBalancePrev = endorserBalanceCurrent;
         fdi++;
-        committers.length = 0;
-        transferDatas.length = 0;
+        committers = [];
+        transferDatas = [];
         forkAllAmount = BigNumber.from(0);
       }
     }
   });
 
-  it("EarlyBond", async function () {
-    const endorserDest = dest.connect(endorser);
+  it("Deny deposit", async function () {
+    const denyerDest = dest.connect(denyer);
     await fakeToken
-      .connect(endorser)
+      .connect(denyer)
       .approve(dest.address, ethers.constants.MaxUint256);
 
-    // let endorserBalancePrev = await fakeToken.balanceOf(
-    //   await endorser.getAddress()
-    // );
-    let currentHashOnion = ethers.constants.HashZero;
-    let forkHashOnion = currentHashOnion;
-    let prevForkKey = generateForkKey(chainId, currentHashOnion, 0);
-    let forkAllAmount = BigNumber.from(0);
-    const committers = [];
-    const transferDatas = [];
-    let fdi = 1;
-    for (let i = 0; i < txs.length; i++) {
-      const tx = txs[i];
-      committers.push(await accounts[0].getAddress());
-      transferDatas.push({ destination: tx[0], amount: tx[1], fee: tx[2] });
-      forkAllAmount = forkAllAmount.add(tx[1]).add(tx[2]);
+    const denyerBalanceBefore = await fakeToken.balanceOf(
+      await denyer.getAddress()
+    );
 
-      // Calculate hashOnion
-      const txHash = ethers.utils.keccak256(
-        ethers.utils.defaultAbiCoder.encode(["address", "uint", "uint"], tx)
-      );
-      currentHashOnion = ethers.utils.keccak256(
-        ethers.utils.defaultAbiCoder.encode(
-          ["bytes32", "bytes32"],
-          [currentHashOnion, txHash]
-        )
-      );
+    await denyerDest.denyDepositOneFork(denyForkInfo.forkKey);
 
-      // When fork’s first tx
-      if (i % ONEFORK_MAX_LENGTH == 0) {
-        forkHashOnion = currentHashOnion;
-      }
+    // Test denyer balance
+    const denyerBalanceAfter = await fakeToken.balanceOf(
+      await denyer.getAddress()
+    );
 
-      // When fork’s last tx
-      if (i % ONEFORK_MAX_LENGTH == ONEFORK_MAX_LENGTH - 1) {
-        // await endorserDest.depositMForks(
-        //   chainId,
-        //   prevForkKey,
-        //   forkDatasArr[fdi],
-        //   transferDatas,
-        //   committers
-        // );
+    expect(denyerBalanceBefore.sub(denyerBalanceAfter)).to.equal(
+      denyForkInfo.forkAllAmount.div(DEPOSIT_SCALE)
+    );
+  });
 
-        const forkKey = generateForkKey(
-          chainId,
-          forkHashOnion,
-          DEPOSIT_MFORK_UNITED_WORK_INDEX
-        );
+  it("Mock blocknumber increment", async function () {
+    const blockNumberBefore = await dest.provider.getBlockNumber();
+    console.warn("blockNumberBefore: ", blockNumberBefore);
 
-        await dest.earlyBond(prevForkKey, forkKey, transferDatas, committers);
-
-        // Test
-        // const endorserBalanceCurrent = await fakeToken.balanceOf(
-        //   await endorser.getAddress()
-        // );
-        // expect(endorserBalancePrev.sub(endorserBalanceCurrent)).to.equal(
-        //   forkAllAmount.div(DEPOSIT_SCALE)
-        // );
-
-        // endorserBalancePrev = endorserBalanceCurrent;
-        prevForkKey = forkKey;
-        fdi++;
-        committers.length = 0;
-        transferDatas.length = 0;
-        forkAllAmount = BigNumber.from(0);
-      }
+    for (let i = 0; i < DEPOSIT_BLOCK_SUB; i++) {
+      await fakeToken.transfer(await accounts[0].getAddress(), 1);
     }
+
+    const blockNumberAfter = await dest.provider.getBlockNumber();
+    console.warn("blockNumberAfter: ", blockNumberAfter);
+    expect(blockNumberAfter - blockNumberBefore).to.equal(DEPOSIT_BLOCK_SUB);
+  });
+
+  it("EarlyBond", async function () {
+    const endorserBalanceBefore = await fakeToken.balanceOf(
+      await endorser.getAddress()
+    );
+    const committerBalanceBefore = await fakeToken.balanceOf(
+      await accounts[0].getAddress()
+    );
+
+    await dest.earlyBond(
+      endorsForkInfo.prevForkKey,
+      endorsForkInfo.forkKey,
+      endorsForkInfo.transferDatas,
+      endorsForkInfo.committers
+    );
+
+    // Test endorser balance
+    const endorserBalanceAfter = await fakeToken.balanceOf(
+      await endorser.getAddress()
+    );
+    expect(endorserBalanceAfter.sub(endorserBalanceBefore)).to.equal(
+      endorsForkInfo.forkAllAmount.div(DEPOSIT_SCALE)
+    );
+
+    // Test committer balance
+    const commiterBalanceAfter = await fakeToken.balanceOf(
+      await accounts[0].getAddress()
+    );
+    expect(commiterBalanceAfter.sub(committerBalanceBefore)).to.equal(
+      endorsForkInfo.forkAllAmount
+    );
+  });
+
+  it("zBond", async function () {
+    await source.extractHashOnion(chainId);
+
+    const endorserBalanceBefore = await fakeToken.balanceOf(
+      await endorser.getAddress()
+    );
+    const committerBalanceBefore = await fakeToken.balanceOf(
+      await accounts[0].getAddress()
+    );
+
+    await dest.zbond(
+      chainId,
+      denyForkInfo.prevForkKey,
+      denyForkInfo.forkKey,
+      denyForkInfo.transferDatas,
+      denyForkInfo.committers
+    );
+
+    // Test endorser balance
+    const endorserBalanceAfter = await fakeToken.balanceOf(
+      await endorser.getAddress()
+    );
+    expect(endorserBalanceAfter.sub(endorserBalanceBefore)).to.equal(
+      denyForkInfo.forkAllAmount.div(DEPOSIT_SCALE)
+    );
+
+    // Test committer balance
+    const commiterBalanceAfter = await fakeToken.balanceOf(
+      await accounts[0].getAddress()
+    );
+    expect(commiterBalanceAfter.sub(committerBalanceBefore)).to.equal(
+      denyForkInfo.forkAllAmount
+    );
   });
 });

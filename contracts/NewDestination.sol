@@ -286,16 +286,20 @@ contract NewDestination is
         bytes32 prevForkKey,
         bytes32 forkKey,
         Data.TransferData[] calldata _transferDatas,
-        address[] calldata _commiters
+        address[] calldata _committers
     ) external override {
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");
-        require(_commiters.length == _transferDatas.length, "a2");
+        require(_committers.length == _transferDatas.length, "a2");
 
         Fork.Info memory workFork = hashOnionForks.getForkEnsure(forkKey);
+        bool isEarlyBonded = Fork.isEarlyBonded(
+            workFork.verifyStatus,
+            workFork.needBond
+        );
 
-        // Judging whether this fork exists && Judging that the fork needs to be settled
-        require(workFork.needBond, "a3");
+        // When verified and not needBond, throw error
+        require(workFork.verifyStatus == 0 || workFork.needBond, "a3");
 
         // Determine whether the onion of the fork has been recognized
         require(
@@ -303,15 +307,32 @@ contract NewDestination is
             "a4"
         );
 
-        Fork.Info memory preWorkFork = hashOnionForks.getForkEnsure(
+        Fork.Info memory prevWorkFork = hashOnionForks.getForkEnsure(
             prevForkKey
         );
 
-        bytes32 onionHead = preWorkFork.onionHead;
-        bytes32 destOnionHead = preWorkFork.destOnionHead;
-        // repeat
+        (bytes32[] memory onionHeads, bytes32 destOnionHead) = Fork
+            .getVerifyOnions(prevWorkFork, _transferDatas, _committers);
+
+        // Assert that the replay result is equal to the stored value of the fork, which means that the incoming _transferdatas are valid
+        require(destOnionHead == workFork.destOnionHead, "a5");
+
+        // storage workFork
+        workFork.verifyStatus = 1;
+        workFork.needBond = false;
+        hashOnionForks.update(forkKey, workFork);
+
+        // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
+        _setOnWorkHashOnion(chainId, prevWorkFork);
+
+        // When earlyBonded, donnot transfer to committers
+        if (isEarlyBonded) {
+            return;
+        }
+
+        // Transfer to committers
         for (uint256 i; i < _transferDatas.length; i++) {
-            onionHead = Fork.generateOnionHead(onionHead, _transferDatas[i]);
+            bytes32 onionHead = onionHeads[i];
 
             if (isRespondOnions[chainId][onionHead]) {
                 address onionAddress = onionsAddress[onionHead];
@@ -328,154 +349,22 @@ contract NewDestination is
                 }
             } else {
                 IERC20(tokenAddress).safeTransfer(
-                    _commiters[i],
-                    _transferDatas[i].amount + _transferDatas[i].fee
-                );
-            }
-            destOnionHead = Fork.generateDestOnionHead(
-                destOnionHead,
-                onionHead,
-                _commiters[i]
-            );
-        }
-
-        // Assert that the replay result is equal to the stored value of the fork, which means that the incoming _transferdatas are valid
-        require(destOnionHead == workFork.destOnionHead, "a5");
-
-        // storage workFork
-        workFork.verifyStatus = 1;
-        workFork.needBond = false;
-        hashOnionForks.update(forkKey, workFork);
-
-        // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
-        this.setOnWorkHashOnion(
-            chainId,
-            preWorkFork.onionHead,
-            preWorkFork.needBond
-        );
-
-        // !!! Reward bonder
-    }
-
-    // Settlement non-zero fork
-    // @Deprecated
-    function mbond(
-        uint256 chainId,
-        bytes32 preWorkForkKey,
-        Data.MForkData[] calldata _mForkDatas,
-        Data.TransferData[] calldata _transferDatas,
-        address[] calldata _commiters
-    ) external override {
-        require(_mForkDatas.length > 1, "a1");
-
-        // incoming data length is correct
-        require(_transferDatas.length == ONEFORK_MAX_LENGTH, "a1");
-        require(_transferDatas.length == _commiters.length, "a2");
-        // bytes32[] memory _onionHeads;
-        // checkForkData(_mForkDatas[0], _mForkDatas[0], _onionHeads, 0, chainId);
-
-        Fork.Info memory preWorkFork = hashOnionForks.getForkEnsure(
-            preWorkForkKey
-        );
-
-        (bytes32[] memory onionHeads, bytes32 destOnionHead) = Fork
-            .getMbondOnionHeads(preWorkFork, _transferDatas, _commiters);
-
-        // repeat
-        uint256 y = 0;
-        uint256 i = 0;
-        for (; i < _transferDatas.length; i++) {
-            /* 
-                If this is a fork point, make two judgments
-                1. Whether the parallel fork points of the fork point are the same, if they are the same, it means that the fork point is invalid, that is, the bond is invalid. And submissions at invalid fork points will not be compensated
-                2. Whether the headOnion of the parallel fork point can be calculated by the submission of the bond, if so, the incoming parameters of the bond are considered valid
-            */
-            if (y < _mForkDatas.length - 1 && _mForkDatas[y].forkIndex == i) {
-                // Determine whether the fork needs to be settled, and also determine whether the fork exists
-                checkForkData(
-                    _mForkDatas[y == 0 ? 0 : y - 1],
-                    _mForkDatas[y],
-                    onionHeads,
-                    i
-                );
-                y += 1;
-                // !!! Calculate the reward, and reward the bond at the end, the reward fee is the number of forks * margin < margin equal to the wrongtx gaslimit overhead brought by 50 Wrongtx in this method * common gasPrice>
-            }
-            if (isRespondOnions[chainId][onionHeads[i + 1]]) {
-                address onionAddress = onionsAddress[onionHeads[i + 1]];
-                if (onionAddress != address(0)) {
-                    IERC20(tokenAddress).safeTransfer(
-                        onionAddress,
-                        _transferDatas[i].amount + _transferDatas[i].fee
-                    );
-                } else {
-                    IERC20(tokenAddress).safeTransfer(
-                        _transferDatas[i].destination,
-                        _transferDatas[i].amount + _transferDatas[i].fee
-                    );
-                }
-            } else {
-                IERC20(tokenAddress).safeTransfer(
-                    _commiters[i],
+                    _committers[i],
                     _transferDatas[i].amount + _transferDatas[i].fee
                 );
             }
         }
 
-        // Assert the replay result, indicating that the fork is legal
-        require(onionHeads[i] == hashOnions[chainId].onWorkHashOnion, "a2");
-        // Assert that the replay result is equal to the stored value of the fork, which means that the incoming _transferdatas are valid
-
-        // Check destOnionHead
-        require(
-            destOnionHead ==
-                hashOnionForks[_mForkDatas[y].forkKey].destOnionHead,
-            "a4"
-        );
-
-        // If the prefork also needs to be settled, push the onWorkHashOnion forward a fork
-        this.setOnWorkHashOnion(
-            chainId,
-            preWorkFork.onionHead,
-            preWorkFork.needBond
-        );
-
-        // !!! Reward bonder
-    }
-
-    function checkForkData(
-        Data.MForkData calldata preForkData,
-        Data.MForkData calldata forkData,
-        bytes32[] memory onionHeads,
-        uint256 index
-    ) internal {
-        bytes32 preForkOnionHead = onionHeads[index];
-        bytes32 onionHead = onionHeads[index + 1];
-
-        require(hashOnionForks[forkData.forkKey].needBond == true, "b1");
-        if (index != 0) {
-            // Calculate the onionHead of the parallel fork based on the preonion and the tx of the original path
-            preForkOnionHead = keccak256(
-                abi.encode(preForkOnionHead, forkData.wrongtxHash[0])
-            );
-            // If the parallel Onion is equal to the key of forkOnion, it means that forkOnion is illegal
-            require(preForkOnionHead != onionHead, "a2");
-
-            // After passing, continue to calculate AFork
-            uint256 x = 1;
-            while (x < forkData.wrongtxHash.length) {
-                preForkOnionHead = keccak256(
-                    abi.encode(preForkOnionHead, forkData.wrongtxHash[x])
-                );
-                x++;
-            }
-            // Judging that the incoming _wrongTxHash is in line with the facts, avoid bond forgery AFork.nextOnion == BFork.nextOnion
-            require(
-                preForkOnionHead ==
-                    hashOnionForks[preForkData.forkKey].onionHead
+        // When has forkDeposit, send token to fork's endorser
+        ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits[forkKey];
+        if (forkDeposit.endorser != address(0)) {
+            IERC20(tokenAddress).safeTransfer(
+                forkDeposit.endorser,
+                forkDeposit.amount
             );
         }
-        hashOnionForks[forkData.forkKey].needBond = false;
+
+        // !!! Reward bonder
     }
 
     function buyOneOnion(
@@ -588,15 +477,6 @@ contract NewDestination is
         depositWithOneFork(unitedForkKey);
     }
 
-    // Todo Debug
-    function getForkDeposit(bytes32 forkKey)
-        external
-        view
-        returns (ForkDeposit.Info memory)
-    {
-        return hashOnionForkDeposits.getDepositEnsure(forkKey);
-    }
-
     // Deny depostit one fork
     function denyDepositOneFork(bytes32 forkKey) external {
         ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits
@@ -617,10 +497,6 @@ contract NewDestination is
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _committers
     ) external {
-        // if fork.deposit = true and fork.isblock = false and fork.depositValidBlockNum >= nowBlockNum [✅]
-        // if token.balanceof(this) < forkAmount do creatBondToken count to self [✅]
-        // if token.balanceof(lpcontract) >= forkAmount send bondToken to lpContract , and claim token to this[✅]
-        // if token.balanceof(lpcontract) < forkAmount share token is change to bondToken[❓]
         ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits
             .getDepositEnsure(forkKey);
 
@@ -632,6 +508,8 @@ contract NewDestination is
 
         Fork.Info memory prevFork = hashOnionForks.getForkEnsure(prevForkKey);
         Fork.Info memory fork = hashOnionForks.getForkEnsure(forkKey);
+
+        require(fork.verifyStatus == 0, "Invalid verifyStatus");
 
         // Check destOnionHead
         bytes32 onionHead = prevFork.onionHead;
@@ -680,6 +558,10 @@ contract NewDestination is
             forkDeposit.endorser,
             forkDeposit.amount
         );
+
+        // storage fork
+        fork.needBond = false;
+        hashOnionForks.update(forkKey, fork);
     }
 
     function disputeSolve(
@@ -721,7 +603,7 @@ contract NewDestination is
                     wrongForkOnionHead,
                     wrongFork.workIndex
                 ) == wrongForkKeys[i],
-                "Wrong ForkKey verify faild"
+                "Wrong forkKey verify faild"
             );
             require(wrongFork.verifyStatus != 0, "Exception verifyStatus");
 
@@ -753,18 +635,21 @@ contract NewDestination is
         uint256 _forkId
     ) external override {}
 
-    function setOnWorkHashOnion(
-        uint256 chainId,
-        bytes32 onion,
-        bool needBond
-    ) external {
+    function _setOnWorkHashOnion(uint256 chainId, Fork.Info memory fork)
+        internal
+    {
         HashOnions.Info memory info = hashOnions[chainId];
-        if (needBond) {
-            info.onWorkHashOnion = onion;
+
+        if (
+            fork.needBond ||
+            Fork.isEarlyBonded(fork.verifyStatus, fork.needBond)
+        ) {
+            info.onWorkHashOnion = fork.onionHead;
         } else {
             // If no settlement is required, it means that the previous round of settlement is completed, and a new value is set
             info.onWorkHashOnion = info.sourceHashOnion;
         }
+
         hashOnions[chainId] = info;
     }
 }

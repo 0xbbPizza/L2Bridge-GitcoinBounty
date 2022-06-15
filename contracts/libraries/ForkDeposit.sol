@@ -4,8 +4,7 @@ pragma solidity 0.8.4;
 
 library ForkDeposit {
     uint256 internal constant DEPOSIT_SCALE = 10;
-    // uint256 internal constant DEPOSIT_BLOCK_NUMBER = 2; // During this number
-    uint256 internal constant DEPOSIT_BLOCK_NUMBER = 0; // TODO Debug. During this number
+    uint256 internal constant DEPOSIT_BLOCK_SUB = 5; // During this number
     uint16 internal constant MFORK_UNITED_WORK_INDEX = 2**16 - 1;
 
     struct Info {
@@ -67,6 +66,6 @@ library ForkDeposit {
         view
         returns (bool)
     {
-        return block.number - prevBlockNumber >= DEPOSIT_BLOCK_NUMBER;
+        return block.number - prevBlockNumber >= DEPOSIT_BLOCK_SUB;
     }
 }

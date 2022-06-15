@@ -204,8 +204,8 @@ library Fork {
 
     /// @param _transferDatas [{destination, amount, fee}...]
     /// @param _committers committers
-    function getMbondOnionHeads(
-        Info memory preWorkFork,
+    function getVerifyOnions(
+        Info memory prevWorkFork,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _committers
     )
@@ -213,22 +213,30 @@ library Fork {
         pure
         returns (bytes32[] memory onionHeads, bytes32 destOnionHead)
     {
-        onionHeads = new bytes32[](_transferDatas.length + 1);
-        onionHeads[0] = preWorkFork.onionHead;
-        destOnionHead = preWorkFork.destOnionHead;
+        onionHeads = new bytes32[](_transferDatas.length);
 
-        // repeat
+        bytes32 prevOnionHead = prevWorkFork.onionHead;
+        destOnionHead = prevWorkFork.destOnionHead;
         for (uint256 i; i < _transferDatas.length; i++) {
-            onionHeads[i + 1] = generateOnionHead(
-                onionHeads[i],
+            onionHeads[i] = prevOnionHead = generateOnionHead(
+                prevOnionHead,
                 _transferDatas[i]
             );
 
             destOnionHead = generateDestOnionHead(
                 destOnionHead,
-                onionHeads[i + 1],
+                onionHeads[i],
                 _committers[i]
             );
         }
+    }
+
+    // Not verified but not needBond, the fork was earlyBonded
+    function isEarlyBonded(uint8 verifyStatus, bool needBond)
+        internal
+        pure
+        returns (bool)
+    {
+        return verifyStatus == 0 && needBond == false;
     }
 }

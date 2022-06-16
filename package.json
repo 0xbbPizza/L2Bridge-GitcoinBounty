@@ -29,7 +29,6 @@
   "scripts": {
     "start": "SET NODE_ENV=dev && node server.js",
     "test:std": "hardhat test ./test/SourceToDest.test.ts",
-    "test:std_mfork": "hardhat test ./test/SourceToDestMFork.test.ts",
     "test:pool": "hardhat test ./test/PoolToken.test.ts",
     "test:deposit": "hardhat test ./test/SourceToDestDeposit.test.ts"
   }

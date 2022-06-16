@@ -246,12 +246,12 @@ describe("sourceToDest", function () {
       }
 
       const fork = await dest.hashOnionForks(forkKey);
-      expect(fork[0]).to.equal(sourOnion);
-      expect(fork[1]).to.equal(destOnion);
+      expect(fork.onionHead).to.equal(sourOnion);
+      expect(fork.destOnionHead).to.equal(destOnion);
     }
 
     const fork = await dest.hashOnionForks(forkKey);
-    expect(fork[0]).to.equal(hashOnion);
+    expect(fork.onionHead).to.equal(hashOnion);
 
     let userAddress = await users[2].getAddress();
     expect(await fakeToken.balanceOf(userAddress)).to.equal(0);
@@ -308,10 +308,13 @@ describe("sourceToDest", function () {
       let y = i * ONEFORK_MAX_LENGTH;
       // console.log(forkIndex, preForkIndex)
       // console.log(await getDestFork(chainId,keySourOnion[i-1],0))
+      const prevForkKey = generateForkKey(chainId, keySourOnions[i - 1], 0);
+      const forkKey = generateForkKey(chainId, keySourOnions[i], 0);
+
       await dest.zbond(
         chainId,
-        keySourOnions[i],
-        keySourOnions[i - 1],
+        prevForkKey,
+        forkKey,
         transferDatas.slice(x, y),
         commitAddresslist.slice(x, y)
       );
@@ -323,31 +326,4 @@ describe("sourceToDest", function () {
     expect(await fakeToken.balanceOf(dest.address)).to.equal(0);
     // expect(await fakeToken.balanceOf(accounts[0].getAddress())).to.equal(bonderAmount.sub(sourceAmount))
   });
-
-  // it("depositWithOneFork" async function () {
-  //   let waitBuyForkID = []
-  //   let waitBuyFork = []
-
-  //   // choice one fork
-  //   for (let i = 0; i < 10; i++){
-  //     let fork = await getDestFork(chainId, forkKey, 0)
-  //     if (!fork.hadBuy) {
-  //       waitBuyForkID.push(i)
-  //       waitBuyFork.push(fork)
-  //     }
-  //   }
-
-  //   // math how many amount need deposit
-  //   let depositAmount = fork.allAmount + dest.minDepositFundRate();
-  //   if (depositAmount > dest.maxDepositsFunds){
-  //     depositAmount = dest.maxDepositsFunds
-  //   }
-
-  //   await fakeToken.connect(users[1]).approve(dest.address,depositAmount)
-
-  //   // call depositWtihOneFork
-  //   await dest.depositWithOneFork( chainId, waitBuyForkID[0])
-
-  //   // check deposit is ok ?
-  // })
 });

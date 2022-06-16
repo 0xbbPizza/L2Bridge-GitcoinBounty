@@ -8,8 +8,8 @@ https://user-images.githubusercontent.com/88087562/156006812-c3e6b0d2-04a5-4c9c-
 ## Project resources
 
 - 🌊 [Contract code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/main/contracts)
-- 🏄 [ Front-end Project ](https://github.com/0xbbPizza/Orbiter_V2)
-- 🏄‍♀️ [ LPClient Project ](https://github.com/0xbbPizza/L2Bridge-MakerNode)
+- 🏄 [ Front-end Project ](https://github.com/0xbbPizza/OrbiterFE-V2)
+- 🏄‍♀️ [ LPClient Project ](https://github.com/0xbbPizza/PizzaBridge-MakerNode)
 
 
 

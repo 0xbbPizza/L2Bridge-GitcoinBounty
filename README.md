@@ -93,7 +93,7 @@ The following settings are made in the source contract of pizza bridge. The keyP
 
 ### 2. On dest domain LP cross DestContract transfer token to user [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/main/contracts/DestChildContract.sol)
 
-1. LP run a offchain client ,  see this link [ LPClient github ](https://github.com/0xbbPizza/L2Bridge-MakerNode)
+1. LP run a offchain client ,  see this link [ LPClient github ](https://github.com/0xbbPizza/PizzaBridge-MakerNode)
 
 2. There are three ways to transfer money for users zfork(), claim(), mfork()，The reason there are multiple function under:
 

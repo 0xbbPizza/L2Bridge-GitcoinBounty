@@ -20,11 +20,7 @@ library ForkDeposit {
     ) internal view returns (Info memory) {
         Info memory forkDeposit = self[forkKey];
 
-        require(
-            forkDeposit.endorser != address(0) ||
-                forkDeposit.denyer != address(0),
-            "ForkDeposit is null"
-        );
+        require(forkDeposit.endorser != address(0), "ForkDeposit is null");
 
         return forkDeposit;
     }

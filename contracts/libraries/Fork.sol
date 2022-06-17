@@ -205,7 +205,7 @@ library Fork {
     /// @param _transferDatas [{destination, amount, fee}...]
     /// @param _committers committers
     function getVerifyOnions(
-        Info memory prevWorkFork,
+        Info memory prevFork,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _committers
     )
@@ -215,8 +215,8 @@ library Fork {
     {
         onionHeads = new bytes32[](_transferDatas.length);
 
-        bytes32 prevOnionHead = prevWorkFork.onionHead;
-        destOnionHead = prevWorkFork.destOnionHead;
+        bytes32 prevOnionHead = prevFork.onionHead;
+        destOnionHead = prevFork.destOnionHead;
         for (uint256 i; i < _transferDatas.length; i++) {
             onionHeads[i] = prevOnionHead = generateOnionHead(
                 prevOnionHead,

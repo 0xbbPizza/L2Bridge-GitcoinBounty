@@ -330,37 +330,20 @@ contract NewDestination is
             return;
         }
 
-        // Transfer to committers
-        for (uint256 i; i < _transferDatas.length; i++) {
-            bytes32 onionHead = onionHeads[i];
-
-            if (isRespondOnions[chainId][onionHead]) {
-                address onionAddress = onionsAddress[onionHead];
-                if (onionAddress != address(0)) {
-                    IERC20(tokenAddress).safeTransfer(
-                        onionAddress,
-                        _transferDatas[i].amount + _transferDatas[i].fee
-                    );
-                } else {
-                    IERC20(tokenAddress).safeTransfer(
-                        _transferDatas[i].destination,
-                        _transferDatas[i].amount + _transferDatas[i].fee
-                    );
-                }
-            } else {
-                IERC20(tokenAddress).safeTransfer(
-                    _committers[i],
-                    _transferDatas[i].amount + _transferDatas[i].fee
-                );
-            }
-        }
+        _settlement(
+            chainId,
+            workFork.allAmount,
+            onionHeads,
+            _transferDatas,
+            _committers
+        );
 
         // When has forkDeposit, send token to fork's endorser
         ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits[forkKey];
         if (forkDeposit.endorser != address(0)) {
             IERC20(tokenAddress).safeTransfer(
                 forkDeposit.endorser,
-                forkDeposit.amount
+                forkDeposit.amount // TODO Add reward and denyer amount
             );
         }
 
@@ -492,6 +475,7 @@ contract NewDestination is
     }
 
     function earlyBond(
+        uint256 chainId,
         bytes32 prevForkKey,
         bytes32 forkKey,
         Data.TransferData[] calldata _transferDatas,
@@ -512,51 +496,22 @@ contract NewDestination is
         require(fork.verifyStatus == 0, "Invalid verifyStatus");
 
         // Check destOnionHead
-        bytes32 onionHead = prevFork.onionHead;
-        bytes32 destOnionHead = prevFork.destOnionHead;
-        for (uint256 i; i < _transferDatas.length; i++) {
-            onionHead = Fork.generateOnionHead(onionHead, _transferDatas[i]);
-
-            destOnionHead = Fork.generateDestOnionHead(
-                destOnionHead,
-                onionHead,
-                _committers[i]
-            );
-        }
+        (bytes32[] memory onionHeads, bytes32 destOnionHead) = Fork
+            .getVerifyOnions(prevFork, _transferDatas, _committers);
         require(destOnionHead == fork.destOnionHead, "Different destOnionHead");
 
-        // When token.balanceOf(this) < fork.allAmount, get token from LP
-        if (IERC20(tokenAddress).balanceOf(address(this)) < fork.allAmount) {
-            // Ensure LP has sufficient token
-            require(
-                IERC20(tokenAddress).balanceOf(poolTokenAddress()) >=
-                    fork.allAmount,
-                "Pool insufficient"
-            );
-
-            // Calculate lever
-            PoolToken poolToken = PoolToken(poolTokenAddress());
-            uint256 poolTokenAmount = fork.allAmount / poolToken.scale();
-
-            // TODO Debug, mint poolToken
-            poolToken.mint(poolTokenAmount);
-
-            // Exchange
-            poolToken.exchange(tokenAddress, poolTokenAmount);
-        }
-
-        // Send token to committers
-        for (uint256 i; i < _transferDatas.length; i++) {
-            IERC20(tokenAddress).safeTransfer(
-                _committers[i],
-                _transferDatas[i].amount + _transferDatas[i].fee
-            );
-        }
+        _settlement(
+            chainId,
+            fork.allAmount,
+            onionHeads,
+            _transferDatas,
+            _committers
+        );
 
         // Send token to fork's endorser
         IERC20(tokenAddress).safeTransfer(
             forkDeposit.endorser,
-            forkDeposit.amount
+            forkDeposit.amount // TODO Add reward(There will be no denyer here)
         );
 
         // storage fork
@@ -634,6 +589,64 @@ contract NewDestination is
         uint256 _forkKey,
         uint256 _forkId
     ) external override {}
+
+    // 1. Dest borrow token from the liquidity poo.(When liquidity is insufficient)
+    // 2. Dest send token to committers
+    function _settlement(
+        uint256 chainId,
+        uint256 forkAllAmount,
+        bytes32[] memory onionHeads,
+        Data.TransferData[] calldata _transferDatas,
+        address[] calldata _committers
+    ) internal {
+        // When token.balanceOf(this) < fork.allAmount, get token from LP
+        if (IERC20(tokenAddress).balanceOf(address(this)) < forkAllAmount) {
+            uint256 diffAmount = forkAllAmount -
+                IERC20(tokenAddress).balanceOf(address(this));
+
+            // Ensure LP has sufficient token
+            require(
+                IERC20(tokenAddress).balanceOf(poolTokenAddress()) >=
+                    diffAmount,
+                "Pool insufficient"
+            );
+
+            // Calculate lever
+            PoolToken poolToken = PoolToken(poolTokenAddress());
+            uint256 poolTokenAmount = diffAmount / poolToken.scale();
+
+            // TODO Debug, mint poolToken
+            poolToken.mint(poolTokenAmount);
+
+            // Exchange
+            poolToken.exchange(tokenAddress, poolTokenAmount);
+        }
+
+        // Send token to committers
+        for (uint256 i; i < _transferDatas.length; i++) {
+            bytes32 onionHead = onionHeads[i];
+
+            if (isRespondOnions[chainId][onionHead]) {
+                address onionAddress = onionsAddress[onionHead];
+                if (onionAddress != address(0)) {
+                    IERC20(tokenAddress).safeTransfer(
+                        onionAddress,
+                        _transferDatas[i].amount + _transferDatas[i].fee
+                    );
+                } else {
+                    IERC20(tokenAddress).safeTransfer(
+                        _transferDatas[i].destination,
+                        _transferDatas[i].amount + _transferDatas[i].fee
+                    );
+                }
+            } else {
+                IERC20(tokenAddress).safeTransfer(
+                    _committers[i],
+                    _transferDatas[i].amount + _transferDatas[i].fee
+                );
+            }
+        }
+    }
 
     function _setOnWorkHashOnion(uint256 chainId, Fork.Info memory fork)
         internal

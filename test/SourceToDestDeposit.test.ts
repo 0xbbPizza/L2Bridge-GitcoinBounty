@@ -501,6 +501,7 @@ describe("sourceToDest", function () {
     );
 
     await dest.earlyBond(
+      chainId,
       endorsForkInfo.prevForkKey,
       endorsForkInfo.forkKey,
       endorsForkInfo.transferDatas,

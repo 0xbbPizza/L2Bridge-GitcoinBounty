@@ -511,7 +511,7 @@ contract NewDestination is
         // Send token to fork's endorser
         IERC20(tokenAddress).safeTransfer(
             forkDeposit.endorser,
-            forkDeposit.amount // TODO Add reward(There will be no denyer here)
+            forkDeposit.amount // TODO Add reward(No denyer here)
         );
 
         // storage fork

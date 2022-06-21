@@ -8,10 +8,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./Compound/ExponentialNoError.sol";
-import "./PTokenInterfaces.sol";
+import "./DTokenInterfaces.sol";
 
-contract PToken is
-    PTokenStorage,
+contract DToken is
+    DTokenInterface,
+    DTokenStorage,
     ReentrancyGuard,
     ERC20,
     Ownable,
@@ -52,14 +53,14 @@ contract PToken is
 
         require(
             accrualBlockNumber == 0 && borrowIndex == 0,
-            "market may only be initialized once"
+            "Market may only be initialized once"
         );
 
         // Set initial exchange rate
         initialExchangeRateMantissa = initialExchangeRateMantissa_;
         require(
             initialExchangeRateMantissa > 0,
-            "initial exchange rate must be greater than zero."
+            "Initial exchange rate must be greater than zero"
         );
 
         _updateJumpRateModel(

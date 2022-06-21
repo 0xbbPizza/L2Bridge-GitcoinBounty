@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.4;
 
-contract PTokenStorage {
+contract DTokenStorage {
     // Underlying token address
     address public underlyingToken;
 
@@ -78,3 +78,5 @@ contract PTokenStorage {
     // PoolToken decimals
     uint8 internal _decimals = 18;
 }
+
+interface DTokenInterface {}

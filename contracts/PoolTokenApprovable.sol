@@ -3,7 +3,7 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./PoolToken.sol";
+import "./PToken.sol";
 
 contract PoolTokenApprovable is Ownable {
     address private _poolTokenAddress;

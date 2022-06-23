@@ -96,8 +96,162 @@ contract DToken is
         IERC20(exToken).transfer(owner(), amount * scale());
     }
 
-    function mint(uint256 amount) external nonReentrant {
-        _mint(msg.sender, amount);
+    /**
+     * @notice Sender supplies assets into the market and receives cTokens in exchange
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param mintAmount The amount of the underlying asset to supply
+     * @return bool true=success
+     */
+    function mint(uint256 mintAmount) external returns (bool) {
+        mintInternal(mintAmount);
+        return true;
+    }
+
+    /**
+     * @notice Sender supplies assets into the market and receives cTokens in exchange
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param mintAmount The amount of the underlying asset to supply
+     */
+    function mintInternal(uint256 mintAmount) internal nonReentrant {
+        accrueInterest();
+        mintFresh(msg.sender, mintAmount);
+    }
+
+    /**
+     * @notice User supplies assets into the market and receives cTokens in exchange
+     * @dev Assumes interest has already been accrued up to the current block
+     * @param minter The address of the account which is supplying the assets
+     * @param mintAmount The amount of the underlying asset to supply
+     */
+    function mintFresh(address minter, uint256 mintAmount) internal {
+        /* Verify market's block number equals current block number */
+        require(accrualBlockNumber == block.number, "Diff block number");
+
+        Exp memory exchangeRate = Exp({mantissa: exchangeRateStoredInternal()});
+
+        /////////////////////////
+        // EFFECTS & INTERACTIONS
+        // (No safe failures beyond this point)
+
+        // Transfer underlying to this
+        IERC20(underlyingToken).safeTransferFrom(
+            minter,
+            address(this),
+            mintAmount
+        );
+
+        /*
+         * We get the current exchange rate and calculate the number of cTokens to be minted:
+         *  mintTokens = mintAmount / exchangeRate
+         */
+        uint256 mintTokens = div_(mintAmount, exchangeRate);
+
+        _mint(minter, mintTokens);
+    }
+
+    /**
+     * @notice Sender redeems cTokens in exchange for the underlying asset
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemTokens The number of cTokens to redeem into underlying
+     * @return bool true=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function redeem(uint256 redeemTokens) external returns (bool) {
+        redeemInternal(redeemTokens);
+        return true;
+    }
+
+    /**
+     * @notice Sender redeems cTokens in exchange for a specified amount of underlying asset
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemAmount The amount of underlying to redeem
+     * @return bool true=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function redeemUnderlying(uint256 redeemAmount) external returns (bool) {
+        redeemUnderlyingInternal(redeemAmount);
+        return true;
+    }
+
+    /**
+     * @notice Sender redeems cTokens in exchange for the underlying asset
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemTokens The number of cTokens to redeem into underlying
+     */
+    function redeemInternal(uint256 redeemTokens) internal nonReentrant {
+        accrueInterest();
+        // redeemFresh emits redeem-specific logs on errors, so we don't need to
+        redeemFresh(payable(msg.sender), redeemTokens, 0);
+    }
+
+    /**
+     * @notice Sender redeems cTokens in exchange for a specified amount of underlying asset
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemAmount The amount of underlying to receive from redeeming cTokens
+     */
+    function redeemUnderlyingInternal(uint256 redeemAmount)
+        internal
+        nonReentrant
+    {
+        accrueInterest();
+        // redeemFresh emits redeem-specific logs on errors, so we don't need to
+        redeemFresh(payable(msg.sender), 0, redeemAmount);
+    }
+
+    /**
+     * @notice User redeems cTokens in exchange for the underlying asset
+     * @dev Assumes interest has already been accrued up to the current block
+     * @param redeemer The address of the account which is redeeming the tokens
+     * @param redeemTokensIn The number of cTokens to redeem into underlying (only one of redeemTokensIn or redeemAmountIn may be non-zero)
+     * @param redeemAmountIn The number of underlying tokens to receive from redeeming cTokens (only one of redeemTokensIn or redeemAmountIn may be non-zero)
+     */
+    function redeemFresh(
+        address payable redeemer,
+        uint256 redeemTokensIn,
+        uint256 redeemAmountIn
+    ) internal {
+        require(
+            redeemTokensIn == 0 || redeemAmountIn == 0,
+            "one of redeemTokensIn or redeemAmountIn must be zero"
+        );
+
+        /* exchangeRate = invoke Exchange Rate Stored() */
+        Exp memory exchangeRate = Exp({mantissa: exchangeRateStoredInternal()});
+
+        uint256 redeemTokens;
+        uint256 redeemAmount;
+        /* If redeemTokensIn > 0: */
+        if (redeemTokensIn > 0) {
+            /*
+             * We calculate the exchange rate and the amount of underlying to be redeemed:
+             *  redeemTokens = redeemTokensIn
+             *  redeemAmount = redeemTokensIn x exchangeRateCurrent
+             */
+            redeemTokens = redeemTokensIn;
+            redeemAmount = mul_ScalarTruncate(exchangeRate, redeemTokensIn);
+        } else {
+            /*
+             * We get the current exchange rate and calculate the amount to be redeemed:
+             *  redeemTokens = redeemAmountIn / exchangeRate
+             *  redeemAmount = redeemAmountIn
+             */
+            redeemTokens = div_(redeemAmountIn, exchangeRate);
+            redeemAmount = redeemAmountIn;
+        }
+
+        /* Verify market's block number equals current block number */
+        require(accrualBlockNumber == block.number, "Diff block number");
+
+        /* Fail if protocol has insufficient cash */
+        require(getCashPrior() >= redeemAmount, "Insufficient");
+
+        /////////////////////////
+        // EFFECTS & INTERACTIONS
+        // (No safe failures beyond this point)
+
+        // Burn redeemer redeemToken
+        _burn(redeemer, redeemTokens);
+
+        // Send underlyingToken to redeemer
+        IERC20(underlyingToken).transfer(redeemer, redeemAmount);
     }
 
     /**
@@ -111,6 +265,53 @@ contract DToken is
      * @param repayAmount The amount to repay, or -1 for the full outstanding amount
      */
     function repayBorrow(uint256 repayAmount) external onlyBorrowAllower {}
+
+    /**
+     * @notice Gets balance of this contract in terms of the underlying
+     * @dev This excludes the value of the current message, if any
+     * @return The quantity of underlying tokens owned by this contract
+     */
+    function getCashPrior() internal view returns (uint256) {
+        return IERC20(underlyingToken).balanceOf(address(this));
+    }
+
+    /**
+     * @notice Calculates the exchange rate from the underlying to the CToken
+     * @dev This function does not accrue interest before calculating the exchange rate
+     * @return Calculated exchange rate scaled by 1e18
+     */
+    function exchangeRateStored() public view returns (uint256) {
+        return exchangeRateStoredInternal();
+    }
+
+    /**
+     * @notice Calculates the exchange rate from the underlying to the CToken
+     * @dev This function does not accrue interest before calculating the exchange rate
+     * @return calculated exchange rate scaled by 1e18
+     */
+    function exchangeRateStoredInternal() internal view returns (uint256) {
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply == 0) {
+            /*
+             * If there are no tokens minted:
+             *  exchangeRate = initialExchangeRate
+             */
+            return initialExchangeRateMantissa;
+        } else {
+            /*
+             * Otherwise:
+             *  exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
+             */
+            uint256 totalCash = getCashPrior();
+            uint256 cashPlusBorrowsMinusReserves = totalCash +
+                totalBorrows -
+                totalReserves;
+            uint256 exchangeRate = (cashPlusBorrowsMinusReserves * expScale) /
+                _totalSupply;
+
+            return exchangeRate;
+        }
+    }
 
     /**
      * @notice Applies accrued interest to total borrows and reserves
@@ -128,7 +329,7 @@ contract DToken is
         }
 
         /* Read the previous values out of storage */
-        uint256 cashPrior = IERC20(underlyingToken).balanceOf(address(this));
+        uint256 cashPrior = getCashPrior();
         uint256 borrowsPrior = totalBorrows;
         uint256 reservesPrior = totalReserves;
         uint256 borrowIndexPrior = borrowIndex;

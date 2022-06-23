@@ -17,7 +17,7 @@ contract PToken is ERC20, Ownable {
         return _scale;
     }
 
-    function mint(address account, uint256 amount) external onlyOwner {
-        _mint(account, amount);
+    function mint(uint256 amount) external onlyOwner {
+        _mint(msg.sender, amount);
     }
 }

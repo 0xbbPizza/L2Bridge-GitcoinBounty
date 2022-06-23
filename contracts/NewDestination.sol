@@ -614,8 +614,8 @@ contract NewDestination is
             PToken pToken = PToken(pTokenAddress());
             uint256 pTokenAmount = diffAmount * pToken.scale();
 
-            // Mint pToken to DToken, after borrow from DToken
-            pToken.mint(dTokenAddress, pTokenAmount);
+            // Mint pToken to this
+            pToken.mint(pTokenAmount);
 
             // Exchange
             DToken(dTokenAddress).borrow(pTokenAmount);

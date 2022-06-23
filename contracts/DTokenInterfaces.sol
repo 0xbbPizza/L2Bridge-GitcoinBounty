@@ -76,6 +76,19 @@ contract DTokenStorage {
      */
     uint256 public kink;
 
+    /**
+     * @notice Container for borrow balance information
+     * @member principal Total balance (with accrued interest), after applying the most recent balance-changing action
+     * @member interestIndex Global borrowIndex as of the most recent balance-changing action
+     */
+    struct BorrowSnapshot {
+        uint principal;
+        uint interestIndex;
+    }
+
+    // Mapping of account addresses to outstanding borrow balances
+    mapping(address => BorrowSnapshot) internal accountBorrows;
+
     // =========================Interest Storage End=======================================
 
     // PoolToken decimals

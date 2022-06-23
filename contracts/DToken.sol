@@ -20,8 +20,6 @@ contract DToken is
 {
     using SafeERC20 for IERC20;
 
-    uint32 private _scale = 10;
-
     constructor(
         string memory name_,
         string memory symbol_,
@@ -78,22 +76,6 @@ contract DToken is
 
         // Ensure underlyingToken is ERC20
         IERC20(underlyingToken).totalSupply();
-    }
-
-    function scale() public view returns (uint32) {
-        return _scale;
-    }
-
-    function exchange(address exToken, uint256 amount)
-        external
-        onlyBorrowAllower
-    {
-        require(exToken != address(0), "PoolToken: exchange zero exToken");
-        require(amount != 0, "PoolToken: exchange zero amount");
-
-        _burn(owner(), amount);
-
-        IERC20(exToken).transfer(owner(), amount * scale());
     }
 
     /**
@@ -259,6 +241,73 @@ contract DToken is
      * @param borrowAmount The amount of the underlying asset to borrow
      */
     function borrow(uint256 borrowAmount) external onlyBorrowAllower {}
+
+    /**
+     * @notice Sender borrows assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     */
+    function borrowInternal(uint256 borrowAmount) internal nonReentrant {
+        accrueInterest();
+        // borrowFresh emits borrow-specific logs on errors, so we don't need to
+        borrowFresh(payable(msg.sender), borrowAmount);
+    }
+
+    /**
+     * @notice Users borrow assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     */
+    function borrowFresh(address payable borrower, uint256 borrowAmount)
+        internal
+    {
+        /* Fail if borrow not allowed */
+        
+        uint256 allowed = comptroller.borrowAllowed(
+            address(this),
+            borrower,
+            borrowAmount
+        );
+        if (allowed != 0) {
+            revert BorrowComptrollerRejection(allowed);
+        }
+
+        /* Verify market's block number equals current block number */
+        require(accrualBlockNumber == block.number, "Diff block number");
+
+        /* Fail if protocol has insufficient underlying cash */
+        require(getCashPrior() >= borrowAmount, "Insufficient");
+
+        /*
+         * We calculate the new borrower and total borrow balances, failing on overflow:
+         *  accountBorrowNew = accountBorrow + borrowAmount
+         *  totalBorrowsNew = totalBorrows + borrowAmount
+         */
+        uint256 accountBorrowsPrev = borrowBalanceStoredInternal(borrower);
+        uint256 accountBorrowsNew = accountBorrowsPrev + borrowAmount;
+        uint256 totalBorrowsNew = totalBorrows + borrowAmount;
+
+        /////////////////////////
+        // EFFECTS & INTERACTIONS
+        // (No safe failures beyond this point)
+
+        /*
+         * We write the previously calculated values into storage.
+         *  Note: Avoid token reentrancy attacks by writing increased borrow before external transfer.
+        `*/
+        accountBorrows[borrower].principal = accountBorrowsNew;
+        accountBorrows[borrower].interestIndex = borrowIndex;
+        totalBorrows = totalBorrowsNew;
+
+        /*
+         * We invoke doTransferOut for the borrower and the borrowAmount.
+         *  Note: The cToken must handle variations between ERC-20 and ETH underlying.
+         *  On success, the cToken borrowAmount less of cash.
+         *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
+         */
+        doTransferOut(borrower, borrowAmount);
+
+        /* We emit a Borrow event */
+        emit Borrow(borrower, borrowAmount, accountBorrowsNew, totalBorrowsNew);
+    }
 
     /**
      * @notice Sender repays their own borrow

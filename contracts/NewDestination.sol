@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
-import "./PoolTokenApprovable.sol";
+import "./PTokenApprovable.sol";
 
 import "hardhat/console.sol";
 
@@ -17,7 +17,7 @@ contract NewDestination is
     IDestinationContract,
     CrossDomainHelper,
     Ownable,
-    PoolTokenApprovable
+    PTokenApprovable
 {
     using SafeERC20 for IERC20;
     using HashOnions for mapping(uint256 => HashOnions.Info);
@@ -580,7 +580,7 @@ contract NewDestination is
 
     function loanFromLPPool(uint256 amount) internal {
         // Send bondToken to LPPool, LPPool send real token to dest
-        PoolToken(poolTokenAddress()).exchange(tokenAddress, amount);
+        PToken(pTokenAddress()).exchange(tokenAddress, amount);
     }
 
     // buy bond token
@@ -606,20 +606,20 @@ contract NewDestination is
 
             // Ensure LP has sufficient token
             require(
-                IERC20(tokenAddress).balanceOf(poolTokenAddress()) >=
+                IERC20(tokenAddress).balanceOf(pTokenAddress()) >=
                     diffAmount,
                 "Pool insufficient"
             );
 
             // Calculate lever
-            PoolToken poolToken = PoolToken(poolTokenAddress());
-            uint256 poolTokenAmount = diffAmount / poolToken.scale();
+            PToken pToken = PToken(pTokenAddress());
+            uint256 pTokenAmount = diffAmount / pToken.scale();
 
-            // TODO Debug, mint poolToken
-            poolToken.mint(poolTokenAmount);
+            // Mint pToken
+            pToken.mint(pTokenAmount);
 
             // Exchange
-            poolToken.exchange(tokenAddress, poolTokenAmount);
+            pToken.exchange(tokenAddress, pTokenAmount);
         }
 
         // Send token to committers

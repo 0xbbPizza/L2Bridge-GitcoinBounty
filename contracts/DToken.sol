@@ -42,6 +42,7 @@ contract DToken is
     function initialize(
         address underlyingToken_,
         address borrowAllower_,
+        address pTokenAddress_,
         uint256 initialExchangeRateMantissa_,
         uint256 baseRatePerYear,
         uint256 multiplierPerYear,
@@ -50,6 +51,7 @@ contract DToken is
     ) external onlyOwner {
         underlyingToken = underlyingToken_;
         borrowAllower = borrowAllower_;
+        pTokenAddress = pTokenAddress_;
 
         require(
             accrualBlockNumber == 0 && borrowIndex == 0,
@@ -94,7 +96,7 @@ contract DToken is
         IERC20(exToken).transfer(owner(), amount * scale());
     }
 
-    function mint(uint256 amount) external nonReentrant onlyBorrowAllower {
+    function mint(uint256 amount) external nonReentrant {
         _mint(msg.sender, amount);
     }
 

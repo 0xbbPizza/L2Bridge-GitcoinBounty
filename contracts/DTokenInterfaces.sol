@@ -9,6 +9,9 @@ contract DTokenStorage {
     // Only this address can borrow
     address public borrowAllower;
 
+    // Borrow certificate address
+    address public pTokenAddress;
+
     // =========================Interest Storage Start=======================================
 
     // Initial exchange rate used when minting the first CTokens (used when totalSupply = 0)

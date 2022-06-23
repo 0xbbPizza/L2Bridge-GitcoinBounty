@@ -17,16 +17,7 @@ contract PToken is ERC20, Ownable {
         return _scale;
     }
 
-    function exchange(address exToken, uint256 amount) external onlyOwner {
-        require(exToken != address(0), "PToken: exchange zero exToken");
-        require(amount != 0, "PToken: exchange zero amount");
-
-        _burn(owner(), amount);
-
-        IERC20(exToken).transfer(owner(), amount * scale());
-    }
-
-    function mint(uint256 amount) external onlyOwner {
-        _mint(_msgSender(), amount);
+    function mint(address account, uint256 amount) external onlyOwner {
+        _mint(account, amount);
     }
 }

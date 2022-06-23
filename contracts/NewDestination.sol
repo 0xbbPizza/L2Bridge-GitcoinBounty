@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
 import "./PTokenApprovable.sol";
+import "./DToken.sol";
 
 import "hardhat/console.sol";
 
@@ -25,6 +26,7 @@ contract NewDestination is
     using ForkDeposit for mapping(bytes32 => ForkDeposit.Info);
 
     address private tokenAddress;
+    address private dTokenAddress;
 
     mapping(bytes32 => Fork.Info) public hashOnionForks;
     mapping(uint256 => mapping(bytes32 => bool)) private isRespondOnions;
@@ -48,10 +50,13 @@ contract NewDestination is
 	5. No one wants to pay for someone else's mistakes, so the perpetrator's deposit will never be unlocked
     */
 
-    constructor(address _tokenAddress, address _dockAddr)
-        CrossDomainHelper(_dockAddr)
-    {
-        tokenAddress = _tokenAddress;
+    constructor(
+        address tokenAddress_,
+        address dTokenAddress_,
+        address dockAddr_
+    ) CrossDomainHelper(dockAddr_) {
+        tokenAddress = tokenAddress_;
+        dTokenAddress = dTokenAddress_;
     }
 
     function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId)
@@ -578,11 +583,6 @@ contract NewDestination is
         }
     }
 
-    function loanFromLPPool(uint256 amount) internal {
-        // Send bondToken to LPPool, LPPool send real token to dest
-        PToken(pTokenAddress()).exchange(tokenAddress, amount);
-    }
-
     // buy bond token
     function buyOneFork(
         uint256 chainId,
@@ -606,20 +606,19 @@ contract NewDestination is
 
             // Ensure LP has sufficient token
             require(
-                IERC20(tokenAddress).balanceOf(pTokenAddress()) >=
-                    diffAmount,
+                IERC20(tokenAddress).balanceOf(pTokenAddress()) >= diffAmount,
                 "Pool insufficient"
             );
 
             // Calculate lever
             PToken pToken = PToken(pTokenAddress());
-            uint256 pTokenAmount = diffAmount / pToken.scale();
+            uint256 pTokenAmount = diffAmount * pToken.scale();
 
-            // Mint pToken
-            pToken.mint(pTokenAmount);
+            // Mint pToken to DToken, after borrow from DToken
+            pToken.mint(dTokenAddress, pTokenAmount);
 
             // Exchange
-            pToken.exchange(tokenAddress, pTokenAmount);
+            DToken(dTokenAddress).borrow(pTokenAmount);
         }
 
         // Send token to committers

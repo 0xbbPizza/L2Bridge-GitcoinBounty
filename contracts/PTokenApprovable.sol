@@ -11,7 +11,7 @@ contract PTokenApprovable is Ownable {
     function bindPTokenAddress(address pTokenAddress_) external onlyOwner {
         require(
             pTokenAddress_ != address(0),
-            "PTokenApprovable bindPTokenAddress: pTokenAddress_ is zero"
+            "pTokenAddress_ is zero"
         );
 
         _pTokenAddress = pTokenAddress_;
@@ -20,7 +20,7 @@ contract PTokenApprovable is Ownable {
     function pTokenAddress() public view returns (address) {
         require(
             _pTokenAddress != address(0),
-            "PTokenApprovable poolToken: _pTokenAddress is zero"
+            "_pTokenAddress is zero"
         );
 
         return _pTokenAddress;

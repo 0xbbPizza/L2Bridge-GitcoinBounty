@@ -7,7 +7,7 @@ import "../PTokenApprovable.sol";
 import "hardhat/console.sol";
 
 contract PTokenTest is PTokenApprovable {
-    function exchangeBasicToken(uint256 amount)
+    function mintToken(uint256 amount)
         external
         returns (bool)
     {

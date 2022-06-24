@@ -42,10 +42,10 @@ describe("PToken", function () {
     );
   });
 
-  it("Test exchangeBasicToken", async function () {
+  it("Test mintToken", async function () {
     const pTokenAmount = ethers.utils.parseEther("1");
 
-    await pTokenTest.exchangeBasicToken(pTokenAmount, -1);
+    await pTokenTest.mintToken(pTokenAmount);
 
     const balancePToken = await pToken.balanceOf(pTokenTest.address);
     expect(balancePToken).to.equal(pTokenAmount);

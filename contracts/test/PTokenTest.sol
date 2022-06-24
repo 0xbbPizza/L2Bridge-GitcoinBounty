@@ -6,9 +6,12 @@ import "../PToken.sol";
 import "../PTokenApprovable.sol";
 import "hardhat/console.sol";
 
-contract PoolTokenTest is PTokenApprovable {
-    function exchangeBasicToken(uint256 amount) external returns (bool) {
-        PToken(pTokenAddress()).mint(msg.sender, amount);
+contract PTokenTest is PTokenApprovable {
+    function exchangeBasicToken(uint256 amount)
+        external
+        returns (bool)
+    {
+        PToken(pTokenAddress()).mint(amount);
 
         return true;
     }

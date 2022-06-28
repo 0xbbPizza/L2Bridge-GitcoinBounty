@@ -90,3 +90,4 @@ describe("PToken", function () {
     console.log("Rate: ",exchangeRate)
   });
 });
+// 有多少Ptoken 就可以借多少

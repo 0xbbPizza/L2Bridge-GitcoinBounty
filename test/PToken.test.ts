@@ -7,6 +7,7 @@ describe("PToken", function () {
   let basicToken: Contract;
   let pToken: Contract;
   let pTokenTest: Contract;
+  let dToken: Contract;
   let chainId: number;
 
   before(async function () {
@@ -33,6 +34,12 @@ describe("PToken", function () {
     await pToken.deployed();
     console.log("PToken address:", pToken.address);
 
+    // Deploy DToken
+    const DToken = await ethers.getContractFactory("DToken");
+    dToken = await DToken.deploy("BT","BT",18);
+    await dToken.deployed();
+    console.log("DToken address:", dToken.address);
+
     await pTokenTest.bindPTokenAddress(pToken.address);
 
     // Transfer 100ether BasicToken to pToken from accounts[0]
@@ -48,6 +55,38 @@ describe("PToken", function () {
     await pTokenTest.mintToken(pTokenAmount);
 
     const balancePToken = await pToken.balanceOf(pTokenTest.address);
+    console.log("balancePToken: ",balancePToken)
     expect(balancePToken).to.equal(pTokenAmount);
+  });
+
+  it("Test DToken", async function () {
+    await dToken.initialize(
+      basicToken.address,
+      pTokenTest.address,
+      pToken.address,
+      0.001e18,
+      0,
+      0,
+      0.008e18,
+      0.009e18
+    );
+
+    const amount = ethers.utils.parseEther("1");
+    console.log("amount: ",amount)
+
+    const amoutBasic = await basicToken.balanceOf(accounts[0].getAddress())
+
+    await basicToken.approve(dToken.address,amoutBasic)
+
+    await dToken.mint(amount);
+
+    const dBalance = await dToken.balanceOf(accounts[0].getAddress())
+
+    const basicBalance = await basicToken.balanceOf(accounts[0].getAddress())
+    console.log("dBalance: ",dBalance)
+    console.log("bBalance: ",basicBalance)
+
+    const exchangeRate =  await dToken.exchangeRateStored()
+    console.log("Rate: ",exchangeRate)
   });
 });

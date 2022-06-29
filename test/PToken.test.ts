@@ -55,11 +55,11 @@ describe("PToken", function () {
     await pTokenTest.mintToken(pTokenAmount);
 
     const balancePToken = await pToken.balanceOf(pTokenTest.address);
-    console.log("balancePToken: ",balancePToken)
     expect(balancePToken).to.equal(pTokenAmount);
   });
 
-  it("Test DToken", async function () {
+  it("Test DToken mint", async function () {
+
     await dToken.initialize(
       basicToken.address,
       pTokenTest.address,
@@ -82,12 +82,12 @@ describe("PToken", function () {
 
     const dBalance = await dToken.balanceOf(accounts[0].getAddress())
 
-    const basicBalance = await basicToken.balanceOf(accounts[0].getAddress())
-    console.log("dBalance: ",dBalance)
-    console.log("bBalance: ",basicBalance)
+    expect(dBalance).to.equal(amount);
 
-    const exchangeRate =  await dToken.exchangeRateStored()
-    console.log("Rate: ",exchangeRate)
+  });
+  it("Test DToken borrow", async function () {
+    const pTokenTestNew = pTokenTest.connect(accounts[1])
+
   });
 });
-// 有多少Ptoken 就可以借多少
+// 操作用户有多少Ptoken 就可以通过DToken借到多少真实的BasicToken

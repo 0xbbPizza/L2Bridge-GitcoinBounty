@@ -122,7 +122,6 @@ contract DToken is
         require(accrualBlockNumber == block.number, "Diff block number");
 
         Exp memory exchangeRate = Exp({mantissa: exchangeRateStoredInternal()});
-
         /////////////////////////
         // EFFECTS & INTERACTIONS
         // (No safe failures beyond this point)
@@ -139,7 +138,6 @@ contract DToken is
          *  mintTokens = mintAmount / exchangeRate
          */
         uint256 mintTokens = div_(mintAmount, exchangeRate);
-
         _mint(minter, mintTokens);
     }
 

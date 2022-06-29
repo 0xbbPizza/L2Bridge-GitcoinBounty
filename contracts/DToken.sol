@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./Compound/ExponentialNoError.sol";
 import "./DTokenInterfaces.sol";
-
+import "hardhat/console.sol";
 contract DToken is
     DTokenInterface,
     DTokenStorage,
@@ -301,7 +301,6 @@ contract DToken is
         accountBorrows[borrower].principal = accountBorrowsNew;
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows = totalBorrowsNew;
-
         /*
          * We invoke doTransferOut for the borrower and the borrowAmount.
          *  Note: The cToken must handle variations between ERC-20 and ETH underlying.
@@ -328,6 +327,7 @@ contract DToken is
          * Rather than failing the calculation with a division by 0, we immediately return 0 in this case.
          */
         if (borrowSnapshot.principal == 0) {
+            console.log("The first borrow by user.");
             return 0;
         }
 
@@ -335,10 +335,12 @@ contract DToken is
          *  recentBorrowBalance = borrower.borrowBalance * market.borrowIndex / borrower.borrowIndex
          * TODO Donot check it now
          */
-        // uint principalTimesIndex = borrowSnapshot.principal * borrowIndex;
-        // return principalTimesIndex / borrowSnapshot.interestIndex;
+        uint principalTimesIndex = borrowSnapshot.principal * borrowIndex;
+        console.log('borrowIndex: ', borrowIndex);
+        console.log('borrowSnapshot.principal: ', borrowSnapshot.principal);
+        return principalTimesIndex / borrowSnapshot.interestIndex;
 
-        return borrowSnapshot.principal;
+        // return borrowSnapshot.principal;
     }
 
     /**
@@ -421,7 +423,7 @@ contract DToken is
      * @dev This excludes the value of the current message, if any
      * @return The quantity of underlying tokens owned by this contract
      */
-    function getCashPrior() public view returns (uint256) {
+    function getCashPrior() internal view returns (uint256) {
         return IERC20(underlyingToken).balanceOf(address(this));
     }
 
@@ -461,12 +463,6 @@ contract DToken is
 
             return exchangeRate;
         }
-    }
-    
-    function testGet() public view returns(uint256,uint256,uint256,uint256) {
-        uint256 _totalSupply = totalSupply();
-        uint256 totalCash = getCashPrior();
-        return (_totalSupply,totalCash,totalBorrows,totalReserves);
     }
 
     /**

@@ -82,34 +82,20 @@ describe("PToken", function () {
 
   it("Test DToken borrow", async function () {
     const pTokenTestNew = pTokenTest.connect(accounts[1]);
-
-    const beforeBasicBalance = await basicToken.balanceOf(pTokenTestNew.address);
-    console.log('beforeBasicBalance: ', beforeBasicBalance);
-    // const beforeTotalCash = await dToken.getCashPrior()
-    // const beforeTotalBorrows = await dToken.totalBorrows()
-    // const beforeTotalReserves = await dToken.totalReserves()
-    // const beforeUtilizationRate = await dToken.utilizationRate(beforeTotalCash, beforeTotalBorrows, beforeTotalReserves)
-    // console.log('beforeUtilizationRate: ', beforeUtilizationRate);
-
     const beforeExchageRate = await dToken.exchangeRateStored();
-    console.log('beforeExchageRate: ', beforeExchageRate);
-    console.log(await dToken.testGet())
-
     const amount = ethers.utils.parseEther("0.3");
+    // The first borrow 
     await pTokenTestNew.borrowToken(dToken.address, amount);
+    // The second borrow
+    await pTokenTestNew.borrowToken(dToken.address, amount);
+    const secondBorrowExchageRate = await dToken.exchangeRateStored();
 
     const afterBasicBalance = await basicToken.balanceOf(pTokenTestNew.address);
-    console.log('afterBasicBalance: ', afterBasicBalance);
+    expect(afterBasicBalance).to.equal(ethers.utils.parseEther("0.6"))
+    expect(secondBorrowExchageRate).to.not.equal(beforeExchageRate)
+  });
 
-    const afterExchageRate = await dToken.exchangeRateStored();
-    console.log('afterExchageRate: ', afterExchageRate);
-    // const afterTotalCash = await dToken.getCashPrior()
-    // const afterTotalBorrows = await dToken.totalBorrows()
-    // const afterTotalReserves = await dToken.totalReserves()
-    // const afterUtilizationRate = await dToken.utilizationRate(afterTotalCash, afterTotalBorrows, afterTotalReserves)
-    // console.log('afterUtilizationRate: ', afterUtilizationRate);
-    console.log(await dToken.testGet())
-    // console.log(await dToken.totalBorrows())
-
+  it("Test DToken repayBorrow", async function () {
+    // 
   });
 });

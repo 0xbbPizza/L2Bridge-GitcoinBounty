@@ -59,32 +59,27 @@ describe("PToken", function () {
   });
 
   it("Test DToken mint", async function () {
-
     await dToken.initialize(
       basicToken.address,
       pTokenTest.address,
       pToken.address,
-      0.001e18,
+      ethers.utils.parseEther("1"),
       0,
       0,
-      0.008e18,
-      0.009e18
+      ethers.utils.parseEther("0.008"),
+      ethers.utils.parseEther("0.008")
     );
 
     const amount = ethers.utils.parseEther("1");
-    console.log("amount: ",amount)
-
     const amoutBasic = await basicToken.balanceOf(accounts[0].getAddress())
 
     await basicToken.approve(dToken.address,amoutBasic)
-
     await dToken.mint(amount);
 
     const dBalance = await dToken.balanceOf(accounts[0].getAddress())
-
-    // expect(dBalance).to.equal(amount);
-
+    expect(dBalance).to.equal(amount);
   });
+  
   it("Test DToken borrow", async function () {
     const pTokenTestNew = pTokenTest.connect(accounts[1])
 

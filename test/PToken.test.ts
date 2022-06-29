@@ -36,7 +36,7 @@ describe("PToken", function () {
 
     // Deploy DToken
     const DToken = await ethers.getContractFactory("DToken");
-    dToken = await DToken.deploy("BT","BT",18);
+    dToken = await DToken.deploy("DToken", "DToken", 18);
     await dToken.deployed();
     console.log("DToken address:", dToken.address);
 
@@ -71,18 +71,45 @@ describe("PToken", function () {
     );
 
     const amount = ethers.utils.parseEther("1");
-    const amoutBasic = await basicToken.balanceOf(accounts[0].getAddress())
+    const amoutBasic = await basicToken.balanceOf(accounts[0].getAddress());
 
-    await basicToken.approve(dToken.address,amoutBasic)
+    await basicToken.approve(dToken.address, amoutBasic);
     await dToken.mint(amount);
 
-    const dBalance = await dToken.balanceOf(accounts[0].getAddress())
+    const dBalance = await dToken.balanceOf(accounts[0].getAddress());
     expect(dBalance).to.equal(amount);
   });
-  
+
   it("Test DToken borrow", async function () {
-    const pTokenTestNew = pTokenTest.connect(accounts[1])
+    const pTokenTestNew = pTokenTest.connect(accounts[1]);
+
+    const beforeBasicBalance = await basicToken.balanceOf(pTokenTestNew.address);
+    console.log('beforeBasicBalance: ', beforeBasicBalance);
+    // const beforeTotalCash = await dToken.getCashPrior()
+    // const beforeTotalBorrows = await dToken.totalBorrows()
+    // const beforeTotalReserves = await dToken.totalReserves()
+    // const beforeUtilizationRate = await dToken.utilizationRate(beforeTotalCash, beforeTotalBorrows, beforeTotalReserves)
+    // console.log('beforeUtilizationRate: ', beforeUtilizationRate);
+
+    const beforeExchageRate = await dToken.exchangeRateStored();
+    console.log('beforeExchageRate: ', beforeExchageRate);
+    console.log(await dToken.testGet())
+
+    const amount = ethers.utils.parseEther("0.3");
+    await pTokenTestNew.borrowToken(dToken.address, amount);
+
+    const afterBasicBalance = await basicToken.balanceOf(pTokenTestNew.address);
+    console.log('afterBasicBalance: ', afterBasicBalance);
+
+    const afterExchageRate = await dToken.exchangeRateStored();
+    console.log('afterExchageRate: ', afterExchageRate);
+    // const afterTotalCash = await dToken.getCashPrior()
+    // const afterTotalBorrows = await dToken.totalBorrows()
+    // const afterTotalReserves = await dToken.totalReserves()
+    // const afterUtilizationRate = await dToken.utilizationRate(afterTotalCash, afterTotalBorrows, afterTotalReserves)
+    // console.log('afterUtilizationRate: ', afterUtilizationRate);
+    console.log(await dToken.testGet())
+    // console.log(await dToken.totalBorrows())
 
   });
 });
-// 操作用户有多少Ptoken 就可以通过DToken借到多少真实的BasicToken

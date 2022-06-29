@@ -91,8 +91,8 @@ describe("PToken", function () {
     const secondBorrowExchageRate = await dToken.exchangeRateStored();
 
     const afterBasicBalance = await basicToken.balanceOf(pTokenTestNew.address);
-    expect(afterBasicBalance).to.equal(ethers.utils.parseEther("0.6"))
-    expect(secondBorrowExchageRate).to.not.equal(beforeExchageRate)
+    expect(afterBasicBalance).to.equal(ethers.utils.parseEther("0.6"));
+    expect(secondBorrowExchageRate).to.not.equal(beforeExchageRate);
   });
 
   it("Test DToken repayBorrow", async function () {

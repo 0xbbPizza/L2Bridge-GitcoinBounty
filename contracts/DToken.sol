@@ -207,7 +207,7 @@ contract DToken is
 
         /* exchangeRate = invoke Exchange Rate Stored() */
         Exp memory exchangeRate = Exp({mantissa: exchangeRateStoredInternal()});
-
+        
         uint256 redeemTokens;
         uint256 redeemAmount;
         /* If redeemTokensIn > 0: */
@@ -327,7 +327,6 @@ contract DToken is
          * Rather than failing the calculation with a division by 0, we immediately return 0 in this case.
          */
         if (borrowSnapshot.principal == 0) {
-            console.log("The first borrow by user.");
             return 0;
         }
 
@@ -336,8 +335,6 @@ contract DToken is
          * TODO Donot check it now
          */
         uint principalTimesIndex = borrowSnapshot.principal * borrowIndex;
-        console.log('borrowIndex: ', borrowIndex);
-        console.log('borrowSnapshot.principal: ', borrowSnapshot.principal);
         return principalTimesIndex / borrowSnapshot.interestIndex;
 
         // return borrowSnapshot.principal;

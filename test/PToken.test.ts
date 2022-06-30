@@ -84,18 +84,38 @@ describe("PToken", function () {
     const pTokenTestNew = pTokenTest.connect(accounts[1]);
     const beforeExchageRate = await dToken.exchangeRateStored();
     const amount = ethers.utils.parseEther("0.3");
+
     // The first borrow 
     await pTokenTestNew.borrowToken(dToken.address, amount);
+
     // The second borrow
     await pTokenTestNew.borrowToken(dToken.address, amount);
-    const secondBorrowExchageRate = await dToken.exchangeRateStored();
 
+    const secondBorrowExchageRate = await dToken.exchangeRateStored();
     const afterBasicBalance = await basicToken.balanceOf(pTokenTestNew.address);
     expect(afterBasicBalance).to.equal(ethers.utils.parseEther("0.6"));
     expect(secondBorrowExchageRate).to.not.equal(beforeExchageRate);
   });
 
+  it("Test DToken redeem", async function () {
+    // The amount of deposit redeemed by the user should be less than the amount of cash in DToken Pool.
+    // The DToken Pool only have 0.4 Ether.
+    const beforeDTokenBalance = await dToken.balanceOf(accounts[0].getAddress());
+    const beforeBasicTokenBalance = await basicToken.balanceOf(accounts[0].getAddress());
+    // The user redeem 0.3 Ether.
+    const redeemAmount = ethers.utils.parseEther("0.3");
+
+    await dToken.redeem(redeemAmount);
+
+    const redeemExchageRate = await dToken.exchangeRateStored();
+    const expectAmount = (redeemExchageRate.mul(redeemAmount)).div(ethers.utils.parseEther("1"));
+    const afterDTokenBalance = await dToken.balanceOf(accounts[0].getAddress());
+    const afterBasicTokenBalance = await basicToken.balanceOf(accounts[0].getAddress());
+    expect(beforeDTokenBalance.sub(redeemAmount)).to.equal(afterDTokenBalance);
+    expect(beforeBasicTokenBalance.add(expectAmount)).to.equal(afterBasicTokenBalance);
+  });
+
   it("Test DToken repayBorrow", async function () {
-    // 
+
   });
 });

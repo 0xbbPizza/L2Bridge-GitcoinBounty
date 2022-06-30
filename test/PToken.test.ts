@@ -1,3 +1,4 @@
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
@@ -108,6 +109,7 @@ describe("PToken", function () {
     await dToken.redeem(redeemAmount);
 
     const redeemExchageRate = await dToken.exchangeRateStored();
+    // Calculation of the number of underlying assets based on exchange rates.
     const expectAmount = (redeemExchageRate.mul(redeemAmount)).div(ethers.utils.parseEther("1"));
     const afterDTokenBalance = await dToken.balanceOf(accounts[0].getAddress());
     const afterBasicTokenBalance = await basicToken.balanceOf(accounts[0].getAddress());
@@ -116,6 +118,19 @@ describe("PToken", function () {
   });
 
   it("Test DToken repayBorrow", async function () {
+    const pTokenTestNew = pTokenTest.connect(accounts[1]);
+    const beforeExchageRate = await dToken.exchangeRateStored();
+    // The user borrowed 0.6 Ether.
+    const beforeBasicTokenBalance = await basicToken.balanceOf(pTokenTestNew.address);
+    // The user repayBorrow 0.3 Ether.
+    const amount = ethers.utils.parseEther("0.3");
 
+    await pTokenTestNew.approve(basicToken.address, dToken.address, beforeBasicTokenBalance)
+    await pTokenTestNew.repayBorrowToken(dToken.address, amount);
+
+    const secondBorrowExchageRate = await dToken.exchangeRateStored();
+    const afterBasicTokenBalance = await basicToken.balanceOf(pTokenTestNew.address);
+    expect(secondBorrowExchageRate).to.not.equal(beforeExchageRate);
+    expect(afterBasicTokenBalance).to.equal(beforeBasicTokenBalance.sub(amount));
   });
 });

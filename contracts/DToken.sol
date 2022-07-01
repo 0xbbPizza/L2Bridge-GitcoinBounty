@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./Compound/ExponentialNoError.sol";
 import "./DTokenInterfaces.sol";
 import "hardhat/console.sol";
+
 contract DToken is
     DTokenInterface,
     DTokenStorage,
@@ -207,7 +208,7 @@ contract DToken is
 
         /* exchangeRate = invoke Exchange Rate Stored() */
         Exp memory exchangeRate = Exp({mantissa: exchangeRateStoredInternal()});
-        
+
         uint256 redeemTokens;
         uint256 redeemAmount;
         /* If redeemTokensIn > 0: */
@@ -334,7 +335,7 @@ contract DToken is
          *  recentBorrowBalance = borrower.borrowBalance * market.borrowIndex / borrower.borrowIndex
          * TODO Donot check it now
          */
-        uint principalTimesIndex = borrowSnapshot.principal * borrowIndex;
+        uint256 principalTimesIndex = borrowSnapshot.principal * borrowIndex;
         return principalTimesIndex / borrowSnapshot.interestIndex;
 
         // return borrowSnapshot.principal;

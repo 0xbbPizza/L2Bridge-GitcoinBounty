@@ -44,7 +44,7 @@ async function main() {
       amount,
       0
     );
-    await singer.provider?.waitForTransaction(hash, 1);
+    await singer.provider?.waitForTransaction(hash, 3);
 
     console.log(
       "TransferWithDest succeed: " + hash + ", amount: " + amount + ""

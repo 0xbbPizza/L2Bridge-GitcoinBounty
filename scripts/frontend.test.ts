@@ -1,7 +1,7 @@
-import { BigNumber, Contract, providers, utils, Wallet } from "ethers";
+import { BigNumber, Contract, utils } from "ethers";
 import { ethers, run } from "hardhat";
-import sourceContractJson from "../artifacts/contracts/SourceContract.sol/SourceContract.json";
 import erc20ContractJson from "../artifacts/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json";
+import sourceContractJson from "../artifacts/contracts/SourceContract.sol/SourceContract.json";
 
 // npx hardhat run scripts/frontend.test.ts --network rinkeby
 

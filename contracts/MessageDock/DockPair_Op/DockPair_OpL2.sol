@@ -22,10 +22,10 @@ import "../Dock_L2.sol";
 
 interface iOVM_BaseCrossDomainMessenger {
     /**********************
-    * Contract Variables *
-    **********************/
+     * Contract Variables *
+     **********************/
     function xDomainMessageSender() external view returns (address);
-    
+
     /**
      * Sends a cross domain message to the target messenger.
      * @param _target Target contract address.
@@ -39,21 +39,18 @@ interface iOVM_BaseCrossDomainMessenger {
     ) external;
 }
 
-
 contract DockL2_OP is Dock_L2 {
     uint256 public immutable defaultGasLimit;
 
     constructor(
         address _l1PairAddress,
-        address _bridgeAddress, 
+        address _bridgeAddress,
         uint256 _defaultGasLimit
-    )
-        Dock_L2(_l1PairAddress,_bridgeAddress)
-    {
+    ) Dock_L2(_l1PairAddress, _bridgeAddress) {
         defaultGasLimit = _defaultGasLimit;
     }
 
-    function _callBridge(bytes memory _data) internal override{
+    function _callBridge(bytes memory _data) internal override {
         iOVM_BaseCrossDomainMessenger(bridgeAddress).sendMessage(
             l1PairAddress,
             _data,
@@ -61,11 +58,12 @@ contract DockL2_OP is Dock_L2 {
         );
     }
 
-    function _verifySenderAndDockPair() internal view override{
+    function _verifySenderAndDockPair() internal view override {
         require(msg.sender == bridgeAddress, "DOCK1");
-        require(iOVM_BaseCrossDomainMessenger(bridgeAddress).xDomainMessageSender() == l1PairAddress,"DOCK2");
+        require(
+            iOVM_BaseCrossDomainMessenger(bridgeAddress)
+                .xDomainMessageSender() == l1PairAddress,
+            "DOCK2"
+        );
     }
-
 }
-
-

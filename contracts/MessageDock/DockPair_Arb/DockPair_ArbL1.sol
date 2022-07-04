@@ -44,13 +44,11 @@ interface IOutbox {
 }
 
 contract DockL1_Arb is Dock_L1 {
-
     constructor(
         address _l2CallInAddress,
         address _l2OutAddress,
         address _relayAddress
-    )
-    Dock_L1(_l2CallInAddress,_l2OutAddress,_relayAddress){}
+    ) Dock_L1(_l2CallInAddress, _l2OutAddress, _relayAddress) {}
 
     function _callBridge(bytes memory _data) internal override {
         IInbox(l2OutAddress).createRetryableTicket(
@@ -66,13 +64,12 @@ contract DockL1_Arb is Dock_L1 {
     }
 
     // From bridge
-    function _verifySenderAndDockPair () internal view override {
+    function _verifySenderAndDockPair() internal view override {
         IBridge arbBridge = IInbox(l2OutAddress).bridge();
         IOutbox outbox = IOutbox(arbBridge.activeOutbox());
 
         require(msg.sender == address(outbox), "DOCK1");
-        // Verify that sender 
+        // Verify that sender
         require(outbox.l2ToL1Sender() == l2CallInAddress, "DOCK2");
     }
-
 }

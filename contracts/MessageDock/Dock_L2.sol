@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./IDock_L2.sol";
 
-abstract contract Dock_L2 is IDock_L2{
+abstract contract Dock_L2 is IDock_L2 {
     using Address for address;
 
     address public immutable l1PairAddress;
@@ -34,10 +33,7 @@ abstract contract Dock_L2 is IDock_L2{
     uint256 internal sourceChainID;
     address internal sourceSender;
 
-    constructor(
-        address _l1PairAddress,
-        address _bridgeAddress
-    ){
+    constructor(address _l1PairAddress, address _bridgeAddress) {
         l1PairAddress = _l1PairAddress;
         bridgeAddress = _bridgeAddress;
     }
@@ -45,37 +41,55 @@ abstract contract Dock_L2 is IDock_L2{
     function getSourceChainID() external view override returns (uint256) {
         return sourceChainID;
     }
+
     function getSourceSender() external view override returns (address) {
         return sourceSender;
     }
 
     // fromDomain
-    function callOtherDomainFunction(address _destAddress, uint256 _destChainID, bytes memory _destMassage) external override{
-        bytes memory onions1 = abi.encode(_destAddress, _destMassage, msg.sender, block.chainid);
-        bytes memory onions2 = abi.encodeWithSignature("fromL2Pair(uint256,bytes)",_destChainID,onions1);
+    function callOtherDomainFunction(
+        address _destAddress,
+        uint256 _destChainID,
+        bytes memory _destMassage
+    ) external override {
+        bytes memory onions1 = abi.encode(
+            _destAddress,
+            _destMassage,
+            msg.sender,
+            block.chainid
+        );
+        bytes memory onions2 = abi.encodeWithSignature(
+            "fromL2Pair(uint256,bytes)",
+            _destChainID,
+            onions1
+        );
         _callBridge(onions2);
     }
 
     // muti : call bridge
     function _callBridge(bytes memory _data) internal virtual;
 
-    // fromBridge 
+    // fromBridge
     function fromL1Pair(bytes calldata _data) external {
         _verifySenderAndDockPair();
         address preSourceSender = sourceSender;
         uint256 preSourceChainID = sourceChainID;
         address destAddress;
         bytes memory destMassage;
-        (destAddress,destMassage,sourceSender,sourceChainID) = abi.decode(_data, (address, bytes, address, uint256));
-        
-        if (destMassage.length > 0) require(destAddress.isContract(), "NO_CODE_AT_DEST");
-        (bool success,) = destAddress.call(destMassage);
+        (destAddress, destMassage, sourceSender, sourceChainID) = abi.decode(
+            _data,
+            (address, bytes, address, uint256)
+        );
+
+        if (destMassage.length > 0)
+            require(destAddress.isContract(), "NO_CODE_AT_DEST");
+        (bool success, ) = destAddress.call(destMassage);
         require(success, "WRONG_MSG");
-            
+
         sourceSender = preSourceSender;
         sourceChainID = preSourceChainID;
     }
 
     // muti : FromBridge
-    function _verifySenderAndDockPair () internal view virtual;
+    function _verifySenderAndDockPair() internal view virtual;
 }

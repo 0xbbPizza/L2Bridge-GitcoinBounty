@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-
 pragma solidity 0.8.4;
 
 import "./IDock_L2.sol";
@@ -25,22 +24,34 @@ import "./IDock_L2.sol";
 
 abstract contract CrossDomainHelper {
     address public immutable dockAddr;
-    
-    constructor(
-        address _dockAddr
-    ){
+
+    constructor(address _dockAddr) {
         dockAddr = _dockAddr;
     }
 
-    modifier sourceSafe {
+    modifier sourceSafe() {
         require(msg.sender == dockAddr, "NOT_DOCK");
-        _onlyApprovedSources(IDock_L2(msg.sender).getSourceSender(),IDock_L2(msg.sender).getSourceChainID());
+        _onlyApprovedSources(
+            IDock_L2(msg.sender).getSourceSender(),
+            IDock_L2(msg.sender).getSourceChainID()
+        );
         _;
     }
 
-    function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId) internal view virtual;
+    function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId)
+        internal
+        view
+        virtual;
 
-    function crossDomainMassage(address _destAddress, uint256 _destChainID, bytes memory _destMassage) internal {
-        IDock_L2(dockAddr).callOtherDomainFunction(_destAddress, _destChainID, _destMassage);
+    function crossDomainMassage(
+        address _destAddress,
+        uint256 _destChainID,
+        bytes memory _destMassage
+    ) internal {
+        IDock_L2(dockAddr).callOtherDomainFunction(
+            _destAddress,
+            _destChainID,
+            _destMassage
+        );
     }
 }

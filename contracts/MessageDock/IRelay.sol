@@ -18,9 +18,13 @@
 
 pragma solidity 0.8.4;
 
-interface IRelay{
-    function relayCall(uint256 destChainID,bytes calldata data) external returns (bool success);
+interface IRelay {
+    function relayCall(uint256 destChainID, bytes calldata data)
+        external
+        returns (bool success);
+
     function docksAddressKey(address dock) external view returns (uint256);
+
     function docksChainIdKey(uint256 chainId) external view returns (address);
 
     event addedDock(uint256 indexed chainId, address dock);

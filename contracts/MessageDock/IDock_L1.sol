@@ -18,6 +18,6 @@
 
 pragma solidity 0.8.4;
 
-interface IDock_L1{
+interface IDock_L1 {
     function fromRelay(bytes calldata _data) external;
 }

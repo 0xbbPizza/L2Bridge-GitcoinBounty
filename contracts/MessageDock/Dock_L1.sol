@@ -21,7 +21,7 @@ pragma solidity 0.8.4;
 import "./IDock_L1.sol";
 import "./IRelay.sol";
 
-abstract contract Dock_L1 is IDock_L1{
+abstract contract Dock_L1 is IDock_L1 {
     address public immutable l2CallInAddress;
     address public immutable l2OutAddress;
     address public immutable relayAddress;
@@ -30,35 +30,33 @@ abstract contract Dock_L1 is IDock_L1{
         address _l2CallInAddress,
         address _l2OutAddress,
         address _relayAddress
-    ){
+    ) {
         l2CallInAddress = _l2CallInAddress;
         l2OutAddress = _l2OutAddress;
         relayAddress = _relayAddress;
     }
 
-    function fromL2Pair(
-        uint256 _destChainID, 
-        bytes calldata _data
-    ) external {
+    function fromL2Pair(uint256 _destChainID, bytes calldata _data) external {
         _verifySenderAndDockPair();
         IRelay(relayAddress).relayCall(_destChainID, _data);
     }
 
-    function fromRelay(bytes calldata _data) external override onlyRelay{
-        bytes memory newData = abi.encodeWithSignature("fromL1Pair(bytes)", _data);
+    function fromRelay(bytes calldata _data) external override onlyRelay {
+        bytes memory newData = abi.encodeWithSignature(
+            "fromL1Pair(bytes)",
+            _data
+        );
         _callBridge(newData);
     }
 
-    // muti to bridge 
+    // muti to bridge
     function _callBridge(bytes memory _data) internal virtual;
 
     // muti  From bridge
-    function _verifySenderAndDockPair () internal view virtual;
-    
-    modifier onlyRelay {
+    function _verifySenderAndDockPair() internal view virtual;
+
+    modifier onlyRelay() {
         require(msg.sender == relayAddress);
         _;
     }
-    
 }
-

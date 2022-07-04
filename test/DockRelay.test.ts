@@ -1,5 +1,5 @@
-import { ethers } from "hardhat";
-import { Signer, BigNumber, Contract } from "ethers";
+import { config, ethers, network } from "hardhat";
+import { Signer, BigNumber, Contract, providers, Wallet } from "ethers";
 // import "ethers";
 import { expect } from "chai";
 
@@ -10,6 +10,12 @@ describe("source", function () {
 
   before(async function () {
     accounts = await ethers.getSigners();
+
+    // const networkRinkeby: any = config.networks["rinkeby"];
+    // const newProvider = new providers.JsonRpcProvider(networkRinkeby.url);
+    // const newSinger = new Wallet(networkRinkeby.accounts[0]).connect(
+    //   newProvider
+    // );
 
     // 3
     const Raley = await ethers.getContractFactory("Relay");

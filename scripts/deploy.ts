@@ -32,9 +32,19 @@ async function main() {
   // Add dock to relay
   await relay.addDock(dock_Mainnet.address, chainId);
 
+  // Deploy DToken
+  const DToken = await ethers.getContractFactory("DToken");
+  let dToken = await DToken.deploy("Orbiter DToken", "DToken", 18);
+  await dToken.deployed();
+  console.log("dTokenContract Address", dToken.address);
+
   // deploy dest contract
   const Dest = await ethers.getContractFactory("NewDestination");
-  let dest = await Dest.deploy(tokenAddress, dock_Mainnet.address);
+  let dest = await Dest.deploy(
+    tokenAddress,
+    dToken.address,
+    dock_Mainnet.address
+  );
   await dest.deployed();
   console.log("destContract Address", dest.address);
 
@@ -47,6 +57,24 @@ async function main() {
   );
   await source.deployed();
   console.log("sourceContract Address", source.address);
+
+  // deploy PToken contract
+  const PToken = await ethers.getContractFactory("PToken");
+  let pToken = await PToken.deploy(dest.address);
+  await pToken.deployed();
+  console.log("pTokenContract Adddress", pToken.address);
+
+  // DToken initialize
+  await dToken.initialize(
+    tokenAddress,
+    dest.address,
+    pToken.address,
+    ethers.utils.parseEther("1"),
+    ethers.utils.parseEther("0.004"),
+    ethers.utils.parseEther("0.011"),
+    ethers.utils.parseEther("0.008"),
+    ethers.utils.parseEther("0.008")
+  );
 }
 
 main()

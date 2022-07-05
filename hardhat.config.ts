@@ -119,6 +119,10 @@ export default {
       url: process.env.rinkebyRPC,
       accounts: getAccounts(),
     },
+    kovan: {
+      url: process.env.kovanRPC,
+      accounts: getAccounts(),
+    },
 
     arbitrum: {
       url: process.env.arbitrumRPC,

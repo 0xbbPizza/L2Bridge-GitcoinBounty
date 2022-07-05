@@ -1,5 +1,5 @@
-import { Contract, Signer } from "ethers";
-import { ethers } from "hardhat";
+import { Contract, providers, Signer, Wallet } from "ethers";
+import { config, ethers } from "hardhat";
 // import "ethers";
 import { expect } from "chai";
 
@@ -7,15 +7,15 @@ describe("source", function () {
   let accounts: Signer[];
   let source: Contract;
   let dest: Contract;
+  let singerOP: Signer;
 
   before(async function () {
     accounts = await ethers.getSigners();
 
-    // const networkRinkeby: any = config.networks["rinkeby"];
-    // const newProvider = new providers.JsonRpcProvider(networkRinkeby.url);
-    // const newSinger = new Wallet(networkRinkeby.accounts[0]).connect(
-    //   newProvider
-    // );
+    const networkKovanOptimism: any = config.networks["kovanOptimism"];
+    singerOP = new Wallet(networkKovanOptimism.accounts[0]).connect(
+      new providers.JsonRpcProvider(networkKovanOptimism.url)
+    );
 
     // 3
     const Raley = await ethers.getContractFactory("Relay");
@@ -32,7 +32,7 @@ describe("source", function () {
     // set 2 to 3
     const chainId = await accounts[0].getChainId();
     console.log("chainId", chainId);
-    raley.addDock(dock_Mainnet.address, chainId);
+    await raley.addDock(dock_Mainnet.address, chainId);
 
     // 6
     const Test_destination = await ethers.getContractFactory(
@@ -53,10 +53,12 @@ describe("source", function () {
     source = test_source;
 
     // set 7 to 6
-    test_destination.addDomain(chainId, test_source.address);
+    const addDomainResp = await test_destination.addDomain(chainId, test_source.address);
+    console.log('addDomainResp.hash:', addDomainResp.hash);
 
     // set 6 to 7
-    test_source.addDestDomain(chainId, test_destination.address);
+    const addDestDomainResp = await test_source.addDestDomain(chainId, test_destination.address);
+    console.log('addDestDomainResp.hash:', addDestDomainResp.hash);
   });
 
   it("Dock_Mainnet.callOtherDomainFunction", async function () {

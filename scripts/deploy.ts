@@ -70,8 +70,8 @@ async function main() {
     dest.address,
     pToken.address,
     ethers.utils.parseEther("1"),
-    0,
-    0,
+    ethers.utils.parseEther("0.004"),
+    ethers.utils.parseEther("0.011"),
     ethers.utils.parseEther("0.008"),
     ethers.utils.parseEther("0.008")
   );

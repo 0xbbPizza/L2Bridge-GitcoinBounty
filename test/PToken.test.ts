@@ -65,8 +65,8 @@ describe("PToken", function () {
       pTokenTest.address,
       pToken.address,
       ethers.utils.parseEther("1"),
-      0,
-      0,
+      ethers.utils.parseEther("0.004"),
+      ethers.utils.parseEther("0.011"),
       ethers.utils.parseEther("0.008"),
       ethers.utils.parseEther("0.008")
     );
@@ -133,4 +133,9 @@ describe("PToken", function () {
     expect(secondBorrowExchageRate).to.not.equal(beforeExchageRate);
     expect(afterBasicTokenBalance).to.equal(beforeBasicTokenBalance.sub(amount));
   });
+
+  it("Test APY",async function () {
+   const APY = await dToken.supplyRatePerBlock();
+   console.log("APY: ", APY);
+  })
 });

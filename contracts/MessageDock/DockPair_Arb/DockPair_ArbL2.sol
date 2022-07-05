@@ -1,4 +1,4 @@
- // SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * Copyright 2019-2021, Offchain Labs, Inc.
@@ -20,8 +20,10 @@ pragma solidity 0.8.4;
 
 import "../Dock_L2.sol";
 
-interface IArbSys { 
-    function sendTxToL1(address destAddr, bytes calldata calldataForL1) external payable;
+interface IArbSys {
+    function sendTxToL1(address destAddr, bytes calldata calldataForL1)
+        external
+        payable;
 }
 
 contract DockL2_Arb is Dock_L2 {
@@ -29,29 +31,17 @@ contract DockL2_Arb is Dock_L2 {
 
     constructor(
         address _l1PairAddress,
-        address _bridgeAddress, 
+        address _bridgeAddress,
         uint256 _defaultGasLimit
-    )
-        Dock_L2(_l1PairAddress,_bridgeAddress)
-    {
+    ) Dock_L2(_l1PairAddress, _bridgeAddress) {
         defaultGasLimit = _defaultGasLimit;
     }
 
-    function _callBridge(bytes memory _data) internal override{
-        IArbSys(bridgeAddress).sendTxToL1(
-            l1PairAddress,
-            _data
-        );
+    function _callBridge(bytes memory _data) internal override {
+        IArbSys(bridgeAddress).sendTxToL1(l1PairAddress, _data);
     }
 
-    function _verifySenderAndDockPair() internal view override{
-        // TODO 
-        
+    function _verifySenderAndDockPair() internal view override {
+        // TODO
     }
 }
-
-
-
-
-
-    

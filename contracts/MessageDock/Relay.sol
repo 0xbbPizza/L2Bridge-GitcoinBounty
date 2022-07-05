@@ -22,21 +22,30 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IRelay.sol";
 import "./IDock_L1.sol";
 
-contract Relay is IRelay, Ownable{
-
+contract Relay is IRelay, Ownable {
     mapping(uint256 => address) private docksMap_chainIdKey;
     mapping(address => uint256) private docksMap_addressKey;
-    
+
     address[] public allowedDockList;
-    
-    function docksAddressKey(address dock) external view override returns (uint256) {
+
+    function docksAddressKey(address dock)
+        external
+        view
+        override
+        returns (uint256)
+    {
         return docksMap_addressKey[dock];
     }
-    
-    function docksChainIdKey(uint256 chainId) external view override returns (address) {
+
+    function docksChainIdKey(uint256 chainId)
+        external
+        view
+        override
+        returns (address)
+    {
         return docksMap_chainIdKey[chainId];
     }
-      
+
     function addDock(address dock, uint256 chainId) external onlyOwner {
         docksMap_addressKey[dock] = chainId;
         docksMap_chainIdKey[chainId] = dock;
@@ -52,10 +61,11 @@ contract Relay is IRelay, Ownable{
             destDockAddress_onL1 = docks[inputData.destChainID]
             destDockAddress_onL1.fromRelay(onion1)
     */
-    function relayCall(
-        uint256 destChainID,
-        bytes calldata data
-    ) external override returns (bool success) {
+    function relayCall(uint256 destChainID, bytes calldata data)
+        external
+        override
+        returns (bool success)
+    {
         require(docksMap_addressKey[msg.sender] > 0, "NOT_FROM_Dock");
         address destDock = docksMap_chainIdKey[destChainID];
         require(destDock != address(0));
@@ -63,6 +73,3 @@ contract Relay is IRelay, Ownable{
         success = true;
     }
 }
-
-
-

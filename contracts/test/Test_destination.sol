@@ -16,9 +16,7 @@
  * limitations under the License.
  */
 
-
 pragma solidity 0.8.4;
-
 
 import "../MessageDock/CrossDomainHelper.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -29,23 +27,26 @@ contract Test_destination is CrossDomainHelper, Ownable {
 
     mapping(address => uint256) public sourc_chainIds;
 
-    constructor(
-        address _dockAddr
-    )
-        CrossDomainHelper(_dockAddr)
-    {}
+    constructor(address _dockAddr) CrossDomainHelper(_dockAddr) {}
 
     function addDomain(uint256 _chainId, address _source) external onlyOwner {
         require(sourc_chainIds[_source] == 0);
         sourc_chainIds[_source] = _chainId;
     }
 
-    function getMessage(uint256 _chainId, string calldata _message) external sourceSafe {
+    function getMessage(uint256 _chainId, string calldata _message)
+        external
+        sourceSafe
+    {
         chainId = _chainId;
         message = _message;
     }
 
-    function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId) internal override view {
+    function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId)
+        internal
+        view
+        override
+    {
         require(_sourChainId != 0, "ZERO_CHAINID");
         require(sourc_chainIds[_sourceSender] == _sourChainId, "NOTAPPROVE");
     }

@@ -11,11 +11,13 @@ describe("source", function () {
 
   before(async function () {
     accounts = await ethers.getSigners();
+    const chainId = await accounts[0].getChainId();
+    console.log("chainId", chainId);
 
-    const networkKovanOptimism: any = config.networks["kovanOptimism"];
-    singerOP = new Wallet(networkKovanOptimism.accounts[0]).connect(
-      new providers.JsonRpcProvider(networkKovanOptimism.url)
-    );
+    // const networkKovanOptimism: any = config.networks["kovanOptimism"];
+    // singerOP = new Wallet(networkKovanOptimism.accounts[0]).connect(
+    //   new providers.JsonRpcProvider(networkKovanOptimism.url)
+    // );
 
     // 3
     const Raley = await ethers.getContractFactory("Relay");
@@ -30,9 +32,9 @@ describe("source", function () {
     console.log("dock_Mainnet Address:", dock_Mainnet.address);
 
     // set 2 to 3
-    const chainId = await accounts[0].getChainId();
-    console.log("chainId", chainId);
-    await raley.addDock(dock_Mainnet.address, chainId);
+    const addDockResp = await raley.addDock(dock_Mainnet.address, chainId);
+    await addDockResp.wait();
+    console.log("addDock hash:", addDockResp.hash);
 
     // 6
     const Test_destination = await ethers.getContractFactory(
@@ -53,18 +55,27 @@ describe("source", function () {
     source = test_source;
 
     // set 7 to 6
-    const addDomainResp = await test_destination.addDomain(chainId, test_source.address);
-    console.log('addDomainResp.hash:', addDomainResp.hash);
+    const addDomainResp = await test_destination.addDomain(
+      chainId,
+      test_source.address
+    );
+    await addDomainResp.wait();
+    console.log("addDomainResp.hash:", addDomainResp.hash);
 
     // set 6 to 7
-    const addDestDomainResp = await test_source.addDestDomain(chainId, test_destination.address);
-    console.log('addDestDomainResp.hash:', addDestDomainResp.hash);
+    const addDestDomainResp = await test_source.addDestDomain(
+      chainId,
+      test_destination.address
+    );
+    await addDestDomainResp.wait()
+    console.log("addDestDomainResp.hash:", addDestDomainResp.hash);
   });
 
   it("Dock_Mainnet.callOtherDomainFunction", async function () {
     const chainId = await accounts[0].getChainId();
     const massage = "hello world";
-    await source.sendMessage(chainId, massage);
+    const sendMessageResp = await source.sendMessage(chainId, massage);
+    await sendMessageResp.wait();
 
     expect(await dest.message()).to.equal(massage);
     expect(await dest.chainId()).to.equal(chainId);

@@ -108,7 +108,7 @@ export default {
     // outputFile: "gas-report.txt",
   },
   mocha: {
-    timeout: 6000000,
+    timeout: 600000,
   },
   networks: {
     mainnet: {

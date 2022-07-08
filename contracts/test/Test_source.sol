@@ -20,9 +20,11 @@ pragma solidity 0.8.4;
 
 import "../MessageDock/CrossDomainHelper.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "hardhat/console.sol";
 
 contract Test_source is CrossDomainHelper, Ownable {
     mapping(uint256 => address) public chainId_dests;
+    bytes public test;
 
     constructor(address _dockAddr) CrossDomainHelper(_dockAddr) {}
 
@@ -34,6 +36,7 @@ contract Test_source is CrossDomainHelper, Ownable {
             _chainId,
             _message
         );
+        test = callMessage;
         crossDomainMassage(destAddress, _chainId, callMessage);
     }
 

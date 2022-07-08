@@ -19,6 +19,7 @@
 pragma solidity 0.8.4;
 
 import "../Dock_L2.sol";
+import "hardhat/console.sol";
 
 interface iOVM_BaseCrossDomainMessenger {
     /**********************
@@ -42,12 +43,17 @@ interface iOVM_BaseCrossDomainMessenger {
 contract DockL2_OP is Dock_L2 {
     uint256 public immutable defaultGasLimit;
 
+    // DockL1_OP address  address _l1PairAddress,
     constructor(
-        address _l1PairAddress,
-        address _bridgeAddress,
+        address _bridgeAddress, // crossDomainMessengerAddr
         uint256 _defaultGasLimit
-    ) Dock_L2(_l1PairAddress, _bridgeAddress) {
+    ) Dock_L2(_bridgeAddress) {
         defaultGasLimit = _defaultGasLimit;
+    }
+
+    function bindDock_L1(address _l1PairAddress) external override {
+        require(_l1PairAddress != address(0), "");
+        l1PairAddress = _l1PairAddress;
     }
 
     function _callBridge(bytes memory _data) internal override {

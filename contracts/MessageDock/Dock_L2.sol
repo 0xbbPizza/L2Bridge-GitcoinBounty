@@ -24,7 +24,7 @@ import "./IDock_L2.sol";
 abstract contract Dock_L2 is IDock_L2 {
     using Address for address;
 
-    address public immutable l1PairAddress;
+    address public  l1PairAddress;
     address public immutable bridgeAddress;
 
     // Note, these variables are set and then wiped during a single transaction.
@@ -33,10 +33,10 @@ abstract contract Dock_L2 is IDock_L2 {
     uint256 internal sourceChainID;
     address internal sourceSender;
 
-    constructor(address _l1PairAddress, address _bridgeAddress) {
-        l1PairAddress = _l1PairAddress;
+    constructor(address _bridgeAddress) {
         bridgeAddress = _bridgeAddress;
     }
+    function bindDock_L1(address _l1PairAddress) external virtual;
 
     function getSourceChainID() external view override returns (uint256) {
         return sourceChainID;

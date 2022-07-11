@@ -19,7 +19,6 @@
 pragma solidity 0.8.4;
 
 import "./IDock_L2.sol";
-import "./DockPair_Op/DockPair_OpL1.sol";
 
 // TODO: splite CrossDomainHelper, to be sourceCrossDomainHelper and destCrossDomainHelper
 
@@ -54,11 +53,5 @@ abstract contract CrossDomainHelper {
             _destChainID,
             _destMassage
         );
-        // bytes memory callMessage = abi.encodeWithSignature(
-        //     "getMessage(uint256,string)",
-        //     _destChainID,
-        //     _destMassage
-        // );
-        // DockL1_OP(dockAddr).test(callMessage);
     }
 }

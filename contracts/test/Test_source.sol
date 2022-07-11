@@ -29,12 +29,6 @@ contract Test_source is CrossDomainHelper, Ownable {
     function sendMessage(uint256 _chainId, string calldata _message) external {
         address destAddress = chainId_dests[_chainId];
         require(destAddress != address(0));
-        // bytes memory onions1 = abi.encode(
-        //     destAddress,
-        //     _message,
-        //     msg.sender,
-        //     block.chainid
-        // );
         bytes memory callMessage = abi.encodeWithSignature(
             "getMessage(uint256,string)",
             _chainId,

@@ -1,18 +1,19 @@
 import { Contract, providers, Signer, Wallet } from "ethers";
-import { config, ethers, hardhatArguments } from "hardhat";
+import { config, ethers, hardhatArguments, network } from "hardhat";
 import { expect } from "chai";
-
 describe("source", function () {
   // let accounts: Signer[];
   // let source: Contract;
   // let dest: Contract;
-  let KovanOP: Signer;
+  let Kovan: Signer;
   let KovanOptimismOP: Signer;
   let raley: Contract;
+  let mainNet: Contract;
   let test_source: Contract;
   let test_destination: Contract;
   let dockL1_OP: Contract;
   let dockL2_OP: Contract;
+  let timestamp: Number;
   const kovanOptimismChainId = 69;
   const kovanChainId = 42;
   const defaultGasLimit = 1000000;
@@ -29,7 +30,7 @@ describe("source", function () {
       new providers.JsonRpcProvider(networkKovanOptimism.url)
     );
     const networkKovan: any = config.networks["kovan"];
-    KovanOP = new Wallet(networkKovan.accounts[0]).connect(
+    Kovan = new Wallet(networkKovan.accounts[0]).connect(
       new providers.JsonRpcProvider(networkKovan.url)
     );
     //   // accounts = await ethers.getSigners();
@@ -88,10 +89,16 @@ describe("source", function () {
     //   // console.log("addDestDomainResp.hash:", addDestDomainResp.hash);
     // =======================
     // L1 delpoy Realy
-    const Raley = await ethers.getContractFactory("Relay", KovanOP);
+    const Raley = await ethers.getContractFactory("Relay", Kovan);
     raley = await Raley.deploy();
     await raley.deployed();
     console.log("raley Address:", raley.address);
+
+    // L1 deploy MainNet
+    const MainNet = await ethers.getContractFactory("Dock_MainNet", Kovan);
+    mainNet = await MainNet.deploy(raley.address);
+    await mainNet.deployed();
+    console.log("mainNet Address:", mainNet.address);
 
     // L2 deploy DockL2_OP
     const DockL2_OP = await ethers.getContractFactory(
@@ -103,7 +110,7 @@ describe("source", function () {
     console.log("dockL2_OP Address:", dockL2_OP.address);
 
     // L1 deploy  DockL1_OP
-    const DockL1_OP = await ethers.getContractFactory("DockL1_OP", KovanOP);
+    const DockL1_OP = await ethers.getContractFactory("DockL1_OP", Kovan);
     dockL1_OP = await DockL1_OP.deploy(
       dockL2_OP.address,
       Proxy__OVM_L1CrossDomainMessenger,
@@ -121,17 +128,22 @@ describe("source", function () {
     await bindDock_L1Resp.wait();
     console.log("bindDock_L1 hash:", bindDock_L1Resp.hash);
 
-    // L1 addDock
+    // Raley addMainNet
+    const addMainNetResp = await raley.addDock(mainNet.address, kovanChainId);
+    await addMainNetResp.wait();
+    console.log("addMainNetResp hash:", addMainNetResp.hash);
+
+    // Raley addDock
     const addDockResp = await raley.addDock(
       dockL1_OP.address,
-      kovanChainId
+      kovanOptimismChainId
     );
     await addDockResp.wait();
     console.log("addDock hash:", addDockResp.hash);
 
     // L1 deploy Test_source
-    const Test_source = await ethers.getContractFactory("Test_source", KovanOP);
-    test_source = await Test_source.deploy(dockL1_OP.address);
+    const Test_source = await ethers.getContractFactory("Test_source", Kovan);
+    test_source = await Test_source.deploy(mainNet.address);
     await test_source.deployed();
     console.log("test_source Address:", test_source.address);
 
@@ -163,31 +175,27 @@ describe("source", function () {
   });
 
   it("Dock_Mainnet.callOtherDomainFunction", async function () {
+    function timeout(ms: number) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
     const message = "hello world";
-    // const gasPrice = await KovanOP.getGasPrice();
-    // console.log("gasPrice: ", gasPrice);
-    // const functionGasFees = await test_source.estimateGas.sendMessage(
-    //   kovanOptimismChainId,
-    //   message
-    // );
-    // const finalGasPrice = gasPrice.mul(functionGasFees);
-
-    // const sourceDock = await
     const sendMessageResp = await test_source.sendMessage(
       kovanOptimismChainId,
-      message,
-      options
+      message
     );
     await sendMessageResp.wait();
     console.log("sendMessageResp hash:", sendMessageResp.hash);
-
-    // const receiveMessageResp = await test_destination.message();
-    // console.log("receiveMessageResp:", receiveMessageResp);
+    await timeout(180000);
+    const receiveMessageResp = await test_destination.message();
+    console.log("receiveMessageResp:", receiveMessageResp);
   });
+  it("Dock_Mainnet.callOtherDomainFunction2", async function () {
+    // 
+  })
 });
-    // const chainId = await accounts[0].getChainId();
-    // const massage = "hello world";
-    // const sendMessageResp = await source.sendMessage(chainId, massage);
-    // await sendMessageResp.wait();
-    // expect(await dest.message()).to.equal(massage);
-    // expect(await dest.chainId()).to.equal(chainId);
+// const chainId = await accounts[0].getChainId();
+// const massage = "hello world";
+// const sendMessageResp = await source.sendMessage(chainId, massage);
+// await sendMessageResp.wait();
+// expect(await dest.message()).to.equal(massage);
+// expect(await dest.chainId()).to.equal(chainId);

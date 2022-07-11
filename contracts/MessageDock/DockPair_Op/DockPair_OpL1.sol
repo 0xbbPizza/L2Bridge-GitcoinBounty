@@ -58,9 +58,6 @@ contract DockL1_OP is Dock_L1 {
             uint32(defaultGasLimit)
         );
     }
-    // function test(bytes memory _data) external{
-    //     _callBridge(_data);
-    // }
 
     // From bridge
     function _verifySenderAndDockPair() internal view override {

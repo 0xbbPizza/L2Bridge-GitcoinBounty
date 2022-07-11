@@ -43,7 +43,6 @@ interface iOVM_BaseCrossDomainMessenger {
 contract DockL2_OP is Dock_L2 {
     uint256 public immutable defaultGasLimit;
 
-    // DockL1_OP address  address _l1PairAddress,
     constructor(
         address _bridgeAddress, // crossDomainMessengerAddr
         uint256 _defaultGasLimit

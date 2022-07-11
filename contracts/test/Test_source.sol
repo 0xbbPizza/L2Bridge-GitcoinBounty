@@ -20,23 +20,26 @@ pragma solidity 0.8.4;
 
 import "../MessageDock/CrossDomainHelper.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 
 contract Test_source is CrossDomainHelper, Ownable {
     mapping(uint256 => address) public chainId_dests;
-    bytes public test;
 
     constructor(address _dockAddr) CrossDomainHelper(_dockAddr) {}
 
     function sendMessage(uint256 _chainId, string calldata _message) external {
         address destAddress = chainId_dests[_chainId];
         require(destAddress != address(0));
+        // bytes memory onions1 = abi.encode(
+        //     destAddress,
+        //     _message,
+        //     msg.sender,
+        //     block.chainid
+        // );
         bytes memory callMessage = abi.encodeWithSignature(
             "getMessage(uint256,string)",
             _chainId,
             _message
         );
-        test = callMessage;
         crossDomainMassage(destAddress, _chainId, callMessage);
     }
 

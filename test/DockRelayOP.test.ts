@@ -171,6 +171,8 @@ describe("source", function () {
     //   message
     // );
     // const finalGasPrice = gasPrice.mul(functionGasFees);
+
+    // const sourceDock = await
     const sendMessageResp = await test_source.sendMessage(
       kovanOptimismChainId,
       message,
@@ -179,8 +181,8 @@ describe("source", function () {
     await sendMessageResp.wait();
     console.log("sendMessageResp hash:", sendMessageResp.hash);
 
-    const receiveMessageResp = await test_destination.message();
-    console.log("receiveMessageResp:", receiveMessageResp);
+    // const receiveMessageResp = await test_destination.message();
+    // console.log("receiveMessageResp:", receiveMessageResp);
   });
 });
     // const chainId = await accounts[0].getChainId();

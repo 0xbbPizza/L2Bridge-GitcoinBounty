@@ -44,17 +44,17 @@ contract DockL1_OP is Dock_L1 {
 
     constructor(
         address _l2CallInAddress, //DockL2_OP address
-        address _l2OutAddress,// Proxy__OVM_L1CrossDomainMessenger address
+        address _l2OutAddress, // Proxy__OVM_L1CrossDomainMessenger address
         address _relayAddress,
         uint256 _defaultGasLimit
     ) Dock_L1(_l2CallInAddress, _l2OutAddress, _relayAddress) {
         defaultGasLimit = _defaultGasLimit;
     }
 
-    function _callBridge(bytes memory _data) internal override {
+    function _callBridge(bytes[2] memory _data) internal override {
         iOVM_BaseCrossDomainMessenger(l2OutAddress).sendMessage(
             l2CallInAddress,
-            _data,
+            _data[0],
             uint32(defaultGasLimit)
         );
     }

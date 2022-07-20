@@ -46,12 +46,15 @@ abstract contract CrossDomainHelper {
     function crossDomainMassage(
         address _destAddress,
         uint256 _destChainID,
-        bytes memory _destMassage
+        uint256 _msgValue,
+        bytes memory _destMassage,
+        bytes memory _ticketIncidentalInfo
     ) internal {
-        IDock_L2(dockAddr).callOtherDomainFunction(
+        IDock_L2(dockAddr).callOtherDomainFunction{value: _msgValue}(
             _destAddress,
             _destChainID,
-            _destMassage
+            _destMassage,
+            _ticketIncidentalInfo
         );
     }
 }

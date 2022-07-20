@@ -22,8 +22,9 @@ interface IDock_L2 {
     function callOtherDomainFunction(
         address _destAddress,
         uint256 _destChainID,
-        bytes calldata _destMassage
-    ) external;
+        bytes calldata _destMassage,
+        bytes calldata _ticketIncidentalInfo
+    ) external payable;
 
     function getSourceChainID() external view returns (uint256);
 

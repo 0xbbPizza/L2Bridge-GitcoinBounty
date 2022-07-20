@@ -44,22 +44,88 @@ interface IOutbox {
 }
 
 contract DockL1_Arb is Dock_L1 {
+    bytes[] public Messagebox;
+
+    bool internal locked;
+
+    modifier noReentrant() {
+        require(!locked, "No re-entrancy");
+        locked = true;
+        _; // re-entrancy
+        locked = false;
+    }
+
     constructor(
         address _l2CallInAddress,
         address _l2OutAddress,
         address _relayAddress
     ) Dock_L1(_l2CallInAddress, _l2OutAddress, _relayAddress) {}
 
-    function _callBridge(bytes memory _data) internal override {
+    function addMessageToMessagebox(bytes calldata _messageData)
+        internal
+        returns (uint256)
+    {
+        uint256 count = Messagebox.length;
+        Messagebox.push(_messageData);
+        return count;
+    }
+
+    function getDockBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    // send eth to account
+    function sendValue(uint256 boxId, uint256 usedGas)
+        external
+        payable
+        noReentrant
+    {
+        address excessFeeRefundAddress;
+        uint256 amountGas;
+        (, excessFeeRefundAddress, , , , ) = abi.decode(
+            Messagebox[boxId],
+            (address, address, bytes, address, uint256, uint256)
+        );
+        uint256 amount = amountGas - usedGas;
+        require(
+            address(this).balance >= amount,
+            "Address: insufficient balance"
+        );
+
+        // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
+        (bool success, ) = payable(excessFeeRefundAddress).call{value: amount}(
+            ""
+        );
+        require(
+            success,
+            "Address: unable to send value, recipient may have reverted"
+        );
+    }
+
+    function _callBridge(bytes[2] memory _data) internal override {
+        address excessFeeRefundAddress;
+        uint256 maxGas;
+        uint256 gasPriceBid;
+        uint256 maxSubmissionCost;
+        bytes memory _ticketIncidentalInfo;
+        (, , _ticketIncidentalInfo, , ) = abi.decode(
+            _data[1],
+            (address, bytes, bytes, address, uint256)
+        );
+        (excessFeeRefundAddress, maxGas, gasPriceBid, maxSubmissionCost) = abi
+            .decode(
+                _ticketIncidentalInfo,
+                (address, uint256, uint256, uint256)
+            );
         IInbox(l2OutAddress).createRetryableTicket(
             l2CallInAddress,
             0,
-            0,
-            tx.origin,
+            maxSubmissionCost,
+            excessFeeRefundAddress,
             address(0),
-            100000000000,
-            0,
-            _data
+            maxGas,
+            gasPriceBid,
+            _data[0]
         );
     }
 

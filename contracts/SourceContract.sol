@@ -165,7 +165,15 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
             _chainId,
             chainId_Onions[_chainId].bringHashOnion
         );
-        crossDomainMassage(destAddress, _chainId, callMessage);
+        uint256 testValue;
+        bytes memory testInfo;
+        crossDomainMassage(
+            destAddress,
+            _chainId,
+            testValue,
+            callMessage,
+            testInfo
+        );
 
         // !!! Create a portable chainId_Onions[chainId].hashOnion, taking into account the fee reward for the bonder
         // emit extract(chainId_Onions[chainId].txIndex,amount,chainId_Onions[chainId].hashOnion);

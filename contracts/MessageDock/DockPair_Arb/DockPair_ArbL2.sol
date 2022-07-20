@@ -29,23 +29,15 @@ interface IArbSys {
 contract DockL2_Arb is Dock_L2 {
     uint256 public immutable defaultGasLimit;
 
-    // constructor(
-    //     address _l1PairAddress,
-    //     address _bridgeAddress,
-    //     uint256 _defaultGasLimit
-    // ) Dock_L2(_l1PairAddress, _bridgeAddress) {
-    //     defaultGasLimit = _defaultGasLimit;
-    // }
-    constructor(
-        address _bridgeAddress,
-        uint256 _defaultGasLimit
-    ) Dock_L2(_bridgeAddress) {
+    constructor(address _bridgeAddress, uint256 _defaultGasLimit)
+        Dock_L2(_bridgeAddress)
+    {
         defaultGasLimit = _defaultGasLimit;
     }
 
-    function bindDock_L1(address _l1PairAddress) external override{
+    function bindDock_L1(address _l1PairAddress) external override {
         l1PairAddress = _l1PairAddress;
-     }
+    }
 
     function _callBridge(bytes memory _data) internal override {
         IArbSys(bridgeAddress).sendTxToL1(l1PairAddress, _data);

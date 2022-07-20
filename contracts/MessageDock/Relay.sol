@@ -61,15 +61,17 @@ contract Relay is IRelay, Ownable {
             destDockAddress_onL1 = docks[inputData.destChainID]
             destDockAddress_onL1.fromRelay(onion1)
     */
+
     function relayCall(uint256 destChainID, bytes calldata data)
         external
+        payable
         override
         returns (bool success)
     {
         require(docksMap_addressKey[msg.sender] > 0, "NOT_FROM_Dock");
         address destDock = docksMap_chainIdKey[destChainID];
         require(destDock != address(0));
-        IDock_L1(destDock).fromRelay(data);
+        IDock_L1(destDock).fromRelay{value: msg.value}(data);
         success = true;
     }
 }

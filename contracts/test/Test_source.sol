@@ -26,7 +26,18 @@ contract Test_source is CrossDomainHelper, Ownable {
 
     constructor(address _dockAddr) CrossDomainHelper(_dockAddr) {}
 
-    function sendMessage(uint256 _chainId, string calldata _message) external {
+    function sendMessage(
+        address excessFeeRefundAddress,
+        uint256 _chainId,
+        uint256 maxGas,
+        uint256 gasPriceBid,
+        uint256 maxSubmissionCost,
+        string calldata _message
+    ) external payable {
+        // require(
+        //     msg.value >= maxSubmissionCost + l2CallValue,
+        //     "insufficient value"
+        // );
         address destAddress = chainId_dests[_chainId];
         require(destAddress != address(0));
         bytes memory callMessage = abi.encodeWithSignature(
@@ -34,7 +45,19 @@ contract Test_source is CrossDomainHelper, Ownable {
             _chainId,
             _message
         );
-        crossDomainMassage(destAddress, _chainId, callMessage);
+        bytes memory ticketIncidentalInfo = abi.encode(
+            excessFeeRefundAddress,
+            maxGas,
+            gasPriceBid,
+            maxSubmissionCost
+        );
+        crossDomainMassage(
+            destAddress,
+            _chainId,
+            msg.value,
+            callMessage,
+            ticketIncidentalInfo
+        );
     }
 
     function addDestDomain(uint256 _chainId, address _source)

@@ -24,7 +24,7 @@ import "./IDock_L2.sol";
 abstract contract Dock_L2 is IDock_L2 {
     using Address for address;
 
-    address public  l1PairAddress;
+    address public l1PairAddress;
     address public immutable bridgeAddress;
 
     // Note, these variables are set and then wiped during a single transaction.
@@ -36,6 +36,7 @@ abstract contract Dock_L2 is IDock_L2 {
     constructor(address _bridgeAddress) {
         bridgeAddress = _bridgeAddress;
     }
+
     function bindDock_L1(address _l1PairAddress) external virtual;
 
     function getSourceChainID() external view override returns (uint256) {
@@ -50,8 +51,9 @@ abstract contract Dock_L2 is IDock_L2 {
     function callOtherDomainFunction(
         address _destAddress,
         uint256 _destChainID,
-        bytes memory _destMassage
-    ) external override {
+        bytes memory _destMassage,
+        bytes memory _ticketIncidentalInfo
+    ) external payable override {
         bytes memory onions1 = abi.encode(
             _destAddress,
             _destMassage,
@@ -70,7 +72,7 @@ abstract contract Dock_L2 is IDock_L2 {
     function _callBridge(bytes memory _data) internal virtual;
 
     // fromBridge
-    function fromL1Pair(bytes calldata _data) external {
+    function fromL1Pair(bytes calldata _data) external payable {
         _verifySenderAndDockPair();
         address preSourceSender = sourceSender;
         uint256 preSourceChainID = sourceChainID;

@@ -184,9 +184,7 @@ describe("source", function () {
     );
     await sendMessageResp.wait();
     console.log("sendMessageResp hash:", sendMessageResp.hash);
-        console.log("dockl2 bridge", await test_source.dest());
-        console.log("dockl2 l1PairAddress", await test_source.chainid());
-    await timeout(180000);
+    await timeout(120000);
     expect(await test_destination.message()).to.equal(message);
     expect(await test_destination.chainId()).to.equal(kovanOptimismChainId);
   });

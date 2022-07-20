@@ -25,7 +25,6 @@ abstract contract Dock_L1 is IDock_L1 {
     address public immutable l2CallInAddress;
     address public immutable l2OutAddress;
     address public immutable relayAddress;
-    bool public status = false;
 
     constructor(
         address _l2CallInAddress,
@@ -38,22 +37,26 @@ abstract contract Dock_L1 is IDock_L1 {
     }
 
     function fromL2Pair(uint256 _destChainID, bytes calldata _data) external {
-        // 是否进入函数
-        status = true;
         _verifySenderAndDockPair();
         IRelay(relayAddress).relayCall(_destChainID, _data);
     }
 
-    function fromRelay(bytes calldata _data) external override onlyRelay {
+    function fromRelay(bytes calldata _data)
+        external
+        payable
+        override
+        onlyRelay
+    {
         bytes memory newData = abi.encodeWithSignature(
             "fromL1Pair(bytes)",
             _data
         );
-        _callBridge(newData);
+        bytes[2] memory dataArray = [newData, _data];
+        _callBridge(dataArray);
     }
 
     // muti to bridge
-    function _callBridge(bytes memory _data) internal virtual;
+    function _callBridge(bytes[2] memory _data) internal virtual;
 
     // muti  From bridge
     function _verifySenderAndDockPair() internal view virtual;

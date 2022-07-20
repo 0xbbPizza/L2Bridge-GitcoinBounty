@@ -1,6 +1,5 @@
 import { Contract, providers, Signer, Wallet } from "ethers";
 import { config, ethers } from "hardhat";
-import { expect } from "chai";
 describe("source", function () {
   let Kovan: Signer;
   let KovanOptimismOP: Signer;
@@ -17,7 +16,7 @@ describe("source", function () {
     "0x4361d0F75A0186C05f971c566dC6bEa5957483fD";
   const L2_BridgeAddress = "0x4200000000000000000000000000000000000007";
   const options = {
-    gasPrice: 1800000000,
+    gasPrice: 8100000000,
     gasLimit: 1000000,
   };
 
@@ -47,7 +46,7 @@ describe("source", function () {
       "DockL2_OP",
       KovanOptimismOP
     );
-    dockL2_OP = await DockL2_OP.deploy(L2_BridgeAddress, defaultGasLimit);
+    dockL2_OP = await DockL2_OP.deploy(L2_BridgeAddress, 1800000);
     await dockL2_OP.deployed();
     console.log("dockL2_OP Address:", dockL2_OP.address);
 

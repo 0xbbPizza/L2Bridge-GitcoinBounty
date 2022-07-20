@@ -43,7 +43,12 @@ contract Dock_MainNet is IDock_L1, IDock_L2 {
         relayAddress = _relayAddress;
     }
 
-    function fromRelay(bytes calldata _data) external override onlyRelay {
+    function fromRelay(bytes calldata _data)
+        external
+        payable
+        override
+        onlyRelay
+    {
         address preSourceSender = sourceSender;
         uint256 preSourceChainID = sourceChainID;
         address destAddress;
@@ -65,15 +70,18 @@ contract Dock_MainNet is IDock_L1, IDock_L2 {
     function callOtherDomainFunction(
         address _destAddress,
         uint256 _destChainID,
-        bytes calldata _destMassage
-    ) external override {
+        bytes calldata _destMassage,
+        bytes calldata _ticketIncidentalInfo
+    ) external payable override {
         bytes memory onions1 = abi.encode(
             _destAddress,
             _destMassage,
+            _ticketIncidentalInfo,
             msg.sender,
+            // msg.value,
             block.chainid
         );
-        IRelay(relayAddress).relayCall(_destChainID, onions1);
+        IRelay(relayAddress).relayCall{value: msg.value}(_destChainID, onions1);
     }
 
     function getSourceChainID() external view override returns (uint256) {

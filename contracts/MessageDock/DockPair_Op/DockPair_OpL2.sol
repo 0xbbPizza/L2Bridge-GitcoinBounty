@@ -19,7 +19,6 @@
 pragma solidity 0.8.4;
 
 import "../Dock_L2.sol";
-import "hardhat/console.sol";
 
 interface iOVM_BaseCrossDomainMessenger {
     /**********************

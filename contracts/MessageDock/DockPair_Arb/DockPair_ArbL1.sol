@@ -117,7 +117,7 @@ contract DockL1_Arb is Dock_L1 {
                 _ticketIncidentalInfo,
                 (address, uint256, uint256, uint256)
             );
-        IInbox(l2OutAddress).createRetryableTicket(
+        IInbox(l2OutAddress).createRetryableTicket{value: msg.value}(
             l2CallInAddress,
             0,
             maxSubmissionCost,

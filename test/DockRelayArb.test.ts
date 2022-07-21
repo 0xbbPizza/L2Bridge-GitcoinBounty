@@ -167,7 +167,7 @@ describe("Arb", function () {
 
     const callValue = submissionPriceWei
       .add(gasPriceBid.mul(maxGas))
-      .mul(BigNumber.from("50"));
+      .mul(BigNumber.from("100"));
 
     console.log(
       `Sending ${
@@ -211,7 +211,7 @@ describe("Arb", function () {
     //   );
     //   transfer.wait();
     // }
-    const response = await l1ToL2Message.redeem(options);
+    const response = await l1ToL2Message.redeem();
     await response.wait();
     console.log("redeem: ", await test_destination.message());
     expect(await test_destination.message()).to.equal(messageInfo[1]);

@@ -28,7 +28,7 @@ interface IFxMessageProcessor {
     ) external;
 }
 
-contract DockL1_Po is Dock_L2, IFxMessageProcessor {
+contract DockL2_Po is Dock_L2, IFxMessageProcessor {
     address public testSender;
     uint256 public testStateId;
 

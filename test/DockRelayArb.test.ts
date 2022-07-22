@@ -23,8 +23,8 @@ describe("Arb", function () {
     "0x578bade599406a8fe3d24fd7f7211c0911f5b29e";
   const L2_BridgeAddress = "0x0000000000000000000000000000000000000064";
   const options = {
+    gasLimit: 1000000,
     gasPrice: 1000000000,
-    gasLimit: 100000,
   };
   before(async function () {
     const networkRinkebyArbitrum: any = config.networks["rinkebyArbitrum"];
@@ -211,7 +211,7 @@ describe("Arb", function () {
     //   );
     //   transfer.wait();
     // }
-    const response = await l1ToL2Message.redeem();
+    const response = await l1ToL2Message.redeem(options);
     await response.wait();
     console.log("redeem: ", await test_destination.message());
     expect(await test_destination.message()).to.equal(messageInfo[1]);

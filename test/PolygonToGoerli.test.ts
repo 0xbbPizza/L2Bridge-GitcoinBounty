@@ -1,7 +1,5 @@
 import { BigNumber, Contract, providers, Signer, Wallet } from "ethers";
 import { config, ethers, network } from "hardhat";
-import { hexDataLength } from "ethers/lib/utils";
-import { estimateSubmissionFee } from "./utils";
 import { expect } from "chai";
 describe("GoerliToPolygon", function () {
   let GoerliPolygonProvider: any;
@@ -25,7 +23,7 @@ describe("GoerliToPolygon", function () {
     maxFeePerGas: 3500000000,
   };
   before(async function () {
-    // L1 Goerli         L2 Polygon
+    // send message to Goerli(L1) from Polygon Mumbai(L2)
     const networkGoerli: any = config.networks["goerli"];
     const networkGoerliPolygon: any = config.networks["goerliPolygon"];
     GoerliProvider = new providers.JsonRpcProvider(networkGoerli.url);
@@ -64,7 +62,8 @@ describe("GoerliToPolygon", function () {
     dockL1_Go = await DockL1_Go.deploy(
       dockL2_Po.address,
       FxRoot,
-      relay.address
+      relay.address,
+      CheckpointManager
     );
     await dockL1_Go.deployed();
     console.log("dockL1_Go Address:", dockL1_Go.address);

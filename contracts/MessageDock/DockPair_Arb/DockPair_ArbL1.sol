@@ -70,10 +70,6 @@ contract DockL1_Arb is Dock_L1 {
         return count;
     }
 
-    function getDockBalance() external view returns (uint256) {
-        return address(this).balance;
-    }
-
     // send eth to account
     function sendValue(uint256 boxId, uint256 usedGas)
         external

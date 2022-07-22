@@ -18,10 +18,10 @@
 
 pragma solidity 0.8.4;
 
+import "../Dock_L1.sol";
+import "../../libraries/ExitPayloadReader.sol";
 import {RLPReader} from "../../libraries/RLPReader.sol";
 import {MerklePatriciaProof, Merkle} from "../../libraries/MerklePatriciaProof.sol";
-import "../../libraries/ExitPayloadReader.sol";
-import "../Dock_L1.sol";
 
 interface IFxStateSender {
     function sendMessageToChild(address _receiver, bytes calldata _data)

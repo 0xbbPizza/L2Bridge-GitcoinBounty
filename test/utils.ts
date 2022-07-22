@@ -81,39 +81,3 @@ export function estimateSubmissionFee(
     defaultedOptions.percentIncrease
   );
 }
-
-/**
- * Estimate the amount of L2 gas required for putting the transaction in the L2 inbox, and executing it.
- * @param sender
- * @param destAddr
- * @param l2CallValue
- * @param excessFeeRefundAddress
- * @param callValueRefundAddress
- * @param calldata
- * @param senderDeposit we dont know how much gas the transaction will use when executing
- * so by default we supply a dummy amount of call value that will definately be more than we need
- * @returns
- */
-// export function estimateRetryableTicketGasLimit(
-//   sender: any,
-//   destAddr: any,
-//   l2CallValue: any,
-//   excessFeeRefundAddress: any,
-//   callValueRefundAddress: any,
-//   calldata: any,
-//   senderDeposit = utils.parseEther("1").add(l2CallValue)
-// ) {
-//   const nodeInterface = NodeInterface__factory_1.NodeInterface__factory.connect(
-//     constants_1.NODE_INTERFACE_ADDRESS,
-//     l2Provider
-//   );
-//   return await nodeInterface.estimateGas.estimateRetryableTicket(
-//     sender,
-//     senderDeposit,
-//     destAddr,
-//     l2CallValue,
-//     excessFeeRefundAddress,
-//     callValueRefundAddress,
-//     calldata
-//   );
-// }

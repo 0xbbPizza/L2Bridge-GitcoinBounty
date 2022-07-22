@@ -90,34 +90,37 @@ describe("GoerliToPolygon", function () {
     await addDockResp.wait();
     console.log("addDock hash:", addDockResp.hash);
 
-    // L1 deploy Test_source
-    const Test_source = await ethers.getContractFactory("Test_source", Goerli);
-    test_source = await Test_source.deploy(mainNet.address);
+    // L2 deploy Test_source
+    const Test_source = await ethers.getContractFactory(
+      "Test_source",
+      GoerliPolygon
+    );
+    test_source = await Test_source.deploy(dockL2_Po.address);
     await test_source.deployed();
     console.log("test_source Address:", test_source.address);
 
     // L2 deploy Test_destination
     const Test_destination = await ethers.getContractFactory(
       "Test_destination",
-      GoerliPolygon
+      Goerli
     );
-    test_destination = await Test_destination.deploy(dockL2_Po.address);
+    test_destination = await Test_destination.deploy(mainNet.address);
     await test_destination.deployed();
     console.log("test_destination Address:", test_destination.address);
 
-    // L1 addDestDomain
+    // L2 addDestDomain
     const addDestDomainResp = await test_source.addDestDomain(
-      GoerliPolygonChainId,
-      test_destination.address
+      GoerliChainId,
+      test_destination.address,
+      options
     );
     await addDestDomainResp.wait();
     console.log("addDestDomain hash:", addDestDomainResp.hash);
 
-    // L2 addSourceDomain
+    // L1 addSourceDomain
     const addSourceDomainResp = await test_destination.addDomain(
-      GoerliChainId,
-      test_source.address,
-      options
+      GoerliPolygonChainId,
+      test_source.address
     );
     await addSourceDomainResp.wait();
     console.log("addSourceDomain hash:", addSourceDomainResp.hash);
@@ -129,12 +132,12 @@ describe("GoerliToPolygon", function () {
     }
 
     const messageInfo = [
-      GoerliPolygonChainId,
-      "This message comes from Goerli",
+      GoerliChainId,
+      "This message comes from GoerliPolygon",
     ];
 
     const sendMessageTX = await test_source.sendMessage(
-      GoerliPolygon.address,
+      Goerli.address,
       messageInfo[0],
       0,
       0,
@@ -146,6 +149,6 @@ describe("GoerliToPolygon", function () {
 
     console.log(await test_destination.message());
     expect(await test_destination.message()).to.equal(messageInfo[1]);
-    expect(await test_destination.chainId()).to.equal(GoerliPolygonChainId);
+    expect(await test_destination.chainId()).to.equal(GoerliChainId);
   });
 });

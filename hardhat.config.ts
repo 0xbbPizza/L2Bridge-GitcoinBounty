@@ -124,6 +124,10 @@ export default {
       url: process.env.kovanRPC,
       accounts: getAccounts(),
     },
+    goerli: {
+      url: process.env.goerliRPC,
+      accounts: getAccounts(),
+    },
 
     arbitrum: {
       url: process.env.arbitrumRPC,

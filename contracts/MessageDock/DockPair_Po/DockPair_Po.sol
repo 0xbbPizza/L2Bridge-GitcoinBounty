@@ -29,22 +29,16 @@ interface IFxMessageProcessor {
 }
 
 contract DockL2_Po is Dock_L2, IFxMessageProcessor {
+    // MessageTunnel on L1 will get data from this event
+    event MessageSent(bytes message);
+
     address public testSender;
     uint256 public testStateId;
 
-    constructor(
-        address _bridgeAddress, // fxChild
-        uint256 _defaultGasLimit
-    ) Dock_L2(_bridgeAddress) {}
+    // _bridgeAddress   : fxChild
+    constructor(address _bridgeAddress) Dock_L2(_bridgeAddress) {}
 
-    // modifier validateSender(address sender) {
-    //     require(
-    //         sender == l1PairAddress,
-    //         "FxBaseChildTunnel: INVALID_SENDER_FROM_ROOT"
-    //     );
-    //     _;
-    // }
-
+    // _l1PairAddress   :fxRootTunnel
     function bindDock_L1(address _l1PairAddress) external override {
         require(_l1PairAddress != address(0), "");
         l1PairAddress = _l1PairAddress;
@@ -64,24 +58,18 @@ contract DockL2_Po is Dock_L2, IFxMessageProcessor {
         address sender,
         bytes calldata message
     ) external override {
-        // _processMessageFromRoot(stateId, sender, message);
         testSender = sender;
         testStateId = stateId;
-        this.fromL1Pair(message);
+        (bool success, ) = address(this).call(message);
+        require(success, "WRONG_MSG");
     }
 
     function _callBridge(bytes memory _data) internal override {
-        // FxStateRootTunnel(bridgeAddress).sendMessageToChild(_data);
+        emit MessageSent(_data);
     }
 
     // From bridge
     function _verifySenderAndDockPair() internal view override {
         require(msg.sender == bridgeAddress, "DOCK1");
     }
-
-    // function _processMessageFromRoot(
-    //     uint256 stateId,
-    //     address sender,
-    //     bytes memory message
-    // ) internal virtual;
 }

@@ -2,45 +2,11 @@
 # yarn lockfile v1
 
 
-"@arbitrum/sdk-classic@npm:@arbitrum/sdk@1.1.12":
-  "integrity" "sha512-s8ku93/wQ9bIMNbO4HWp4+qndzakVc/ppH1l9z4TFHHqNHbD2ejKmiGQeHXdraJsgVs2JnFYVWtq/fVbCB5rDg=="
-  "resolved" "https://registry.npmjs.org/@arbitrum/sdk/-/sdk-1.1.12.tgz"
-  "version" "1.1.12"
+"@arbitrum/sdk@^3.0.0-beta.1":
+  "integrity" "sha512-sJpc8rELwmTJZUTdizakDW0vdvV9qauWxjBgrpBdkYfMJbzf2A+5ME7btxIgpnKvSpmbfPv1nkXmevjO77bIZw=="
+  "resolved" "https://registry.npmjs.org/@arbitrum/sdk/-/sdk-3.0.0-beta.4.tgz"
+  "version" "3.0.0-beta.4"
   dependencies:
-    "@ethersproject/address" "^5.0.8"
-    "@ethersproject/bignumber" "^5.1.1"
-    "@ethersproject/bytes" "^5.0.8"
-    "@typechain/ethers-v5" "9.0.0"
-    "@types/prompts" "^2.0.14"
-    "@types/yargs" "^17.0.9"
-    "dotenv" "^10.0.0"
-    "ethers" "^5.1.0"
-    "ts-node" "^10.2.1"
-    "typechain" "7.0.0"
-
-"@arbitrum/sdk-nitro@npm:@arbitrum/sdk@3.0.0-beta.3":
-  "integrity" "sha512-sKjjy6F8lg4DSVY94f3r2ahbv4c4L/B2lb1TTpFU7sdZKSri2rq4pdQUKpeBs4QnXty6Hmd3VLJGlI6YMUN30w=="
-  "resolved" "https://registry.npmjs.org/@arbitrum/sdk/-/sdk-3.0.0-beta.3.tgz"
-  "version" "3.0.0-beta.3"
-  dependencies:
-    "@ethersproject/address" "^5.0.8"
-    "@ethersproject/bignumber" "^5.1.1"
-    "@ethersproject/bytes" "^5.0.8"
-    "@typechain/ethers-v5" "9.0.0"
-    "@types/prompts" "^2.0.14"
-    "@types/yargs" "^17.0.9"
-    "dotenv" "^10.0.0"
-    "ethers" "^5.1.0"
-    "ts-node" "^10.2.1"
-    "typechain" "7.0.0"
-
-"@arbitrum/sdk@^2.0.0":
-  "integrity" "sha512-bZxhk0loeo5poUy8+3zIgFW8ILDzfJWbVmjKzWZ121DYcO/zy0opTug/fPF+C7jdBO76vfLUrEnSeV6h4Rqjyw=="
-  "resolved" "https://registry.npmjs.org/@arbitrum/sdk/-/sdk-2.0.5.tgz"
-  "version" "2.0.5"
-  dependencies:
-    "@arbitrum/sdk-classic" "npm:@arbitrum/sdk@1.1.12"
-    "@arbitrum/sdk-nitro" "npm:@arbitrum/sdk@3.0.0-beta.3"
     "@ethersproject/address" "^5.0.8"
     "@ethersproject/bignumber" "^5.1.1"
     "@ethersproject/bytes" "^5.0.8"
@@ -3599,6 +3565,12 @@
   dependencies:
     "json-rpc-random-id" "^1.0.0"
     "xtend" "^4.0.1"
+
+"eth-sig-util@^1.4.2":
+  "version" "1.4.2"
+  dependencies:
+    "ethereumjs-abi" "git+https://github.com/ethereumjs/ethereumjs-abi.git"
+    "ethereumjs-util" "^5.1.1"
 
 "eth-sig-util@3.0.0":
   "integrity" "sha512-4eFkMOhpGbTxBQ3AMzVf0haUX2uTur7DpWiHzWyTURa28BVJJtOkcb9Ok5TV0YvEPG61DODPW7ZUATbJTslioQ=="
@@ -9077,7 +9049,7 @@
     "cross-fetch" "^2.1.0"
     "eth-block-tracker" "^3.0.0"
     "eth-json-rpc-infura" "^3.1.0"
-    "eth-sig-util" "3.0.0"
+    "eth-sig-util" "^1.4.2"
     "ethereumjs-block" "^1.2.2"
     "ethereumjs-tx" "^1.2.0"
     "ethereumjs-util" "^5.1.5"

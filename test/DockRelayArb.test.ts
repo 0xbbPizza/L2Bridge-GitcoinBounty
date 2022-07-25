@@ -153,8 +153,8 @@ describe("Arb", function () {
     const maxGas = ethers.BigNumber.from("310000");
     // const maxGas =
     //   await l1ToL2MessageGasEstimate.estimateRetryableTicketGasLimit(
-    //     dockL1_AR.address,
-    //     dockL2_AR.address,
+    //     test_source.address,
+    //     test_destination.address,
     //     l2CallValue,
     //     GoerliArbitrum.address,
     //     GoerliArbitrum.address,

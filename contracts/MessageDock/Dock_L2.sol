@@ -78,10 +78,14 @@ abstract contract Dock_L2 is IDock_L2 {
         uint256 preSourceChainID = sourceChainID;
         address destAddress;
         bytes memory destMassage;
-        (destAddress, destMassage, sourceSender, sourceChainID) = abi.decode(
-            _data,
-            (address, bytes, address, uint256)
-        );
+        bytes memory ticketIncidentalInfo;
+        (
+            destAddress,
+            destMassage,
+            ticketIncidentalInfo,
+            sourceSender,
+            sourceChainID
+        ) = abi.decode(_data, (address, bytes, bytes, address, uint256));
 
         if (destMassage.length > 0)
             require(destAddress.isContract(), "NO_CODE_AT_DEST");

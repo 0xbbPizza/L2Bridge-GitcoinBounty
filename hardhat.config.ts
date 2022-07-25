@@ -137,6 +137,10 @@ export default {
       url: process.env.rinkebyArbitrumRPC,
       accounts: getAccounts(),
     },
+    goerliArbitrum: {
+      url: process.env.goerliArbitrumRPC,
+      accounts: getAccounts(),
+    },
 
     polygon: {
       url: process.env.polygonRPC,

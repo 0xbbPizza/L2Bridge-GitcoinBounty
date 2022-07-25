@@ -34,10 +34,6 @@ contract Test_source is CrossDomainHelper, Ownable {
         uint256 maxSubmissionCost,
         string calldata _message
     ) external payable {
-        // require(
-        //     msg.value >= maxSubmissionCost + l2CallValue,
-        //     "insufficient value"
-        // );
         address destAddress = chainId_dests[_chainId];
         require(destAddress != address(0));
         bytes memory callMessage = abi.encodeWithSignature(

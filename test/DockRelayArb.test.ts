@@ -200,19 +200,13 @@ describe("Arb", function () {
     } else {
       console.log(`L2 retryable txn failed with status`);
     }
-    // let txn = await RinkebyProvider.getTransactionReceipt(sendMessageResp.hash);
-    // if (txn) {
-    //   const totalGas = txn.gasUsed * txn.effectiveGasPrice;
-    //   console.log("totalGas: ", totalGas);
-    //   const transfer = await dockL1_AR.sendValue(
-    //     Rinkeby.address,
-    //     callValue.sub(BigNumber.from(totalGas))
-    //     // callValue
-    //   );
-    //   transfer.wait();
-    // }
-    const response = await l1ToL2Message.redeem(options);
-    await response.wait();
+    try {
+      const response = await l1ToL2Message.redeem();
+      await response.wait();
+    } catch (error) {
+      console.log(error);
+    }
+    timeout(120000);
     console.log("redeem: ", await test_destination.message());
     expect(await test_destination.message()).to.equal(messageInfo[1]);
     expect(await test_destination.chainId()).to.equal(RinkebyArbitrumChainId);

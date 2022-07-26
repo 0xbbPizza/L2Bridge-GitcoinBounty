@@ -14,3 +14,12 @@ export function generateForkKey(chainId: number, hashOnion: string, index = 0) {
     )
   );
 }
+
+/**
+ * Wait for a specific time
+ * @param min
+ * @returns
+ */
+export function timeout(min: number) {
+  return new Promise((resolve) => setTimeout(resolve, min * 1000 * 60));
+}

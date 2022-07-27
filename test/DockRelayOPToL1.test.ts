@@ -1,5 +1,6 @@
 import { Contract, providers, Signer, Wallet } from "ethers";
 import { config, ethers } from "hardhat";
+import { timeout } from "./utils";
 describe("source", function () {
   let Kovan: Signer;
   let KovanOptimismOP: Signer;
@@ -124,9 +125,6 @@ describe("source", function () {
   });
 
   it("Dock_Mainnet.callOtherDomainFunction", async function () {
-    function timeout(ms: number) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
     const message = "hello world from L2";
     const sendMessageResp = await test_source.sendMessage(
       kovanChainId,
@@ -135,7 +133,7 @@ describe("source", function () {
     );
     await sendMessageResp.wait();
     console.log("sendMessageResp hash:", sendMessageResp.hash);
-    await timeout(120000);
+    await timeout(2);
     console.log(await test_destination.status());
     console.log("dockl1 status", await dockL1_OP.status());
     // expect(await test_destination.message()).to.equal(message);

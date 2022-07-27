@@ -123,7 +123,7 @@ describe("GoerliToPolygon", function () {
     console.log("addSourceDomain hash:", addSourceDomainResp.hash);
   });
 
-  it("DockRelayGoToPo", async function () {
+  it("DockRelayL1ToPo", async function () {
     const messageInfo = [
       GoerliPolygonChainId,
       "This message comes from Goerli",
@@ -140,7 +140,7 @@ describe("GoerliToPolygon", function () {
     const sendMessageResp = await sendMessageTX.wait();
     console.log("sendMessageResp hash:", sendMessageResp.transactionHash);
     // It takes about 25 to 45 minutes during this period.
-    await timeout(80);
+    await timeout(50);
     console.log(await dockL2_Po.testData());
     console.log(await test_destination.message());
     expect(await test_destination.message()).to.equal(messageInfo[1]);

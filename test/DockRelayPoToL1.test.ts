@@ -1,6 +1,7 @@
 import { BigNumber, Contract, providers, Signer, Wallet } from "ethers";
 import { config, ethers, network } from "hardhat";
 import { expect } from "chai";
+import { timeout } from "./utils";
 describe("GoerliToPolygon", function () {
   let GoerliPolygonProvider: any;
   let GoerliProvider: any;
@@ -126,10 +127,6 @@ describe("GoerliToPolygon", function () {
   });
 
   it("DockRelayGoToPo", async function () {
-    function timeout(ms: number) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
     const messageInfo = [
       GoerliChainId,
       "This message comes from GoerliPolygon",
@@ -146,7 +143,7 @@ describe("GoerliToPolygon", function () {
     );
     const sendMessageResp = await sendMessageTX.wait();
     console.log("sendMessageResp hash:", sendMessageResp.transactionHash);
-    await timeout(180000);
+    await timeout(50);
     console.log(await test_destination.message());
     expect(await test_destination.message()).to.equal(messageInfo[1]);
     expect(await test_destination.chainId()).to.equal(GoerliChainId);

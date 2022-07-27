@@ -141,11 +141,12 @@ describe("GoerliToPolygon", function () {
       0,
       0,
       0,
-      messageInfo[1]
+      messageInfo[1],
+      options
     );
     const sendMessageResp = await sendMessageTX.wait();
     console.log("sendMessageResp hash:", sendMessageResp.transactionHash);
-
+    await timeout(180000);
     console.log(await test_destination.message());
     expect(await test_destination.message()).to.equal(messageInfo[1]);
     expect(await test_destination.chainId()).to.equal(GoerliChainId);

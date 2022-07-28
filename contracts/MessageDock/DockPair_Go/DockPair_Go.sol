@@ -44,7 +44,7 @@ contract ICheckpointManager {
     mapping(uint256 => HeaderBlock) public headerBlocks;
 }
 
-contract DockL1_Go is Dock_L1 {
+abstract contract FxBaseRootTunnel {
     using RLPReader for RLPReader.RLPItem;
     using Merkle for bytes32;
     using ExitPayloadReader for bytes;
@@ -57,74 +57,28 @@ contract DockL1_Go is Dock_L1 {
     bytes32 public constant SEND_MESSAGE_EVENT_SIG =
         0x8c5261668696ce22758910d05bab8f186d6eb247ceac2af2e82c7dc17669b036;
 
-    address public immutable checkpointManager;
+    // state sender contract
+    IFxStateSender public fxRoot;
+    // root chain manager
+    ICheckpointManager public checkpointManager;
+    // child tunnel contract which receives and sends messages
+    address public fxChildTunnel;
 
     // storage to avoid duplicate exits
     mapping(bytes32 => bool) public processedExits;
 
-    //  _l2CallInAddress : fxChildTunnel, dockpair_po address in this example
-    // _l2OutAddress    : fxRoot
     constructor(
-        address _l2CallInAddress,
-        address _l2OutAddress,
-        address _relayAddress,
-        address _checkpointManager
-    ) Dock_L1(_l2CallInAddress, _l2OutAddress, _relayAddress) {
-        checkpointManager = _checkpointManager;
+        address _checkpointManager,
+        address _fxRoot,
+        address _fxChildTunnel
+    ) {
+        checkpointManager = ICheckpointManager(_checkpointManager);
+        fxRoot = IFxStateSender(_fxRoot);
+        fxChildTunnel = _fxChildTunnel;
     }
 
-    /**
-     * @notice receive message from  L2 to L1, validated by proof
-     * @dev This function verifies if the transaction actually happened on child chain
-     *
-     * @param inputData RLP encoded data of the reference tx containing following list of fields
-     *  0 - headerNumber - Checkpoint header block number containing the reference tx
-     *  1 - blockProof - Proof that the block header (in the child chain) is a leaf in the submitted merkle root
-     *  2 - blockNumber - Block number containing the reference tx on child chain
-     *  3 - blockTime - Reference tx block time
-     *  4 - txRoot - Transactions root of block
-     *  5 - receiptRoot - Receipts root of block
-     *  6 - receipt - Receipt of the reference transaction
-     *  7 - receiptProof - Merkle proof of the reference receipt
-     *  8 - branchMask - 32 bits denoting the path of receipt in merkle tree
-     *  9 - receiptLogIndex - Log Index to read from the receipt
-     */
-    function receiveMessage(bytes memory inputData) public virtual {
-        bytes memory message = _validateAndExtractMessage(inputData);
-        (bool success, ) = address(this).call(message);
-        require(success, "WRONG_MSG");
-    }
-
-    function _callBridge(bytes[2] memory _data) internal override {
-        IFxStateSender(l2OutAddress).sendMessageToChild(
-            l2CallInAddress,
-            _data[0]
-        );
-    }
-
-    function _checkBlockMembershipInCheckpoint(
-        uint256 blockNumber,
-        uint256 blockTime,
-        bytes32 txRoot,
-        bytes32 receiptRoot,
-        uint256 headerNumber,
-        bytes memory blockProof
-    ) private view returns (uint256) {
-        (
-            bytes32 headerRoot,
-            uint256 startBlock,
-            ,
-            uint256 createdAt,
-
-        ) = ICheckpointManager(checkpointManager).headerBlocks(headerNumber);
-
-        require(
-            keccak256(
-                abi.encodePacked(blockNumber, blockTime, txRoot, receiptRoot)
-            ).checkMembership(blockNumber - startBlock, headerRoot, blockProof),
-            "FxRootTunnel: INVALID_HEADER"
-        );
-        return createdAt;
+    function _sendMessageToChild(bytes memory message) internal {
+        fxRoot.sendMessageToChild(fxChildTunnel, message);
     }
 
     function _validateAndExtractMessage(bytes memory inputData)
@@ -159,7 +113,7 @@ contract DockL1_Go is Dock_L1 {
 
         // check child tunnel
         require(
-            l2CallInAddress == log.getEmitter(),
+            fxChildTunnel == log.getEmitter(),
             "FxRootTunnel: INVALID_FX_CHILD_TUNNEL"
         );
 
@@ -197,12 +151,67 @@ contract DockL1_Go is Dock_L1 {
         return message;
     }
 
+    function _checkBlockMembershipInCheckpoint(
+        uint256 blockNumber,
+        uint256 blockTime,
+        bytes32 txRoot,
+        bytes32 receiptRoot,
+        uint256 headerNumber,
+        bytes memory blockProof
+    ) private view returns (uint256) {
+        (
+            bytes32 headerRoot,
+            uint256 startBlock,
+            ,
+            uint256 createdAt,
+
+        ) = checkpointManager.headerBlocks(headerNumber);
+
+        require(
+            keccak256(
+                abi.encodePacked(blockNumber, blockTime, txRoot, receiptRoot)
+            ).checkMembership(blockNumber - startBlock, headerRoot, blockProof),
+            "FxRootTunnel: INVALID_HEADER"
+        );
+        return createdAt;
+    }
+
+    function receiveMessage(bytes memory inputData) public virtual {
+        bytes memory message = _validateAndExtractMessage(inputData);
+        _processMessageFromChild(message);
+    }
+
+    function _processMessageFromChild(bytes memory message) internal virtual;
+}
+
+contract DockL1_Go is Dock_L1, FxBaseRootTunnel {
+    constructor(
+        address _l2CallInAddress,
+        address _l2OutAddress,
+        address _relayAddress,
+        address _checkpointManager
+    )
+        Dock_L1(_l2CallInAddress, _l2OutAddress, _relayAddress)
+        FxBaseRootTunnel(_checkpointManager, _l2OutAddress, _l2CallInAddress)
+    {}
+
+    //  _l2CallInAddress : fxChildTunnel, dockpair_po address in this example
+    // _l2OutAddress    : fxRoot
+
+    function _processMessageFromChild(bytes memory data) internal override {}
+
+    function _callBridge(bytes[2] memory _data) internal override {
+        // IFxStateSender(l2OutAddress).sendMessageToChild(
+        //     l2CallInAddress,
+        //     _data[0]
+        // );
+        string memory title = "test";
+        bytes memory _message = abi.encode(_data[0], title);
+        _sendMessageToChild(_message);
+    }
+
     // From bridge
     function _verifySenderAndDockPair() internal view override {
-        // IBridge arbBridge = IInbox(l2OutAddress).bridge();
-        // IOutbox outbox = IOutbox(arbBridge.activeOutbox());
-        require(msg.sender == l2OutAddress, "DOCK1");
-        // // Verify that sender
-        // require(outbox.l2ToL1Sender() == l2CallInAddress, "DOCK2");
+        // Todo
     }
 }

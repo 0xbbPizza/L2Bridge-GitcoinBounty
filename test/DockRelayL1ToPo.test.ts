@@ -37,6 +37,8 @@ describe("GoerliToPolygon", function () {
       GoerliPolygonProvider
     );
 
+    console.warn("start", new Date());
+
     // L1 delpoy Realy
     const Relay = await ethers.getContractFactory("Relay", Goerli);
     relay = await Relay.deploy();
@@ -124,6 +126,7 @@ describe("GoerliToPolygon", function () {
   });
 
   it("DockRelayL1ToPo", async function () {
+    console.warn("start send", new Date());
     const messageInfo = [
       GoerliPolygonChainId,
       "This message comes from Goerli",
@@ -140,8 +143,7 @@ describe("GoerliToPolygon", function () {
     const sendMessageResp = await sendMessageTX.wait();
     console.log("sendMessageResp hash:", sendMessageResp.transactionHash);
     // It takes about 25 to 45 minutes during this period.
-    await timeout(50);
-    console.log(await dockL2_Po.testData());
+    await timeout(25);
     console.log(await test_destination.message());
     expect(await test_destination.message()).to.equal(messageInfo[1]);
     expect(await test_destination.chainId()).to.equal(GoerliPolygonChainId);

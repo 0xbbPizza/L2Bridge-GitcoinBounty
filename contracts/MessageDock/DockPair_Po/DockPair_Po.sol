@@ -34,7 +34,7 @@ contract DockL2_Po is Dock_L2, IFxMessageProcessor {
 
     address public testSender;
     uint256 public testStateId;
-    bytes public testData;
+    string public testStateMessage;
 
     // _bridgeAddress   : fxChild
     constructor(address _bridgeAddress) Dock_L2(_bridgeAddress) {}
@@ -61,8 +61,9 @@ contract DockL2_Po is Dock_L2, IFxMessageProcessor {
     ) external override {
         testSender = sender;
         testStateId = stateId;
-        testData = message;
-        (bool success, ) = address(this).call(message);
+        bytes memory _message;
+        (_message, testStateMessage) = abi.decode(message, (bytes, string));
+        (bool success, ) = address(this).call(_message);
         require(success, "WRONG_MSG");
     }
 

@@ -15,10 +15,14 @@ describe("Arb", function () {
   let dockL2_AR: Contract;
   const GoerliArbitrumChainId = 421613;
   const GoerliChainId = 5;
-  const defaultGasLimit = 1000000;
   const Proxy__OVM_L1CrossDomainMessenger =
     "0x6BEbC4925716945D46F0Ec336D5C2564F419682C";
   const L2_BridgeAddress = "0x0000000000000000000000000000000000000064";
+  const options = {
+    gasLimit: 1000000,
+    maxPriorityFeePerGas: 2500000000,
+    maxFeePerGas: 3500000000,
+  };
   before(async function () {
     const networkGoerli: any = config.networks["goerli"];
     const networkGoerliArbitrum: any = config.networks["goerliArbitrum"];
@@ -51,7 +55,7 @@ describe("Arb", function () {
       "DockL2_Arb",
       GoerliArbitrum
     );
-    dockL2_AR = await DockL2_AR.deploy(L2_BridgeAddress, defaultGasLimit);
+    dockL2_AR = await DockL2_AR.deploy(L2_BridgeAddress);
     await dockL2_AR.deployed();
     console.log("dockL2_AR Address:", dockL2_AR.address);
 
@@ -130,6 +134,7 @@ describe("Arb", function () {
     );
     const sendMessageResp = await sendMessageTX.wait();
     const txnHash = sendMessageResp.transactionHash;
+    console.log("txnHash:", txnHash);
     if (!txnHash)
       throw new Error(
         "Provide a transaction hash of an L2 transaction that sends an L2 to L1 message"
@@ -150,7 +155,7 @@ describe("Arb", function () {
       process.exit(1);
     }
 
-    // The time here is 1 hour.
+    // Test the number of certificates once a minute, and the estimated total time is half an hour to one hour.
     const timeToWaitMs = 1000 * 60;
     console.log(
       "Waiting for the outbox entry to be created. This only happens when the L2 block is confirmed on L1, ~1 week after it's creation."
@@ -165,7 +170,7 @@ describe("Arb", function () {
 
     // In the official document, the parameter here is proofInfo, but it will not work. It is useful to change it to GoerliArbitrumProvider, but I don't know why
     // const res = await l2ToL1Msg.execute(proofInfo);
-    const res = await l2ToL1Msg.execute(GoerliArbitrumProvider);
+    const res = await l2ToL1Msg.execute(GoerliArbitrumProvider, options);
     const rec = await res.wait();
     console.log("Done! Your transaction is executed", rec);
     expect(await test_destination.message()).to.equal(messageInfo[1]);

@@ -82,7 +82,7 @@ contract DockL1_Arb is Dock_L1 {
         IBridge arbBridge = IInbox(l2OutAddress).bridge();
         IOutbox outbox = IOutbox(arbBridge.activeOutbox());
 
-        require(msg.sender == address(outbox), "DOCK1");
+        require(msg.sender == address(arbBridge), "DOCK1");
         // Verify that sender
         require(outbox.l2ToL1Sender() == l2CallInAddress, "DOCK2");
     }

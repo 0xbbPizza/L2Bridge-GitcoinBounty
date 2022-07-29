@@ -195,18 +195,16 @@ contract DockL1_Go is Dock_L1, FxBaseRootTunnel {
         FxBaseRootTunnel(_checkpointManager, _l2OutAddress, _l2CallInAddress)
     {}
 
-    //  _l2CallInAddress : fxChildTunnel, dockpair_po address in this example
-    // _l2OutAddress    : fxRoot
-
-    function _processMessageFromChild(bytes memory data) internal override {}
+    function _processMessageFromChild(bytes memory data) internal override {
+        bytes memory _message;
+        (_message) = abi.decode(data, (bytes));
+        (bool success, ) = address(this).call(_message);
+        require(success, "WRONG_MSG");
+    }
 
     function _callBridge(bytes[2] memory _data) internal override {
-        // IFxStateSender(l2OutAddress).sendMessageToChild(
-        //     l2CallInAddress,
-        //     _data[0]
-        // );
-        string memory title = "test";
-        bytes memory _message = abi.encode(_data[0], title);
+        // If abi.encodeWithSignature is used here, data cannot be transmitted, so abi.encode is used for transmission on this basis.
+        bytes memory _message = abi.encode(_data[0]);
         _sendMessageToChild(_message);
     }
 

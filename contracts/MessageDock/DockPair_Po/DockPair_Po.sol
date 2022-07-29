@@ -34,7 +34,6 @@ contract DockL2_Po is Dock_L2, IFxMessageProcessor {
 
     address public testSender;
     uint256 public testStateId;
-    string public testStateMessage;
 
     // _bridgeAddress   : fxChild
     constructor(address _bridgeAddress) Dock_L2(_bridgeAddress) {}
@@ -45,15 +44,6 @@ contract DockL2_Po is Dock_L2, IFxMessageProcessor {
         l1PairAddress = _l1PairAddress;
     }
 
-    /**
-     * @notice Process message received from Root Tunnel
-     * @dev function needs to be implemented to handle message as per requirement
-     * This is called by onStateReceive function.
-     * Since it is called via a system call, any event will not be emitted during its execution.
-     * @param stateId unique state id
-     * @param sender root message sender
-     * @param message bytes message that was sent from Root Tunnel
-     */
     function processMessageFromRoot(
         uint256 stateId,
         address sender,
@@ -62,13 +52,15 @@ contract DockL2_Po is Dock_L2, IFxMessageProcessor {
         testSender = sender;
         testStateId = stateId;
         bytes memory _message;
-        (_message, testStateMessage) = abi.decode(message, (bytes, string));
+        (_message) = abi.decode(message, (bytes));
         (bool success, ) = address(this).call(_message);
         require(success, "WRONG_MSG");
     }
 
     function _callBridge(bytes memory _data) internal override {
-        emit MessageSent(_data);
+        // If abi.encodeWithSignature is used here, data cannot be transmitted, so abi.encode is used for transmission on this basis.
+        bytes memory _message = abi.encode(_data);
+        emit MessageSent(_message);
     }
 
     // From bridge

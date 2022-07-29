@@ -2,12 +2,6 @@ import { Contract, providers, Wallet } from "ethers";
 import { config, ethers } from "hardhat";
 import { expect } from "chai";
 import { getPolygonMumbaiFastPerGas, timeout } from "./utils";
-import {
-  test_destinationABI,
-  test_destinationAddress,
-  test_sourceABI,
-  test_sourceAddress,
-} from "./abi";
 describe("GoerliToPolygon", function () {
   let GoerliPolygonProvider: any;
   let GoerliProvider: any;

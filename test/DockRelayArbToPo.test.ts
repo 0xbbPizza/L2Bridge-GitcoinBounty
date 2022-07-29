@@ -237,12 +237,13 @@ describe("ArbitrumToPolygon", function () {
     const addSourceDomainGoerliResp =
       await test_destinationMumbaiPolygon.addDomain(
         GoerliChainId,
-        test_sourceGoerli.address
+        test_sourceGoerli.address,
+        options
       );
     await addSourceDomainGoerliResp.wait();
     console.log(
       "addSourceDomainGoerliResp Hash:",
-      addSourceDomainGoerliResp.address
+      addSourceDomainGoerliResp.hash
     );
   });
 
@@ -293,8 +294,8 @@ describe("ArbitrumToPolygon", function () {
     await l2ToL1Msg.getOutboxProof(GoerliArbitrumProvider);
     const res = await l2ToL1Msg.execute(GoerliArbitrumProvider, options);
     await res.wait();
-    console.log(
-      "The message sent from GoerliArbitrum to Goerli was successful."
+    console.warn(
+      "The message sent from GoerliArbitrum to Goerli was successful👏🏻."
     );
 
     // sendMessage from L1 (Goerli) to L2 (MumbaiPolygon)
@@ -309,13 +310,14 @@ describe("ArbitrumToPolygon", function () {
     );
     const sendMessageToMumbaiPolygonResp =
       await sendMessageToMumbaiPolygonTX.wait();
+    console.warn(new Date(), "start send from Goerli to MumbaiPolygon");
     console.log(
       "sendMessageToMumbaiPolygonResp Hash:",
       sendMessageToMumbaiPolygonResp.transactionHash
     );
 
     // It takes about 25 to 45 minutes during this period.
-    await timeout(50);
+    await timeout(25);
     console.log(await test_destinationMumbaiPolygon.message());
 
     expect(await test_destinationMumbaiPolygon.message()).to.equal(

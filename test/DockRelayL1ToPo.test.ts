@@ -1,7 +1,13 @@
 import { Contract, providers, Wallet } from "ethers";
 import { config, ethers } from "hardhat";
 import { expect } from "chai";
-import { timeout } from "./utils";
+import { getPolygonMumbaiFastPerGas, timeout } from "./utils";
+import {
+  test_destinationABI,
+  test_destinationAddress,
+  test_sourceABI,
+  test_sourceAddress,
+} from "./abi";
 describe("GoerliToPolygon", function () {
   let GoerliPolygonProvider: any;
   let GoerliProvider: any;
@@ -18,13 +24,9 @@ describe("GoerliToPolygon", function () {
   const FxRoot = "0x3d1d3E34f7fB6D26245E6640E1c50710eFFf15bA";
   const CheckpointManager = "0x2890bA17EfE978480615e330ecB65333b880928e";
   const FxChild = "0xCf73231F28B7331BBe3124B907840A94851f9f11";
-  const options = {
-    gasLimit: 1000000,
-    maxPriorityFeePerGas: 2500000000,
-    maxFeePerGas: 3500000000,
-  };
   before(async function () {
     // send message to Polygon Mumbai(L2) from Goerli(L1)
+
     const networkGoerli: any = config.networks["goerli"];
     const networkGoerliPolygon: any = config.networks["goerliPolygon"];
     GoerliProvider = new providers.JsonRpcProvider(networkGoerli.url);
@@ -38,7 +40,6 @@ describe("GoerliToPolygon", function () {
     );
 
     console.warn("start", new Date());
-
     // L1 delpoy Realy
     const Relay = await ethers.getContractFactory("Relay", Goerli);
     relay = await Relay.deploy();
@@ -56,7 +57,10 @@ describe("GoerliToPolygon", function () {
       "DockL2_Po",
       GoerliPolygon
     );
-    dockL2_Po = await DockL2_Po.deploy(FxChild);
+    dockL2_Po = await DockL2_Po.deploy(
+      FxChild,
+      await getPolygonMumbaiFastPerGas()
+    );
     await dockL2_Po.deployed();
     console.log("dockL2_Po Address:", dockL2_Po.address);
 
@@ -74,7 +78,7 @@ describe("GoerliToPolygon", function () {
     // L2 bindDockL1_Go
     const bindDock_L1Resp = await dockL2_Po.bindDock_L1(
       dockL1_Go.address,
-      options
+      await getPolygonMumbaiFastPerGas()
     );
     await bindDock_L1Resp.wait();
     console.log("bindDockL1_Go hash:", bindDock_L1Resp.hash);
@@ -103,7 +107,10 @@ describe("GoerliToPolygon", function () {
       "Test_destination",
       GoerliPolygon
     );
-    test_destination = await Test_destination.deploy(dockL2_Po.address);
+    test_destination = await Test_destination.deploy(
+      dockL2_Po.address,
+      await getPolygonMumbaiFastPerGas()
+    );
     await test_destination.deployed();
     console.log("test_destination Address:", test_destination.address);
 
@@ -119,7 +126,7 @@ describe("GoerliToPolygon", function () {
     const addSourceDomainResp = await test_destination.addDomain(
       GoerliChainId,
       test_source.address,
-      options
+      await getPolygonMumbaiFastPerGas()
     );
     await addSourceDomainResp.wait();
     console.log("addSourceDomain hash:", addSourceDomainResp.hash);
@@ -129,7 +136,7 @@ describe("GoerliToPolygon", function () {
     console.warn("start send", new Date());
     const messageInfo = [
       GoerliPolygonChainId,
-      "This message comes from Goerli",
+      "This message comes from Goerli 1111",
     ];
 
     const sendMessageTX = await test_source.sendMessage(
@@ -138,7 +145,8 @@ describe("GoerliToPolygon", function () {
       0,
       0,
       0,
-      messageInfo[1]
+      messageInfo[1],
+      await getPolygonMumbaiFastPerGas()
     );
     const sendMessageResp = await sendMessageTX.wait();
     console.log("sendMessageResp hash:", sendMessageResp.transactionHash);

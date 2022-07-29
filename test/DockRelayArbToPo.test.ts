@@ -284,21 +284,18 @@ describe("ArbitrumToPolygon", function () {
       console.log(`Message already executed! Nothing else to do here`);
       process.exit(1);
     }
-    // The time here is 1 hour.
+    // Test the number of certificates once a minute, and the estimated total time is half an hour to one hour.
     const timeToWaitMs = 1000 * 60;
-    console.log(
-      "Waiting for the outbox entry to be created. This only happens when the L2 block is confirmed on L1, ~1 week after it's creation."
-    );
     await l2ToL1Msg.waitUntilReadyToExecute(
       GoerliArbitrumProvider,
       timeToWaitMs
     );
-    console.log("Outbox entry exists! Trying to execute now");
-    const proofInfo = await l2ToL1Msg.getOutboxProof(GoerliArbitrumProvider);
-    // In the official document, the parameter here is proofInfo, but it will not work. It is useful to change it to GoerliArbitrumProvider, but I don't know why
-    const res = await l2ToL1Msg.execute(GoerliArbitrumProvider);
-    const rec = await res.wait();
-    console.log("Done! Your transaction is executed", rec);
+    await l2ToL1Msg.getOutboxProof(GoerliArbitrumProvider);
+    const res = await l2ToL1Msg.execute(GoerliArbitrumProvider, options);
+    await res.wait();
+    console.log(
+      "The message sent from GoerliArbitrum to Goerli was successful."
+    );
 
     // sendMessage from L1 (Goerli) to L2 (MumbaiPolygon)
     const messageAgain = await test_destinationGoerli.message();
@@ -325,7 +322,7 @@ describe("ArbitrumToPolygon", function () {
       messageInfo[1]
     );
     expect(await test_destinationMumbaiPolygon.chainId()).to.equal(
-      MumbaiPolygonChainId
+      messageInfo[0]
     );
   });
 });

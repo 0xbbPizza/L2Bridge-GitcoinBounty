@@ -148,6 +148,6 @@ describe("GoerliToPolygon", function () {
     await timeout(25);
     console.log(await test_destination.message());
     expect(await test_destination.message()).to.equal(messageInfo[1]);
-    expect(await test_destination.chainId()).to.equal(GoerliPolygonChainId);
+    expect(await test_destination.chainId()).to.equal(messageInfo[0]);
   });
 });

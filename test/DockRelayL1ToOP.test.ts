@@ -3,9 +3,6 @@ import { config, ethers, hardhatArguments, network } from "hardhat";
 import { expect } from "chai";
 import { timeout } from "./utils";
 describe("source", function () {
-  // let accounts: Signer[];
-  // let source: Contract;
-  // let dest: Contract;
   let Goerli: Wallet;
   let GoerliOptimism: Wallet;
   let relay: Contract;
@@ -14,15 +11,14 @@ describe("source", function () {
   let test_destination: Contract;
   let dockL1_OP: Contract;
   let dockL2_OP: Contract;
-  const GoerliOptimismChainId = 69;
-  const GoerliChainId = 42;
+  const GoerliOptimismChainId = 420;
+  const GoerliChainId = 5;
   const defaultGasLimit = 1000000;
   const Proxy__OVM_L1CrossDomainMessenger =
     "0x5086d1eEF304eb5284A0f6720f79403b4e9bE294";
   const L2_BridgeAddress = "0x4200000000000000000000000000000000000007";
   const options = {
-    gasPrice: 1000000000,
-    gasLimit: 85000,
+    gasLimit: 1000000,
   };
   before(async function () {
     const networkGoerli: any = config.networks["goerli"];
@@ -33,61 +29,6 @@ describe("source", function () {
     GoerliOptimism = new Wallet(networkGoerliOptimism.accounts[0]).connect(
       new providers.JsonRpcProvider(networkGoerliOptimism.url)
     );
-
-    //   // accounts = await ethers.getSigners();
-    //   // const chainId = await accounts[0].getChainId();
-    //   // console.log("chainId", chainId);
-    //   // // 3
-
-    // const Relay = await ethers.getContractFactory("Relay");
-    // const relay = await Relay.deploy();
-    // await relay.deployed();
-    // console.log("relay Address:", relay.address);
-
-    //   // // 2
-    //   // const Dock_Mainnet = await ethers.getContractFactory("Dock_MainNet");
-    //   // const dock_Mainnet = await Dock_Mainnet.deploy(relay.address);
-    //   // await dock_Mainnet.deployed();
-    //   // console.log("dock_Mainnet Address:", dock_Mainnet.address);
-
-    //   // // set 2 to 3
-    //   // const addDockResp = await relay.addDock(dock_Mainnet.address, chainId);
-    //   // await addDockResp.wait();
-    //   // console.log("addDock hash:", addDockResp.hash);
-
-    //   // // 6
-    //   // const Test_destination = await ethers.getContractFactory(
-    //   //   "Test_destination"
-    //   // );
-    //   // const test_destination = await Test_destination.deploy(
-    //   //   dock_Mainnet.address
-    //   // );
-    //   // await test_destination.deployed();
-    //   // console.log("test_destination Address:", test_destination.address);
-    //   // dest = test_destination;
-
-    //   // // 7
-    //   // const Test_source = await ethers.getContractFactory("Test_source");
-    //   // const test_source = await Test_source.deploy(dock_Mainnet.address);
-    //   // await test_source.deployed();
-    //   // console.log("test_source Address:", test_source.address);
-    //   // source = test_source;
-
-    //   // // set 7 to 6
-    //   // const addDomainResp = await test_destination.addDomain(
-    //   //   chainId,
-    //   //   test_source.address
-    //   // );
-    //   // await addDomainResp.wait();
-    //   // console.log("addDomainResp.hash:", addDomainResp.hash);
-
-    //   // // set 6 to 7
-    //   // const addDestDomainResp = await test_source.addDestDomain(
-    //   //   chainId,
-    //   //   test_destination.address
-    //   // );
-    //   // await addDestDomainResp.wait();
-    //   // console.log("addDestDomainResp.hash:", addDestDomainResp.hash);
 
     // L1 delpoy Realy
     const Relay = await ethers.getContractFactory("Relay", Goerli);
@@ -106,7 +47,11 @@ describe("source", function () {
       "DockL2_OP",
       GoerliOptimism
     );
-    dockL2_OP = await DockL2_OP.deploy(L2_BridgeAddress, defaultGasLimit);
+    dockL2_OP = await DockL2_OP.deploy(
+      L2_BridgeAddress,
+      defaultGasLimit,
+      options
+    );
     await dockL2_OP.deployed();
     console.log("dockL2_OP Address:", dockL2_OP.address);
 
@@ -153,7 +98,10 @@ describe("source", function () {
       "Test_destination",
       GoerliOptimism
     );
-    test_destination = await Test_destination.deploy(dockL2_OP.address);
+    test_destination = await Test_destination.deploy(
+      dockL2_OP.address,
+      options
+    );
     await test_destination.deployed();
     console.log("test_destination Address:", test_destination.address);
 
@@ -176,15 +124,19 @@ describe("source", function () {
   });
 
   it("DockRelayL1ToOp", async function () {
-    const message = "hello world from L1 to Op";
+    const messageInfo = [GoerliOptimismChainId, "hello world from L1 to Op"];
     const sendMessageResp = await test_source.sendMessage(
-      GoerliOptimismChainId,
-      message
+      GoerliOptimism.address,
+      messageInfo[0],
+      0,
+      0,
+      0,
+      messageInfo[1]
     );
     await sendMessageResp.wait();
     console.log("sendMessageResp hash:", sendMessageResp.hash);
-    await timeout(2);
-    expect(await test_destination.message()).to.equal(message);
-    expect(await test_destination.chainId()).to.equal(GoerliOptimismChainId);
+    await timeout(5);
+    expect(await test_destination.message()).to.equal(messageInfo[1]);
+    expect(await test_destination.chainId()).to.equal(messageInfo[0]);
   });
 });

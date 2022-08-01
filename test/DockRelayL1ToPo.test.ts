@@ -11,7 +11,7 @@ describe("GoerliToPolygon", function () {
   let mainNet: Contract;
   let test_source: Contract;
   let test_destination: Contract;
-  let dockL1_Go: Contract;
+  let dockL1_Po: Contract;
   let dockL2_Po: Contract;
   const GoerliPolygonChainId = 80001;
   const GoerliChainId = 5;
@@ -46,7 +46,7 @@ describe("GoerliToPolygon", function () {
     await mainNet.deployed();
     console.log("mainNet Address:", mainNet.address);
 
-    // L2 deploy DockPair_Po
+    // L2 deploy DockL2_Po
     const DockL2_Po = await ethers.getContractFactory(
       "DockL2_Po",
       GoerliPolygon
@@ -58,24 +58,24 @@ describe("GoerliToPolygon", function () {
     await dockL2_Po.deployed();
     console.log("dockL2_Po Address:", dockL2_Po.address);
 
-    // L1 deploy  DockL1_GO
-    const DockL1_Go = await ethers.getContractFactory("DockL1_Go", Goerli);
-    dockL1_Go = await DockL1_Go.deploy(
+    // L1 deploy  DockL1_Po
+    const DockL1_Po = await ethers.getContractFactory("DockL1_Po", Goerli);
+    dockL1_Po = await DockL1_Po.deploy(
       dockL2_Po.address,
       FxRoot,
       relay.address,
       CheckpointManager
     );
-    await dockL1_Go.deployed();
-    console.log("dockL1_Go Address:", dockL1_Go.address);
+    await dockL1_Po.deployed();
+    console.log("dockL1_Po Address:", dockL1_Po.address);
 
-    // L2 bindDockL1_Go
+    // L2 bindDockL1_Po
     const bindDock_L1Resp = await dockL2_Po.bindDock_L1(
-      dockL1_Go.address,
+      dockL1_Po.address,
       await getPolygonMumbaiFastPerGas()
     );
     await bindDock_L1Resp.wait();
-    console.log("bindDockL1_Go hash:", bindDock_L1Resp.hash);
+    console.log("bindDockL1_Po hash:", bindDock_L1Resp.hash);
 
     // Relay addMainNet
     const addMainNetResp = await relay.addDock(mainNet.address, GoerliChainId);
@@ -84,7 +84,7 @@ describe("GoerliToPolygon", function () {
 
     // Relay addDock
     const addDockResp = await relay.addDock(
-      dockL1_Go.address,
+      dockL1_Po.address,
       GoerliPolygonChainId
     );
     await addDockResp.wait();
@@ -130,7 +130,7 @@ describe("GoerliToPolygon", function () {
     console.warn("start send", new Date());
     const messageInfo = [
       GoerliPolygonChainId,
-      "This message comes from Goerli 1111",
+      "This message comes from Goerli",
     ];
 
     const sendMessageTX = await test_source.sendMessage(

@@ -184,7 +184,7 @@ abstract contract FxBaseRootTunnel {
     function _processMessageFromChild(bytes memory message) internal virtual;
 }
 
-contract DockL1_Go is Dock_L1, FxBaseRootTunnel {
+contract DockL1_Po is Dock_L1, FxBaseRootTunnel {
     constructor(
         address _l2CallInAddress,
         address _l2OutAddress,

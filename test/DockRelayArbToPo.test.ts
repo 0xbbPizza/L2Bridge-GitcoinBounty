@@ -2,7 +2,7 @@ import { Contract, providers, Wallet } from "ethers";
 import { L2TransactionReceipt, L2ToL1MessageStatus } from "@arbitrum/sdk";
 import { config, ethers } from "hardhat";
 import { expect } from "chai";
-import { timeout } from "./utils";
+import { getPolygonMumbaiFastPerGas, timeout } from "./utils";
 describe("ArbitrumToPolygon", function () {
   let GoerliProvider: any;
   let GoerliArbitrumProvider: any;
@@ -17,7 +17,7 @@ describe("ArbitrumToPolygon", function () {
   let test_destinationGoerli: Contract;
   let test_destinationMumbaiPolygon: Contract;
   let dockL1_Arb: Contract;
-  let dockL1_Go: Contract;
+  let dockL1_Po: Contract;
   let dockL2_Arb: Contract;
   let dockL2_Po: Contract;
   const GoerliChainId = 5;
@@ -30,11 +30,8 @@ describe("ArbitrumToPolygon", function () {
   const FxChild = "0xCf73231F28B7331BBe3124B907840A94851f9f11";
   const options = {
     gasLimit: 1000000,
-    maxPriorityFeePerGas: 2500000000,
-    maxFeePerGas: 3500000000,
   };
   before(async function () {
-    // Messages are sent from GoerliArbitrum(L2) to MumbaiPolygon(L2) through relay point Goerli(L1).
     // GoerliArbitrum(L2) -> Goerli(L1) -> MumbaiPolygon(L2)
     const networkGoerli: any = config.networks["goerli"];
     const networkGoerliArbitrum: any = config.networks["goerliArbitrum"];
@@ -56,7 +53,7 @@ describe("ArbitrumToPolygon", function () {
       MumbaiPolygonProvider
     );
 
-    // L1 delpoy Realy
+    // L1 delpoy Relay
     const Relay = await ethers.getContractFactory("Relay", Goerli);
     relay = await Relay.deploy();
     await relay.deployed();
@@ -68,7 +65,7 @@ describe("ArbitrumToPolygon", function () {
     await mainNet.deployed();
     console.log("mainNet Address:", mainNet.address);
 
-    // L2 deploy DockPair_ArbL2
+    // L2 (GoerliArbitrum) deploy DockL2_Arb
     const DockL2_Arb = await ethers.getContractFactory(
       "DockL2_Arb",
       GoerliArbitrum
@@ -77,16 +74,19 @@ describe("ArbitrumToPolygon", function () {
     await dockL2_Arb.deployed();
     console.log("dockL2_Arb Address:", dockL2_Arb.address);
 
-    // L2 deploy DockPair_Polygon
+    // L2 (MumbaiPolygon) deploy DockL2_Po
     const DockL2_Po = await ethers.getContractFactory(
       "DockL2_Po",
       MumbaiPolygon
     );
-    dockL2_Po = await DockL2_Po.deploy(FxChild);
+    dockL2_Po = await DockL2_Po.deploy(
+      FxChild,
+      await getPolygonMumbaiFastPerGas()
+    );
     await dockL2_Po.deployed();
     console.log("dockL2_Po Address:", dockL2_Po.address);
 
-    // L1 deploy DockPair_ArbL1 (DockPair_ArbL2)
+    // L1 deploy DockL1_Arb
     const DockL1_Arb = await ethers.getContractFactory("DockL1_Arb", Goerli);
     dockL1_Arb = await DockL1_Arb.deploy(
       dockL2_Arb.address,
@@ -96,58 +96,50 @@ describe("ArbitrumToPolygon", function () {
     await dockL1_Arb.deployed();
     console.log("dockL1_Arb Address:", dockL1_Arb.address);
 
-    // L1 deploy  DockL1_GO (DockPair_Polygon)
-    const DockL1_Go = await ethers.getContractFactory("DockL1_Go", Goerli);
-    dockL1_Go = await DockL1_Go.deploy(
+    // L1 deploy DockL1_Po
+    const DockL1_Go = await ethers.getContractFactory("DockL1_Po", Goerli);
+    dockL1_Po = await DockL1_Go.deploy(
       dockL2_Po.address,
       FxRoot,
       relay.address,
       CheckpointManager
     );
-    await dockL1_Go.deployed();
-    console.log("dockL1_Go Address:", dockL1_Go.address);
+    await dockL1_Po.deployed();
+    console.log("dockL1_Po Address:", dockL1_Po.address);
 
-    // L2 DockPair_ArbL2 bind DockPair_ArbL1
-    const bindDockPair_ArbL1Resp = await dockL2_Arb.bindDock_L1(
-      dockL1_Arb.address
-    );
-    await bindDockPair_ArbL1Resp.wait();
-    console.log("bindDockPair_ArbL1Resp Hash:", bindDockPair_ArbL1Resp.hash);
+    // L2 DockL2_Arb bind DockL1_Arb
+    const bindDockL1_ArbResp = await dockL2_Arb.bindDock_L1(dockL1_Arb.address);
+    await bindDockL1_ArbResp.wait();
+    console.log("bindDockL1_ArbResp Hash:", bindDockL1_ArbResp.hash);
 
-    // L2 DockPair_Polygon bind DockL1_Go
+    // L2 DockL2_Po bind DockL1_Po
     const bindDock_L1Resp = await dockL2_Po.bindDock_L1(
-      dockL1_Go.address,
-      options
+      dockL1_Po.address,
+      await getPolygonMumbaiFastPerGas()
     );
     await bindDock_L1Resp.wait();
-    console.log("bindDockL1_Go Hash:", bindDock_L1Resp.hash);
+    console.log("bindDock_L1Resp Hash:", bindDock_L1Resp.hash);
 
     // Relay addMainNet
     const addMainNetResp = await relay.addDock(mainNet.address, GoerliChainId);
     await addMainNetResp.wait();
     console.log("addMainNetResp hash:", addMainNetResp.hash);
 
-    // Relay addDock for DockPair_ArbL1
-    const addDockWithDockPair_ArbL1Resp = await relay.addDock(
+    // Relay addDock for DockL1_Arb
+    const addDockL1_ArbResp = await relay.addDock(
       dockL1_Arb.address,
       GoerliArbitrumChainId
     );
-    await addDockWithDockPair_ArbL1Resp.wait();
-    console.log(
-      "addDockWithDockPair_ArbL1Resp Hash:",
-      addDockWithDockPair_ArbL1Resp.hash
-    );
+    await addDockL1_ArbResp.wait();
+    console.log("addDockL1_ArbResp Hash:", addDockL1_ArbResp.hash);
 
-    // Relay addDock for dockL1_Go
-    const addDockWithDockL1_GoResp = await relay.addDock(
-      dockL1_Go.address,
+    // Relay addDock for DockL1_Po
+    const addDockL1_PoResp = await relay.addDock(
+      dockL1_Po.address,
       MumbaiPolygonChainId
     );
-    await addDockWithDockL1_GoResp.wait();
-    console.log(
-      "addDockWithDockL1_GoResp Hash:",
-      addDockWithDockL1_GoResp.hash
-    );
+    await addDockL1_PoResp.wait();
+    console.log("addDockL1_PoResp Hash:", addDockL1_PoResp.hash);
 
     // L2 (GoerliArbitrum) deploy Test_source
     const Test_sourceGoerliArbitrum = await ethers.getContractFactory(
@@ -192,7 +184,8 @@ describe("ArbitrumToPolygon", function () {
       MumbaiPolygon
     );
     test_destinationMumbaiPolygon = await Test_destinationMumbaiPolygon.deploy(
-      dockL2_Po.address
+      dockL2_Po.address,
+      await getPolygonMumbaiFastPerGas()
     );
     await test_destinationMumbaiPolygon.deployed();
     console.log(
@@ -238,7 +231,7 @@ describe("ArbitrumToPolygon", function () {
       await test_destinationMumbaiPolygon.addDomain(
         GoerliChainId,
         test_sourceGoerli.address,
-        options
+        await getPolygonMumbaiFastPerGas()
       );
     await addSourceDomainGoerliResp.wait();
     console.log(
@@ -294,12 +287,13 @@ describe("ArbitrumToPolygon", function () {
     await l2ToL1Msg.getOutboxProof(GoerliArbitrumProvider);
     const res = await l2ToL1Msg.execute(GoerliArbitrumProvider, options);
     await res.wait();
+    const messageAgain = await test_destinationGoerli.message();
     console.warn(
-      "The message sent from GoerliArbitrum to Goerli was successful👏🏻."
+      "The message sent from GoerliArbitrum to Goerli was successful👏🏻:",
+      messageAgain
     );
 
     // sendMessage from L1 (Goerli) to L2 (MumbaiPolygon)
-    const messageAgain = await test_destinationGoerli.message();
     const sendMessageToMumbaiPolygonTX = await test_sourceGoerli.sendMessage(
       MumbaiPolygon.address,
       MumbaiPolygonChainId,

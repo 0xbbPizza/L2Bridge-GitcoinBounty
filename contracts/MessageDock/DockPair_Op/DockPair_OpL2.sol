@@ -43,7 +43,7 @@ contract DockL2_OP is Dock_L2 {
     uint256 public immutable defaultGasLimit;
 
     constructor(
-        address _bridgeAddress, // crossDomainMessengerAddr
+        address _bridgeAddress,
         uint256 _defaultGasLimit
     ) Dock_L2(_bridgeAddress) {
         defaultGasLimit = _defaultGasLimit;

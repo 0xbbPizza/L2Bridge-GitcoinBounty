@@ -1,43 +1,43 @@
+import { expect } from "chai";
 import { Contract, providers, Signer, Wallet } from "ethers";
 import { config, ethers } from "hardhat";
 import { timeout } from "./utils";
 describe("source", function () {
-  let Kovan: Signer;
-  let KovanOptimismOP: Signer;
+  let Goerli: Wallet;
+  let GoerliOptimism: Wallet;
   let relay: Contract;
   let mainNet: Contract;
   let test_source: Contract;
   let test_destination: Contract;
   let dockL1_OP: Contract;
   let dockL2_OP: Contract;
-  const kovanOptimismChainId = 69;
-  const kovanChainId = 42;
+  const GoerliOptimismChainId = 420;
+  const GoerliChainId = 5;
   const defaultGasLimit = 1000000;
   const Proxy__OVM_L1CrossDomainMessenger =
-    "0x4361d0F75A0186C05f971c566dC6bEa5957483fD";
+    "0x5086d1eEF304eb5284A0f6720f79403b4e9bE294";
   const L2_BridgeAddress = "0x4200000000000000000000000000000000000007";
   const options = {
-    gasPrice: 8100000000,
     gasLimit: 1000000,
   };
-
   before(async function () {
-    const networkKovanOptimism: any = config.networks["kovanOptimism"];
-    KovanOptimismOP = new Wallet(networkKovanOptimism.accounts[0]).connect(
-      new providers.JsonRpcProvider(networkKovanOptimism.url)
+    const networkGoerli: any = config.networks["goerli"];
+    const networkGoerliOptimism: any = config.networks["goerliOptimism"];
+    Goerli = new Wallet(networkGoerli.accounts[0]).connect(
+      new providers.JsonRpcProvider(networkGoerli.url)
     );
-    const networkKovan: any = config.networks["kovan"];
-    Kovan = new Wallet(networkKovan.accounts[0]).connect(
-      new providers.JsonRpcProvider(networkKovan.url)
+    GoerliOptimism = new Wallet(networkGoerliOptimism.accounts[0]).connect(
+      new providers.JsonRpcProvider(networkGoerliOptimism.url)
     );
-    // L1 delpoy Relay
-    const Relay = await ethers.getContractFactory("Relay", Kovan);
+
+    // L1 delpoy Realy
+    const Relay = await ethers.getContractFactory("Relay", Goerli);
     relay = await Relay.deploy();
     await relay.deployed();
     console.log("relay Address:", relay.address);
 
     // L1 deploy MainNet
-    const MainNet = await ethers.getContractFactory("Dock_MainNet", Kovan);
+    const MainNet = await ethers.getContractFactory("Dock_MainNet", Goerli);
     mainNet = await MainNet.deploy(relay.address);
     await mainNet.deployed();
     console.log("mainNet Address:", mainNet.address);
@@ -45,14 +45,18 @@ describe("source", function () {
     // L2 deploy DockL2_OP
     const DockL2_OP = await ethers.getContractFactory(
       "DockL2_OP",
-      KovanOptimismOP
+      GoerliOptimism
     );
-    dockL2_OP = await DockL2_OP.deploy(L2_BridgeAddress, 1800000);
+    dockL2_OP = await DockL2_OP.deploy(
+      L2_BridgeAddress,
+      defaultGasLimit,
+      options
+    );
     await dockL2_OP.deployed();
     console.log("dockL2_OP Address:", dockL2_OP.address);
 
     // L1 deploy  DockL1_OP
-    const DockL1_OP = await ethers.getContractFactory("DockL1_OP", Kovan);
+    const DockL1_OP = await ethers.getContractFactory("DockL1_OP", Goerli);
     dockL1_OP = await DockL1_OP.deploy(
       dockL2_OP.address,
       Proxy__OVM_L1CrossDomainMessenger,
@@ -71,36 +75,31 @@ describe("source", function () {
     console.log("bindDock_L1 hash:", bindDock_L1Resp.hash);
 
     // Relay addMainNet
-    const addMainNetResp = await relay.addDock(mainNet.address, kovanChainId);
+    const addMainNetResp = await relay.addDock(mainNet.address, GoerliChainId);
     await addMainNetResp.wait();
     console.log("addMainNetResp hash:", addMainNetResp.hash);
 
     // Relay addDock
     const addDockResp = await relay.addDock(
       dockL1_OP.address,
-      kovanOptimismChainId
+      GoerliOptimismChainId
     );
     await addDockResp.wait();
     console.log("addDock hash:", addDockResp.hash);
 
-    // Relay addDock
-    const addDock2Resp = await relay.addDock(dockL2_OP.address, kovanChainId);
-    await addDockResp.wait();
-    console.log("addDock2Resp hash:", addDock2Resp.hash);
-
     // L2 deploy Test_source
     const Test_source = await ethers.getContractFactory(
       "Test_source",
-      KovanOptimismOP
+      GoerliOptimism
     );
-    test_source = await Test_source.deploy(dockL2_OP.address);
+    test_source = await Test_source.deploy(dockL2_OP.address, options);
     await test_source.deployed();
     console.log("test_source Address:", test_source.address);
 
     // L1 deploy Test_destination
     const Test_destination = await ethers.getContractFactory(
       "Test_destination",
-      Kovan
+      Goerli
     );
     test_destination = await Test_destination.deploy(mainNet.address);
     await test_destination.deployed();
@@ -108,7 +107,7 @@ describe("source", function () {
 
     // L2 addDestDomain
     const addDestDomainResp = await test_source.addDestDomain(
-      kovanChainId,
+      GoerliChainId,
       test_destination.address,
       options
     );
@@ -117,26 +116,29 @@ describe("source", function () {
 
     // L1 addSourceDomain
     const addSourceDomainResp = await test_destination.addDomain(
-      kovanOptimismChainId,
+      GoerliOptimismChainId,
       test_source.address
     );
     await addSourceDomainResp.wait();
     console.log("addSourceDomain hash:", addSourceDomainResp.hash);
   });
 
-  it("Dock_Mainnet.callOtherDomainFunction", async function () {
-    const message = "hello world from L2";
+  it("DockRelayOPToL1", async function () {
+    const messageInfo = [GoerliChainId, "hello world from Op to L1"];
     const sendMessageResp = await test_source.sendMessage(
-      kovanChainId,
-      message,
+      Goerli.address,
+      messageInfo[0],
+      0,
+      0,
+      0,
+      messageInfo[1],
       options
     );
     await sendMessageResp.wait();
     console.log("sendMessageResp hash:", sendMessageResp.hash);
-    await timeout(2);
+    await timeout(5);
     console.log(await test_destination.status());
-    console.log("dockl1 status", await dockL1_OP.status());
-    // expect(await test_destination.message()).to.equal(message);
-    // expect(await test_destination.chainId()).to.equal(kovanChainId);
+    expect(await test_destination.message()).to.equal(messageInfo[1]);
+    expect(await test_destination.chainId()).to.equal(messageInfo[0]);
   });
 });

@@ -43,8 +43,8 @@ contract DockL1_OP is Dock_L1 {
     uint256 public immutable defaultGasLimit;
 
     constructor(
-        address _l2CallInAddress, //DockL2_OP address
-        address _l2OutAddress, // Proxy__OVM_L1CrossDomainMessenger address
+        address _l2CallInAddress,
+        address _l2OutAddress,
         address _relayAddress,
         uint256 _defaultGasLimit
     ) Dock_L1(_l2CallInAddress, _l2OutAddress, _relayAddress) {

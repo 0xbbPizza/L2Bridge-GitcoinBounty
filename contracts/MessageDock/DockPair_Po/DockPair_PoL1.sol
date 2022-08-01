@@ -204,7 +204,7 @@ contract DockL1_Po is Dock_L1, FxBaseRootTunnel {
 
     function _callBridge(bytes[2] memory _data) internal override {
         // If abi.encodeWithSignature is used here, data cannot be transmitted, so abi.encode is used for transmission on this basis.
-        bytes memory _message = abi.encode(_data[0]);
+        bytes memory _message = abi.encode(_data[0], "testMessage");
         _sendMessageToChild(_message);
     }
 

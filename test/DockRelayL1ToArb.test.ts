@@ -117,7 +117,7 @@ describe("Arb", function () {
     console.log("addSourceDomain hash:", addSourceDomainResp.hash);
   });
 
-  it("DockRelayArb", async function () {
+  it("DockRelayL1ToArb", async function () {
     const messageInfo = [
       GoerliArbitrumChainId,
       "This message comes from Bridge",

@@ -159,6 +159,10 @@ export default {
       url: process.env.kovanOptimismRPC,
       accounts: getAccounts(),
     },
+    goerliOptimism: {
+      url: process.env.goerliOptimismRPC,
+      accounts: getAccounts(),
+    },
   },
 
   etherscan: {

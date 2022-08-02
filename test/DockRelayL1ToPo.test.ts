@@ -20,7 +20,6 @@ describe("GoerliToPolygon", function () {
   const FxChild = "0xCf73231F28B7331BBe3124B907840A94851f9f11";
   before(async function () {
     // send message to Polygon Mumbai(L2) from Goerli(L1)
-
     const networkGoerli: any = config.networks["goerli"];
     const networkGoerliPolygon: any = config.networks["goerliPolygon"];
     GoerliProvider = new providers.JsonRpcProvider(networkGoerli.url);
@@ -139,8 +138,7 @@ describe("GoerliToPolygon", function () {
       0,
       0,
       0,
-      messageInfo[1],
-      await getPolygonMumbaiFastPerGas()
+      messageInfo[1]
     );
     const sendMessageResp = await sendMessageTX.wait();
     console.log("sendMessageResp hash:", sendMessageResp.transactionHash);

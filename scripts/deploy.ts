@@ -7,6 +7,9 @@ async function main() {
 
   const chainId = await accounts[0].getChainId();
   console.log("chainId", chainId);
+  const options = {
+    gasLimit: 3000000,
+  };
 
   let tokenAddress = process.env["TOKEN_ADDRESS"];
   if (!tokenAddress) {
@@ -30,11 +33,11 @@ async function main() {
   console.log("dock_Mainnet Address:", dock_Mainnet.address);
 
   // Add dock to relay
-  await relay.addDock(dock_Mainnet.address, chainId);
-
+  const addResp = await relay.addDock(dock_Mainnet.address, chainId, options);
+  await addResp.wait();
   // Deploy DToken
   const DToken = await ethers.getContractFactory("DToken");
-  let dToken = await DToken.deploy("Orbiter DToken", "DToken", 18);
+  let dToken = await DToken.deploy("Orbiter DToken", "DAI", 18);
   await dToken.deployed();
   console.log("dTokenContract Address", dToken.address);
 
@@ -58,14 +61,21 @@ async function main() {
   await source.deployed();
   console.log("sourceContract Address", source.address);
 
+  // add 1 to 4
+  await dest.addDomain(chainId, source.address);
+
+  // add 4 to 1
+  await source.addDestDomain(chainId, dest.address);
+
   // deploy PToken contract
   const PToken = await ethers.getContractFactory("PToken");
   let pToken = await PToken.deploy(dest.address);
   await pToken.deployed();
   console.log("pTokenContract Adddress", pToken.address);
 
+  await dest.bindPTokenAddress(pToken.address);
   // DToken initialize
-  await dToken.initialize(
+  const iResp = await dToken.initialize(
     tokenAddress,
     dest.address,
     pToken.address,
@@ -75,6 +85,7 @@ async function main() {
     ethers.utils.parseEther("0.008"),
     ethers.utils.parseEther("0.008")
   );
+  await iResp.wait();
 }
 
 main()

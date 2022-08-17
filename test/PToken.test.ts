@@ -44,10 +44,7 @@ describe("PToken", function () {
     await pTokenTest.bindPTokenAddress(pToken.address);
 
     // Transfer 100ether BasicToken to pToken from accounts[0]
-    await basicToken.transfer(
-      pToken.address,
-      ethers.utils.parseEther("100")
-    );
+    await basicToken.transfer(pToken.address, ethers.utils.parseEther("100"));
   });
 
   it("Test mintToken", async function () {
@@ -56,6 +53,7 @@ describe("PToken", function () {
     await pTokenTest.mintToken(pTokenAmount);
 
     const balancePToken = await pToken.balanceOf(pTokenTest.address);
+    console.log("Pool Token:", balancePToken);
     expect(balancePToken).to.equal(pTokenAmount);
   });
 
@@ -73,11 +71,13 @@ describe("PToken", function () {
 
     const amount = ethers.utils.parseEther("1");
     const amoutBasic = await basicToken.balanceOf(accounts[0].getAddress());
+    console.log("amoutBasic: ", amoutBasic);
 
     await basicToken.approve(dToken.address, amoutBasic);
     await dToken.mint(amount);
 
     const dBalance = await dToken.balanceOf(accounts[0].getAddress());
+    console.log("dBalance: ", dBalance);
     expect(dBalance).to.equal(amount);
   });
 
@@ -86,7 +86,7 @@ describe("PToken", function () {
     const beforeExchageRate = await dToken.exchangeRateStored();
     const amount = ethers.utils.parseEther("0.3");
 
-    // The first borrow 
+    // The first borrow
     await pTokenTestNew.borrowToken(dToken.address, amount);
 
     // The second borrow
@@ -94,48 +94,93 @@ describe("PToken", function () {
 
     const secondBorrowExchageRate = await dToken.exchangeRateStored();
     const afterBasicBalance = await basicToken.balanceOf(pTokenTestNew.address);
+    const borrow = await dToken.totalBorrows();
+    console.log("borrow: ", borrow);
+    console.log("afterBasicBalance:", afterBasicBalance);
     expect(afterBasicBalance).to.equal(amount.mul(2));
-    expect(secondBorrowExchageRate).to.gt(beforeExchageRate)
+    expect(secondBorrowExchageRate).to.gt(beforeExchageRate);
   });
 
-  it("Test DToken redeem", async function () {
-    // The amount of deposit redeemed by the user should be less than the amount of cash in DToken Pool.
-    // The DToken Pool only have 0.4 Ether.
-    const beforeDTokenBalance = await dToken.balanceOf(accounts[0].getAddress());
-    const beforeBasicTokenBalance = await basicToken.balanceOf(accounts[0].getAddress());
-    // The user redeem 0.3 Ether.
-    const redeemAmount = ethers.utils.parseEther("0.3");
+  // it("Test DToken redeem", async function () {
+  //   // The amount of deposit redeemed by the user should be less than the amount of cash in DToken Pool.
+  //   // The DToken Pool only have 0.4 Ether.
+  //   const beforeDTokenBalance = await dToken.balanceOf(
+  //     accounts[0].getAddress()
+  //   );
+  //   const beforeBasicTokenBalance = await basicToken.balanceOf(
+  //     accounts[0].getAddress()
+  //   );
+  //   // The user redeem 0.3 Ether.
+  //   const redeemAmount = ethers.utils.parseEther("0.3");
 
-    await dToken.redeem(redeemAmount);
+  //   await dToken.redeem(redeemAmount);
 
-    const redeemExchageRate = await dToken.exchangeRateStored();
-    // Calculation of the number of underlying assets based on exchange rates.
-    const expectAmount = (redeemExchageRate.mul(redeemAmount)).div(ethers.utils.parseEther("1"));
-    const afterDTokenBalance = await dToken.balanceOf(accounts[0].getAddress());
-    const afterBasicTokenBalance = await basicToken.balanceOf(accounts[0].getAddress());
-    expect(beforeDTokenBalance.sub(redeemAmount)).to.equal(afterDTokenBalance);
-    expect(beforeBasicTokenBalance.add(expectAmount)).to.equal(afterBasicTokenBalance);
+  //   const redeemExchageRate = await dToken.exchangeRateStored();
+  //   // Calculation of the number of underlying assets based on exchange rates.
+  //   const expectAmount = redeemExchageRate
+  //     .mul(redeemAmount)
+  //     .div(ethers.utils.parseEther("1"));
+  //   const afterDTokenBalance = await dToken.balanceOf(accounts[0].getAddress());
+  //   const afterBasicTokenBalance = await basicToken.balanceOf(
+  //     accounts[0].getAddress()
+  //   );
+  //   expect(beforeDTokenBalance.sub(redeemAmount)).to.equal(afterDTokenBalance);
+  //   expect(beforeBasicTokenBalance.add(expectAmount)).to.equal(
+  //     afterBasicTokenBalance
+  //   );
+  // });
+
+  // it("Test DToken repayBorrow", async function () {
+  //   const pTokenTestNew = pTokenTest.connect(accounts[1]);
+  //   const beforeExchageRate = await dToken.exchangeRateStored();
+  //   // The user borrowed 0.6 Ether.
+  //   const beforeBasicTokenBalance = await basicToken.balanceOf(
+  //     pTokenTestNew.address
+  //   );
+  //   // The user repayBorrow 0.3 Ether.
+  //   const amount = ethers.utils.parseEther("0.3");
+
+  //   await pTokenTestNew.approve(
+  //     basicToken.address,
+  //     dToken.address,
+  //     beforeBasicTokenBalance
+  //   );
+  //   await pTokenTestNew.repayBorrowToken(dToken.address, amount);
+
+  //   const secondExchageRate = await dToken.exchangeRateStored();
+  //   const afterBasicTokenBalance = await basicToken.balanceOf(
+  //     pTokenTestNew.address
+  //   );
+  //   expect(secondExchageRate).to.gt(beforeExchageRate);
+  //   expect(afterBasicTokenBalance).to.equal(
+  //     beforeBasicTokenBalance.sub(amount)
+  //   );
+  // });
+
+  it("Test APY", async function () {
+    const APY = await dToken.supplyRatePerBlock();
+    const borrow = await dToken.totalBorrows();
+    console.log("borrow: ", borrow);
+    console.log("APY: ", APY);
   });
-
-  it("Test DToken repayBorrow", async function () {
-    const pTokenTestNew = pTokenTest.connect(accounts[1]);
-    const beforeExchageRate = await dToken.exchangeRateStored();
-    // The user borrowed 0.6 Ether.
-    const beforeBasicTokenBalance = await basicToken.balanceOf(pTokenTestNew.address);
-    // The user repayBorrow 0.3 Ether.
-    const amount = ethers.utils.parseEther("0.3");
-
-    await pTokenTestNew.approve(basicToken.address, dToken.address, beforeBasicTokenBalance)
-    await pTokenTestNew.repayBorrowToken(dToken.address, amount);
-
-    const secondExchageRate = await dToken.exchangeRateStored();
-    const afterBasicTokenBalance = await basicToken.balanceOf(pTokenTestNew.address);
-    expect(secondExchageRate).to.gt(beforeExchageRate);
-    expect(afterBasicTokenBalance).to.equal(beforeBasicTokenBalance.sub(amount));
-  });
-
-  it("Test APY",async function () {
-   const APY = await dToken.supplyRatePerBlock();
-   console.log("APY: ", APY);
-  })
 });
+
+// var provider = new ethers.providers.JsonRpcProvider(
+//   "http://localhost:8545"
+// );
+// const metacoinArtifacts = require("../build/contracts/MyToken.json");
+// const address = metacoinArtifacts.networks[3].address;
+
+// var filter = {
+//   address: address,
+//   fromBlock: 0,
+// };
+// var callPromise = provider.getLogs(filter);
+// callPromise
+//   .then(function (events) {
+//     console.log("Printing array of events:");
+//     console.log(events);
+//   })
+//   .catch(function (err) {
+//     console.log(err);
+//   });

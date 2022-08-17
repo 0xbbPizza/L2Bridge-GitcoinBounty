@@ -606,7 +606,7 @@ contract NewDestination is
 
             // Ensure LP has sufficient token
             require(
-                IERC20(tokenAddress).balanceOf(pTokenAddress()) >= diffAmount,
+                IERC20(tokenAddress).balanceOf(dTokenAddress) >= diffAmount,
                 "Pool insufficient"
             );
 

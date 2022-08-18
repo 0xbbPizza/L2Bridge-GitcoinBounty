@@ -2,6 +2,7 @@ import { Contract, providers, Wallet } from "ethers";
 import { config, ethers } from "hardhat";
 import { expect } from "chai";
 import { L2TransactionReceipt, L2ToL1MessageStatus } from "@arbitrum/sdk";
+import { getPolygonMumbaiFastPerGas } from "./utils";
 describe("Arb", function () {
   let GoerliArbitrumProvider: any;
   let GoerliProvider: any;
@@ -18,11 +19,6 @@ describe("Arb", function () {
   const Proxy__OVM_L1CrossDomainMessenger =
     "0x6BEbC4925716945D46F0Ec336D5C2564F419682C";
   const L2_BridgeAddress = "0x0000000000000000000000000000000000000064";
-  const options = {
-    gasLimit: 1000000,
-    maxPriorityFeePerGas: 2500000000,
-    maxFeePerGas: 3500000000,
-  };
   before(async function () {
     const networkGoerli: any = config.networks["goerli"];
     const networkGoerliArbitrum: any = config.networks["goerliArbitrum"];
@@ -123,7 +119,10 @@ describe("Arb", function () {
   });
 
   it("DockRelayArbToL1", async function () {
-    const messageInfo = [GoerliChainId, "This message comes from Arb"];
+    const messageInfo = [
+      GoerliChainId,
+      "This message comes from Arbitrum Goerli",
+    ];
     const sendMessageTX = await test_source.sendMessage(
       Goerli.address,
       messageInfo[0],
@@ -135,6 +134,7 @@ describe("Arb", function () {
     const sendMessageResp = await sendMessageTX.wait();
     const txnHash = sendMessageResp.transactionHash;
     console.log("txnHash:", txnHash);
+
     if (!txnHash)
       throw new Error(
         "Provide a transaction hash of an L2 transaction that sends an L2 to L1 message"
@@ -166,11 +166,12 @@ describe("Arb", function () {
     );
     console.log("Outbox entry exists! Trying to execute now");
 
-    const proofInfo = await l2ToL1Msg.getOutboxProof(GoerliArbitrumProvider);
+    // await l2ToL1Msg.getOutboxProof(GoerliArbitrumProvider);
 
-    // In the official document, the parameter here is proofInfo, but it will not work. It is useful to change it to GoerliArbitrumProvider, but I don't know why
-    // const res = await l2ToL1Msg.execute(proofInfo);
-    const res = await l2ToL1Msg.execute(GoerliArbitrumProvider, options);
+    const res = await l2ToL1Msg.execute(
+      GoerliArbitrumProvider,
+      await getPolygonMumbaiFastPerGas()
+    );
     const rec = await res.wait();
     console.log("Done! Your transaction is executed", rec);
     expect(await test_destination.message()).to.equal(messageInfo[1]);

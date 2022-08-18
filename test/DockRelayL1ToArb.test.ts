@@ -1,5 +1,5 @@
-import { BigNumber, Contract, providers, Signer, Wallet } from "ethers";
-import { config, ethers, network } from "hardhat";
+import { BigNumber, Contract, providers, Wallet } from "ethers";
+import { config, ethers } from "hardhat";
 import { hexDataLength } from "ethers/lib/utils";
 import { expect } from "chai";
 import { L1ToL2MessageGasEstimator } from "@arbitrum/sdk/dist/lib/message/L1ToL2MessageGasEstimator";
@@ -17,7 +17,6 @@ describe("Arb", function () {
   let dockL2_AR: Contract;
   const GoerliArbitrumChainId = 421613;
   const GoerliChainId = 5;
-  const defaultGasLimit = 1000000;
   const Proxy__OVM_L1CrossDomainMessenger =
     "0x6BEbC4925716945D46F0Ec336D5C2564F419682C";
   const L2_BridgeAddress = "0x0000000000000000000000000000000000000064";
@@ -53,7 +52,7 @@ describe("Arb", function () {
       "DockL2_Arb",
       GoerliArbitrum
     );
-    dockL2_AR = await DockL2_AR.deploy(L2_BridgeAddress, defaultGasLimit);
+    dockL2_AR = await DockL2_AR.deploy(L2_BridgeAddress);
     await dockL2_AR.deployed();
     console.log("dockL2_AR Address:", dockL2_AR.address);
 
@@ -120,7 +119,7 @@ describe("Arb", function () {
   it("DockRelayL1ToArb", async function () {
     const messageInfo = [
       GoerliArbitrumChainId,
-      "This message comes from Bridge",
+      "This message comes from Goerli",
     ];
     const newGreetingBytes = ethers.utils.defaultAbiCoder.encode(
       ["uint256", "string"],
@@ -198,7 +197,7 @@ describe("Arb", function () {
         "Automatic redemption failed, manual redemption is being attempted"
       );
       const response = await l1ToL2Message.redeem();
-      const receipt = await response.wait();
+      await response.wait();
     } else if (res.status === L1ToL2MessageStatus.REDEEMED) {
       /** Message succesfully redeeemed */
       console.log(`L2 retryable txn executed 🥳 `);

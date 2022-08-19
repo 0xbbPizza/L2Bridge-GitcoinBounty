@@ -284,7 +284,6 @@ describe("ArbitrumToPolygon", function () {
       GoerliArbitrumProvider,
       timeToWaitMs
     );
-    await l2ToL1Msg.getOutboxProof(GoerliArbitrumProvider);
     const res = await l2ToL1Msg.execute(GoerliArbitrumProvider, options);
     await res.wait();
     const messageAgain = await test_destinationGoerli.message();

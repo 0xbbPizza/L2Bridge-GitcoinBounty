@@ -166,14 +166,12 @@ describe("Arb", function () {
     );
     console.log("Outbox entry exists! Trying to execute now");
 
-    // await l2ToL1Msg.getOutboxProof(GoerliArbitrumProvider);
-
     const res = await l2ToL1Msg.execute(
       GoerliArbitrumProvider,
       await getPolygonMumbaiFastPerGas()
     );
-    const rec = await res.wait();
-    console.log("Done! Your transaction is executed", rec);
+    await res.wait();
+    console.log("Done! Your transaction is executed");
     expect(await test_destination.message()).to.equal(messageInfo[1]);
     expect(await test_destination.chainId()).to.equal(GoerliChainId);
   });

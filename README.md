@@ -218,7 +218,7 @@ The following settings are made in the source contract of pizza bridge. The keyP
 
    ```
 
-3. Build standard contracts on cross domains, [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/main/contracts/MassageDock)
+3. Build standard contracts on cross domains, [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/develop-wj/contracts/MessageDock)
 
    > Just finished the architecture design，need more work
 
@@ -266,7 +266,7 @@ The following settings are made in the source contract of pizza bridge. The keyP
       The current information transmission between L2 <-> L2 needs to go through L1, and the Merkle proof needs to be done in the bridge contract of L1 in the middle.
       The bottom layer can be replaced if necessary in the future. The message no longer passes through L1, but is proved on L2, which can save the gas cost of the calculation process. In the future, zero-knowledge proof can be used to reduce the gas consumption of input on L1.
 
-   2. At the same time, in order to support more bridges and muti domains, we separated the logical layer from the physical layer, designed a matching contract called "Dock_L1 and Dock_L2", and stored the address and chainId of the corresponding matching contract in a contract called "Relay".
+   2. Here, in order to support various types of bridges and multiple destinations, we further separate the logical layer from the physical layer of the cross-domain part, so we have designed a pair of pairing contracts called "Dock_L1 and Dock_L2". The role is to implement the interface of various types of bridges without involving specific data. At the same time, we store the contract address and chainId of the various bridge interfaces implemented in the contract named "Relay".
 
       - This is a Relay contract, which can be understood as a "Relay" contract is a courier transfer station.
 
@@ -316,7 +316,7 @@ The following settings are made in the source contract of pizza bridge. The keyP
         }
         ```
 
-      - This is a Dock_L1 contract.
+      - This is a Dock_L1 contract based on which L1 parts of various bridges are implemented.
 
       ```solidity
       abstract contract Dock_L1 is IDock_L1 {
@@ -366,88 +366,88 @@ The following settings are made in the source contract of pizza bridge. The keyP
       }
       ```
 
-      - This is a Dock_L2 contract.
+      - The contract is consistent with the role of contract Dock_L1, and is also based on the contract to realize the L2 part of the various bridges.
 
-        ```solidity
-        abstract contract Dock_L2 is IDock_L2 {
-            using Address for address;
+      ```solidity
+      abstract contract Dock_L2 is IDock_L2 {
+          using Address for address;
 
-            address public l1PairAddress;
-            address public immutable bridgeAddress;
+          address public l1PairAddress;
+          address public immutable bridgeAddress;
 
-            // Note, these variables are set and then wiped during a single transaction.
-            // Therefore their values don't need to be maintained, and their slots will
-            // be empty outside of transactions
-            uint256 internal sourceChainID;
-            address internal sourceSender;
+          // Note, these variables are set and then wiped during a single transaction.
+          // Therefore their values don't need to be maintained, and their slots will
+          // be empty outside of transactions
+          uint256 internal sourceChainID;
+          address internal sourceSender;
 
-            constructor(address _bridgeAddress) {
-                bridgeAddress = _bridgeAddress;
-            }
+          constructor(address _bridgeAddress) {
+              bridgeAddress = _bridgeAddress;
+          }
 
-            function bindDock_L1(address _l1PairAddress) external virtual;
+          function bindDock_L1(address _l1PairAddress) external virtual;
 
-            function getSourceChainID() external view override returns (uint256) {
-                return sourceChainID;
-            }
+          function getSourceChainID() external view override returns (uint256) {
+              return sourceChainID;
+          }
 
-            function getSourceSender() external view override returns (address) {
-                return sourceSender;
-            }
+          function getSourceSender() external view override returns (address) {
+              return sourceSender;
+          }
 
-            // fromDomain
-            function callOtherDomainFunction(
-                address _destAddress,
-                uint256 _destChainID,
-                bytes memory _destMassage,
-                bytes memory _ticketIncidentalInfo
-            ) external payable override {
-                bytes memory onions1 = abi.encode(
-                    _destAddress,
-                    _destMassage,
-                    msg.sender,
-                    block.chainid
-                );
-                bytes memory onions2 = abi.encodeWithSignature(
-                    "fromL2Pair(uint256,bytes)",
-                    _destChainID,
-                    onions1
-                );
-                _callBridge(onions2);
-            }
+          // fromDomain
+          function callOtherDomainFunction(
+              address _destAddress,
+              uint256 _destChainID,
+              bytes memory _destMassage,
+              bytes memory _ticketIncidentalInfo
+          ) external payable override {
+              bytes memory onions1 = abi.encode(
+                  _destAddress,
+                  _destMassage,
+                  msg.sender,
+                  block.chainid
+              );
+              bytes memory onions2 = abi.encodeWithSignature(
+                  "fromL2Pair(uint256,bytes)",
+                  _destChainID,
+                  onions1
+              );
+              _callBridge(onions2);
+          }
 
-            // muti : call bridge
-            function _callBridge(bytes memory _data) internal virtual;
+          // muti : call bridge
+          function _callBridge(bytes memory _data) internal virtual;
 
-            // fromBridge
-            function fromL1Pair(bytes calldata _data) external payable {
-                _verifySenderAndDockPair();
-                address preSourceSender = sourceSender;
-                uint256 preSourceChainID = sourceChainID;
-                address destAddress;
-                bytes memory destMassage;
-                bytes memory ticketIncidentalInfo;
-                (
-                    destAddress,
-                    destMassage,
-                    ticketIncidentalInfo,
-                    sourceSender,
-                    sourceChainID
-                ) = abi.decode(_data, (address, bytes, bytes, address, uint256));
+          // fromBridge
+          function fromL1Pair(bytes calldata _data) external payable {
+              _verifySenderAndDockPair();
+              address preSourceSender = sourceSender;
+              uint256 preSourceChainID = sourceChainID;
+              address destAddress;
+              bytes memory destMassage;
+              bytes memory ticketIncidentalInfo;
+              (
+                  destAddress,
+                  destMassage,
+                  ticketIncidentalInfo,
+                  sourceSender,
+                  sourceChainID
+              ) = abi.decode(_data, (address, bytes, bytes, address, uint256));
 
-                if (destMassage.length > 0)
-                    require(destAddress.isContract(), "NO_CODE_AT_DEST");
-                (bool success, ) = destAddress.call(destMassage);
-                require(success, "WRONG_MSG");
+              if (destMassage.length > 0)
+                  require(destAddress.isContract(), "NO_CODE_AT_DEST");
+              (bool success, ) = destAddress.call(destMassage);
+              require(success, "WRONG_MSG");
 
-                sourceSender = preSourceSender;
-                sourceChainID = preSourceChainID;
-            }
+              sourceSender = preSourceSender;
+              sourceChainID = preSourceChainID;
+          }
 
-            // muti : FromBridge
-            function _verifySenderAndDockPair() internal view virtual;
-        }
-        ```
+          // muti : FromBridge
+          function _verifySenderAndDockPair() internal view virtual;
+      }
+      ```
 
 ### 4. all the LPs can now be compensated
 

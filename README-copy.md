@@ -64,11 +64,7 @@ The following settings are made in the source contract of pizza bridge. The keyP
 3. There is a transfer function, which can further reduce the transfer data when the user does not need to set the destination address
 
    ```solidity
-   function transfer(
-           uint256 chainId,
-           uint256 amount,
-           uint256 fee
-       ) external payable;
+   function transfer(uint256 chainId,uint256 amount, uint256 fee) external ;
    ```
 
 4. Support muti domain, the advantage of using mapping(uint256 => DomainStruct) is to allow liquidity to be concentrated in the same contract.
@@ -96,7 +92,7 @@ The following settings are made in the source contract of pizza bridge. The keyP
 
    ```solidity
    library Fork {
-         struct Info{
+    		struct Info{
             uint16 workIndex; // 0: zFork, >0: mFork
             bytes32 onionHead;
             bytes32 destOnionHead;
@@ -146,25 +142,34 @@ The following settings are made in the source contract of pizza bridge. The keyP
 
      ```solidity
      /*
-      1. every LP need deposit `DEPOSIT_AMOUNT` ETH, DEPOSIT_AMOUNT = OnebondGaslimit * max_fork.length * Average_gasPrice
-      2. when LP call zfork()、mfork()、claim(). lock deposit, and unlock the preHashOnions LP's deposit.
-      3. When bonder is settling `middle fork`, will get `DEPOSIT_AMOUNT` ETH back from destContract.
-      4. LP's deposit can only be withdrawn if they are unlocked.
-      5. No one wants to pay for someone else's mistakes, so the perpetrator's deposit will never be unlocked
+     	1. every LP need deposit `DEPOSIT_AMOUNT` ETH, DEPOSIT_AMOUNT = OnebondGaslimit * max_fork.length * Average_gasPrice
+     	2. when LP call zfork()、mfork()、claim(). lock deposit, and unlock the preHashOnions LP's deposit.
+     	3. When bonder is settling `middle fork`, will get `DEPOSIT_AMOUNT` ETH back from destContract.
+     	4. LP's deposit can only be withdrawn if they are unlocked.
+     	5. No one wants to pay for someone else's mistakes, so the perpetrator's deposit will never be unlocked
      */
      ```
 
-4. for muti Domain , We use chainId this parameter to make the funds in a contract.
+4. for muti Domain , I design a pair contract named "destinationContract and destChildContract", the good news , it is work , is that fund on one contract, but I don's think It's best plan.
 
-   ```solidity
-   function zFork(
-           uint256 chainId,
-           bytes32 hashOnion,
-           address dest,
-           uint256 amount,
-           uint256 fee,
-           bool _isRespond
-       ) external;
+   ```
+   // like a shell pack the true performer
+   contract DestinationContract{
+   	mapping(uint256 => address) public chainId_childs;
+   	mapping(address => uint256) public child_chainIds;
+
+   	// One more parameter chainID
+   	function zFork(uint256 chainId, uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external
+   }
+
+   // true performer
+   contract DestChildContract{
+   		uint256 forkKeyID;
+       mapping(uint256 => Fork.Info) public hashOnionForks;
+       mapping(bytes32 => mapping(uint256 => uint256)) public forkKeysMap;
+
+       function zFork(uint256 forkKeyNum, address dest, uint256 amount, uint256 fee, bool _isRespond) external;
+   }
    ```
 
 ### 3. cross L2 domain send HashOnion or fund
@@ -222,236 +227,38 @@ The following settings are made in the source contract of pizza bridge. The keyP
 
    > Just finished the architecture design，need more work
 
-   1. Because the interfaces of each bridge are not uniform, it is necessary to design the forwarding system slightly to keep the dest contract and the source contract clear. This code shows the API
+   Because the interfaces of each bridge are not uniform, it is necessary to design the forwarding system slightly to keep the dest contract and the source contract clear. This code shows the API
 
-      ```solidity
-      abstract contract CrossDomainHelper {
-          address public immutable dockAddr;
+   ```
+   abstract contract CrossDomainHelper {
+      address public immutable dockAddr;
 
-          constructor(address _dockAddr) {
-              dockAddr = _dockAddr;
-          }
-
-          modifier sourceSafe() {
-              require(msg.sender == dockAddr, "NOT_DOCK");
-              _onlyApprovedSources(
-                  IDock_L2(msg.sender).getSourceSender(),
-                  IDock_L2(msg.sender).getSourceChainID()
-              );
-              _;
-          }
-
-          function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId)
-              internal
-              view
-              virtual;
-
-          function crossDomainMassage(
-              address _destAddress,
-              uint256 _destChainID,
-              uint256 _msgValue,
-              bytes memory _destMassage,
-              bytes memory _ticketIncidentalInfo
-          ) internal {
-              IDock_L2(dockAddr).callOtherDomainFunction{value: _msgValue}(
-                  _destAddress,
-                  _destChainID,
-                  _destMassage,
-                  _ticketIncidentalInfo
-              );
-          }
+      constructor(
+         address _dockAddr
+      ){
+         dockAddr = _dockAddr;
       }
-      ```
 
-      The current information transmission between L2 <-> L2 needs to go through L1, and the Merkle proof needs to be done in the bridge contract of L1 in the middle.
-      The bottom layer can be replaced if necessary in the future. The message no longer passes through L1, but is proved on L2, which can save the gas cost of the calculation process. In the future, zero-knowledge proof can be used to reduce the gas consumption of input on L1.
-
-   2. At the same time, in order to support more bridges and muti domains, we separated the logical layer from the physical layer, designed a matching contract called "Dock_L1 and Dock_L2", and stored the address and chainId of the corresponding matching contract in a contract called "Relay".
-
-      - This is a Relay contract, which can be understood as a "Relay" contract is a courier transfer station.
-
-        ```solidity
-        contract Relay is IRelay, Ownable {
-            mapping(uint256 => address) private docksMap_chainIdKey;
-            mapping(address => uint256) private docksMap_addressKey;
-
-            address[] public allowedDockList;
-
-            function docksAddressKey(address dock)
-                external
-                view
-                override
-                returns (uint256)
-            {
-                return docksMap_addressKey[dock];
-            }
-
-            function docksChainIdKey(uint256 chainId)
-                external
-                view
-                override
-                returns (address)
-            {
-                return docksMap_chainIdKey[chainId];
-            }
-
-            function addDock(address dock, uint256 chainId) external onlyOwner {
-                docksMap_addressKey[dock] = chainId;
-                docksMap_chainIdKey[chainId] = dock;
-                emit addedDock(chainId, dock);
-            }
-
-            function relayCall(uint256 destChainID, bytes calldata data)
-                external
-                payable
-                override
-                returns (bool success)
-            {
-                require(docksMap_addressKey[msg.sender] > 0, "NOT_FROM_Dock");
-                address destDock = docksMap_chainIdKey[destChainID];
-                require(destDock != address(0));
-                IDock_L1(destDock).fromRelay{value: msg.value}(data);
-                success = true;
-            }
-        }
-        ```
-
-      - This is a Dock_L1 contract.
-
-      ```solidity
-      abstract contract Dock_L1 is IDock_L1 {
-          address public immutable l2CallInAddress;
-          address public immutable l2OutAddress;
-          address public immutable relayAddress;
-
-          constructor(
-              address _l2CallInAddress,
-              address _l2OutAddress,
-              address _relayAddress
-          ) {
-              l2CallInAddress = _l2CallInAddress;
-              l2OutAddress = _l2OutAddress;
-              relayAddress = _relayAddress;
-          }
-
-          function fromL2Pair(uint256 _destChainID, bytes calldata _data) external {
-              _verifySenderAndDockPair();
-              IRelay(relayAddress).relayCall(_destChainID, _data);
-          }
-
-          function fromRelay(bytes calldata _data)
-              external
-              payable
-              override
-              onlyRelay
-          {
-              bytes memory newData = abi.encodeWithSignature(
-                  "fromL1Pair(bytes)",
-                  _data
-              );
-              bytes[2] memory dataArray = [newData, _data];
-              _callBridge(dataArray);
-          }
-
-          // muti to bridge
-          function _callBridge(bytes[2] memory _data) internal virtual;
-
-          // muti  From bridge
-          function _verifySenderAndDockPair() internal view virtual;
-
-          modifier onlyRelay() {
-              require(msg.sender == relayAddress);
-              _;
-          }
+      modifier sourceSafe {
+         require(msg.sender == dockAddr, "NOT_DOCK");
+         _onlyApprovedSources(IDock_L2(msg.sender).getSourceSender(),IDock_L2(msg.sender).getSourceChainID());
+         _;
       }
-      ```
 
-      - This is a Dock_L2 contract.
+      function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId) internal view virtual;
 
-        ```solidity
-        abstract contract Dock_L2 is IDock_L2 {
-            using Address for address;
+      function crossDomainMassage(address _destAddress, uint256 _destChainID, bytes memory _destMassage) internal {
+         IDock_L2(dockAddr).callOtherDomainFunction(_destAddress, _destChainID, _destMassage);
+      }
+   }
+   ```
 
-            address public l1PairAddress;
-            address public immutable bridgeAddress;
-
-            // Note, these variables are set and then wiped during a single transaction.
-            // Therefore their values don't need to be maintained, and their slots will
-            // be empty outside of transactions
-            uint256 internal sourceChainID;
-            address internal sourceSender;
-
-            constructor(address _bridgeAddress) {
-                bridgeAddress = _bridgeAddress;
-            }
-
-            function bindDock_L1(address _l1PairAddress) external virtual;
-
-            function getSourceChainID() external view override returns (uint256) {
-                return sourceChainID;
-            }
-
-            function getSourceSender() external view override returns (address) {
-                return sourceSender;
-            }
-
-            // fromDomain
-            function callOtherDomainFunction(
-                address _destAddress,
-                uint256 _destChainID,
-                bytes memory _destMassage,
-                bytes memory _ticketIncidentalInfo
-            ) external payable override {
-                bytes memory onions1 = abi.encode(
-                    _destAddress,
-                    _destMassage,
-                    msg.sender,
-                    block.chainid
-                );
-                bytes memory onions2 = abi.encodeWithSignature(
-                    "fromL2Pair(uint256,bytes)",
-                    _destChainID,
-                    onions1
-                );
-                _callBridge(onions2);
-            }
-
-            // muti : call bridge
-            function _callBridge(bytes memory _data) internal virtual;
-
-            // fromBridge
-            function fromL1Pair(bytes calldata _data) external payable {
-                _verifySenderAndDockPair();
-                address preSourceSender = sourceSender;
-                uint256 preSourceChainID = sourceChainID;
-                address destAddress;
-                bytes memory destMassage;
-                bytes memory ticketIncidentalInfo;
-                (
-                    destAddress,
-                    destMassage,
-                    ticketIncidentalInfo,
-                    sourceSender,
-                    sourceChainID
-                ) = abi.decode(_data, (address, bytes, bytes, address, uint256));
-
-                if (destMassage.length > 0)
-                    require(destAddress.isContract(), "NO_CODE_AT_DEST");
-                (bool success, ) = destAddress.call(destMassage);
-                require(success, "WRONG_MSG");
-
-                sourceSender = preSourceSender;
-                sourceChainID = preSourceChainID;
-            }
-
-            // muti : FromBridge
-            function _verifySenderAndDockPair() internal view virtual;
-        }
-        ```
+   The current information transmission between L2 <-> L2 needs to go through L1, and the Merkle proof needs to be done in the bridge contract of L1 in the middle.
+   The bottom layer can be replaced if necessary in the future. The message no longer passes through L1, but is proved on L2, which can save the gas cost of the calculation process. In the future, zero-knowledge proof can be used to reduce the gas consumption of input on L1.
 
 ### 4. all the LPs can now be compensated
 
-1. Funtion: zBond
+1. Funtion: zBond , mBond.
 
    ```solidity
    interface IDestinationContract{
@@ -462,6 +269,8 @@ The following settings are made in the source contract of pizza bridge. The keyP
          Data.TransferData[] calldata _transferDatas,
          address[] calldata _commiters
          ) external;
+
+         <!-- function mbond(Data.MForkData[] calldata _mForkDatas,uint256 forkKeyNum, Data.TransferData[] calldata _transferDatas, address[] calldata _commiters) external; -->
    }
    ```
 
@@ -605,13 +414,13 @@ class TransferData():
     fee: uint256
 
 class hashOnionFork():
-      forkedFrom: [forkTxIndex,forkId]
-      forker: address
-      forkBetAmount: uint256
-      hashOnions: array<bytes32>
-      transferDatas: array<TransferData>
-      filter: uint256
-      balanceDic: address->balance ?
+		forkedFrom: [forkTxIndex,forkId]
+		forker: address
+		forkBetAmount: uint256
+		hashOnions: array<bytes32>
+		transferDatas: array<TransferData>
+		filter: uint256
+		balanceDic: address->balance ?
 ```
 
 iSourceContract.sol
@@ -716,11 +525,8 @@ market_makers' Rules:
    > 4. During the dispute period, you can continue to pledge for the new txhash interval. The pledge in the same fork extension line can be added to the PK before the end of the dispute. If the fork extension line is not, it will not be included in the dispute competition.
 
 4. Market Maker with Response Time Commitment with Deposit
-
 5. Cross domain Dex, open protocal
-
 6. Multi-Coin
-
 7. Multi-Domain
 
 ---

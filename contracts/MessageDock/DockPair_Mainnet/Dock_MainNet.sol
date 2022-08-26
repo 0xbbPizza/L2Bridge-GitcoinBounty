@@ -78,7 +78,6 @@ contract Dock_MainNet is IDock_L1, IDock_L2 {
             _destMassage,
             _ticketIncidentalInfo,
             msg.sender,
-            // msg.value,
             block.chainid
         );
         IRelay(relayAddress).relayCall{value: msg.value}(_destChainID, onions1);

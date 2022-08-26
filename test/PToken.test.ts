@@ -51,7 +51,6 @@ describe("PToken", function () {
     await pTokenTest.mintToken(pTokenAmount);
 
     const balancePToken = await pToken.balanceOf(pTokenTest.address);
-    console.log("Pool Token:", balancePToken);
     expect(balancePToken).to.equal(pTokenAmount);
   });
 
@@ -69,7 +68,6 @@ describe("PToken", function () {
 
     const amount = ethers.utils.parseEther("1");
     const amoutBasic = await basicToken.balanceOf(accounts[0].getAddress());
-    console.log("amoutBasic: ", amoutBasic);
 
     await basicToken.approve(dToken.address, amoutBasic);
     await dToken.mint(amount);
@@ -157,8 +155,6 @@ describe("PToken", function () {
 
   it("Test APY", async function () {
     const APY = await dToken.supplyRatePerBlock();
-    const borrow = await dToken.totalBorrows();
-    console.log("borrow: ", borrow);
     console.log("APY: ", APY);
   });
 });
@@ -182,3 +178,14 @@ describe("PToken", function () {
 //   .catch(function (err) {
 //     console.log(err);
 //   });
+
+// to: 0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0; //ptoken
+// owner: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266; //user
+
+// // borrow
+// to: 0xe7f1725e7734ce288f8367e1bb143e90bb3f0512; // dest
+// owner: 0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9; //dtoken
+
+// // redeem
+// to: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266; //user
+// owner: 0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9; //dtoken

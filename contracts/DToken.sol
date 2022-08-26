@@ -421,7 +421,7 @@ contract DToken is
      * @dev This excludes the value of the current message, if any
      * @return The quantity of underlying tokens owned by this contract
      */
-    function getCashPrior() internal view returns (uint256) {
+    function getCashPrior() public view returns (uint256) {
         return IERC20(underlyingToken).balanceOf(address(this));
     }
 

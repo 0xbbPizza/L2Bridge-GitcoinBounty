@@ -6,8 +6,8 @@ https://user-images.githubusercontent.com/88087562/156006812-c3e6b0d2-04a5-4c9c-
 
 ## Project resources
 
-- 🌊 [Contract code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/develop-wj/contracts)
-- 🏄 [ Front-end Project ](https://github.com/0xbbPizza/OrbiterFE-V2/tree/develop-lwj)
+- 🌊 [Contract code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/main/contracts)
+- 🏄 [ Front-end Project ](https://github.com/0xbbPizza/OrbiterFE-V2/tree/main)
 - 🏄‍♀️ [ LPClient Project ](https://github.com/0xbbPizza/PizzaBridge-MakerNode)
 
 ## Deploy Address
@@ -16,8 +16,8 @@ https://user-images.githubusercontent.com/88087562/156006812-c3e6b0d2-04a5-4c9c-
 
 | chain       |                                                                sourceContract                                                                 |                                                                 destContract                                                                 |
 | :---------- | :-------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------: |
-| Goerli      |         [0x912a53c752842Cf807E6dd802b19C386fa361bDB ](https://goerli.etherscan.io/address/0x912a53c752842Cf807E6dd802b19C386fa361bDB)         |        [ 0xCA7384815D65bDf058382330B3e3848553597980 ](https://goerli.etherscan.io/address/0xCA7384815D65bDf058382330B3e3848553597980)        |
-| Arbitrum(G) | [ 0x0caAE6dfA4A8e57008153Bd41343b04dD8884E92 ](https://goerli-rollup-explorer.arbitrum.io/address/0x0caAE6dfA4A8e57008153Bd41343b04dD8884E92) | [0xD72e2Da199292d0B59D6962caFEb58ca02d48539 ](https://goerli-rollup-explorer.arbitrum.io/address/0xD72e2Da199292d0B59D6962caFEb58ca02d48539) |
+| Goerli      |         [0xeF301C3a142A0a20310b1bf98e9b9af5e56f52F1 ](https://goerli.etherscan.io/address/0x912a53c752842Cf807E6dd802b19C386fa361bDB)         |        [ 0xb1e19241A5b7fF57d66e2fd57a02d8c10F92b452 ](https://goerli.etherscan.io/address/0xCA7384815D65bDf058382330B3e3848553597980)        |
+| Arbitrum(G) | [ 0x42cbE44636aEb019402Eae2808131a5E858E8636 ](https://goerli-rollup-explorer.arbitrum.io/address/0x0caAE6dfA4A8e57008153Bd41343b04dD8884E92) | [0xC7Ea534F4831f2D96Ee59770cA3Bf4681890E4EF ](https://goerli-rollup-explorer.arbitrum.io/address/0xD72e2Da199292d0B59D6962caFEb58ca02d48539) |
 
 ---
 
@@ -32,7 +32,7 @@ Next, I will introduce the implementation details of Pizza according to the orde
 - There are two contracts: Source and Dest
 - three roles: User, LP, Bonder
 
-### 1. On source domain User transfer token to SourceContract [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/develop-wj/contracts/SourceContract.sol)
+### 1. On source domain User transfer token to SourceContract [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/main/contracts/SourceContract.sol)
 
 The following settings are made in the source contract of pizza bridge. The keyPoint is to better cooperate with the subsequent steps related to Dest.
 
@@ -82,7 +82,7 @@ The following settings are made in the source contract of pizza bridge. The keyP
        }
    ```
 
-### 2. On dest domain LP cross DestContract transfer token to user [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/develop-wj/contracts/NewDestination.sol)
+### 2. On dest domain LP cross DestContract transfer token to user [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/blob/main/contracts/NewDestination.sol)
 
 1. LP run a offchain client , see this link [ LPClient github ](https://github.com/0xbbPizza/PizzaBridge-MakerNode)
 
@@ -218,7 +218,7 @@ The following settings are made in the source contract of pizza bridge. The keyP
 
    ```
 
-3. Build standard contracts on cross domains, [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/develop-wj/contracts/MessageDock)
+3. Build standard contracts on cross domains, [code](https://github.com/0xbbPizza/L2Bridge-GitcoinBounty/tree/main/contracts/MessageDock)
 
    > Just finished the architecture design，need more work
 

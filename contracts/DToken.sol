@@ -29,7 +29,7 @@ contract DToken is
         string memory name_,
         string memory symbol_,
         uint8 decimals_
-    ) ERC20(name_, symbol_) TransferHelper() {
+    ) ERC20(name_, symbol_) {
         _decimals = decimals_;
     }
 
@@ -91,11 +91,7 @@ contract DToken is
         accrualBlockNumber = block.number;
         borrowIndex = mantissaOne;
 
-        // Todo eth
-        // Ensure underlyingToken is ERC20
-        // IERC20(underlyingToken).totalSupply();
-
-        // Initialize underlyingToken
+        // Initialize token and ensure underlyingToken
         initialize(underlyingToken);
     }
 
@@ -136,13 +132,7 @@ contract DToken is
         // (No safe failures beyond this point)
 
         // Transfer underlying to this
-        // Todo eth
-        // IERC20(underlyingToken).safeTransferFrom(
-        //     minter,
-        //     address(this),
-        //     mintAmount
-        // );
-        transferToDestWithSafeForm(payable(address(this)), mintAmount);
+        transferToDestWithSafeForm(minter, address(this), mintAmount);
 
         /*
          * We get the current exchange rate and calculate the number of cTokens to be minted:
@@ -254,8 +244,7 @@ contract DToken is
         _burn(redeemer, redeemTokens);
 
         // Send underlyingToken to redeemerSend underlyingToken to redeemer
-        // Todo eth
-        IERC20(underlyingToken).transfer(redeemer, redeemAmount);
+        transferToDest(redeemer, redeemAmount);
     }
 
     /**
@@ -319,8 +308,7 @@ contract DToken is
          *  On success, the cToken borrowAmount less of cash.
          *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
          */
-        //  Todo eth
-        IERC20(underlyingToken).safeTransfer(borrower, borrowAmount);
+        transferToDestWithSafe(borrower, borrowAmount);
     }
 
     /**
@@ -357,7 +345,11 @@ contract DToken is
      * @notice Sender repays their own borrow
      * @param repayAmount The amount to repay, or type(uint256).max for the full outstanding amount
      */
-    function repayBorrow(uint256 repayAmount) external onlyBorrowAllower {
+    function repayBorrow(uint256 repayAmount)
+        external
+        payable
+        onlyBorrowAllower
+    {
         repayBorrowInternal(repayAmount);
     }
 
@@ -406,12 +398,7 @@ contract DToken is
          *   it returns the amount actually transferred, in case of a fee.
          */
         uint256 actualRepayAmount = repayAmountFinal;
-        // Todo eth
-        IERC20(underlyingToken).safeTransferFrom(
-            payer,
-            address(this),
-            repayAmountFinal
-        );
+        transferToDestWithSafeForm(payer, address(this), repayAmountFinal);
 
         /*
          * We calculate the new borrower and total borrow balances, failing on underflow:
@@ -435,8 +422,6 @@ contract DToken is
      * @return The quantity of underlying tokens owned by this contract
      */
     function getCashPrior() public view returns (uint256) {
-        // Todo eth
-        // return IERC20(underlyingToken).balanceOf(address(this));
         return getBalance(address(this));
     }
 

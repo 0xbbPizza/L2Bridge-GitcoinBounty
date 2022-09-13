@@ -9,6 +9,8 @@ import "../BasicToken.sol";
 import "hardhat/console.sol";
 
 contract PTokenTest is PTokenApprovable {
+    receive() external payable {}
+
     function mintToken(uint256 amount) external payable returns (bool) {
         PToken(payable(pTokenAddress())).mint(amount);
 
@@ -26,9 +28,10 @@ contract PTokenTest is PTokenApprovable {
 
     function repayBorrowToken(DToken dTokenAddress, uint256 repayAmount)
         external
+        payable
         returns (bool)
     {
-        dTokenAddress.repayBorrow(repayAmount);
+        dTokenAddress.repayBorrow{value: repayAmount}(repayAmount);
 
         return true;
     }

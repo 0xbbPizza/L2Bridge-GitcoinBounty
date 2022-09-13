@@ -25,7 +25,7 @@ contract TransferHelper {
         tokenAddress = _tokenAddress;
     }
 
-    function getBalance(address from) internal view onlyInit returns (uint256) {
+    function getBalance(address from) public view onlyInit returns (uint256) {
         uint256 balance;
         if (tokenStatus == 1) {
             balance = from.balance;
@@ -35,42 +35,45 @@ contract TransferHelper {
         return balance;
     }
 
-    function getContractBalance() external view onlyInit returns (uint256) {
-        return address(this).balance;
+    function transferToDestWithSafeForm(
+        address from,
+        address to,
+        uint256 value
+    ) internal onlyInit {
+        if (tokenStatus == 1) {
+            ethTransfer(to, value);
+        } else if (tokenStatus == 2) {
+            IERC20(tokenAddress).safeTransferFrom(
+                payable(from),
+                payable(to),
+                value
+            );
+        }
     }
 
-    function transferToDestWithSafeForm(address payable to, uint256 value)
+    function transferToDest(address to, uint256 value) internal onlyInit {
+        if (tokenStatus == 1) {
+            ethTransfer(to, value);
+        } else if (tokenStatus == 2) {
+            IERC20(tokenAddress).transfer(payable(to), value);
+        }
+    }
+
+    function transferToDestWithSafe(address to, uint256 value)
         internal
         onlyInit
     {
         if (tokenStatus == 1) {
-            require(msg.value == value, "Inconsistent transfer amount");
+            ethTransfer(to, value);
         } else if (tokenStatus == 2) {
-            IERC20(tokenAddress).safeTransferFrom(msg.sender, to, value);
+            IERC20(tokenAddress).safeTransfer(payable(to), value);
         }
     }
 
-    function transferToDest(address payable to, uint256 value)
-        internal
-        onlyInit
-    {
-        if (tokenStatus == 1) {
-            to.transfer(value);
-        } else if (tokenStatus == 2) {
-            //
-
-            IERC20(tokenAddress).transfer(to, value);
+    function ethTransfer(address to, uint256 amount) internal onlyInit {
+        if (to == address(this)) {
+            require(msg.value == amount, "Inconsistent transfer amount");
         }
-    }
-
-    function transferToDestWithSafe(address payable to, uint256 value)
-        internal
-        onlyInit
-    {
-        if (tokenStatus == 1) {
-            //
-        } else if (tokenStatus == 2) {
-            IERC20(tokenAddress).safeTransfer(to, value);
-        }
+        payable(to).transfer(amount);
     }
 }

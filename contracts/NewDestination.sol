@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IDestinationContract.sol";
 import "./MessageDock/CrossDomainHelper.sol";
 import "./PTokenApprovable.sol";
+import "./TransferHelper.sol";
 import "./DToken.sol";
 
 import "hardhat/console.sol";
@@ -17,6 +18,7 @@ import "hardhat/console.sol";
 contract NewDestination is
     IDestinationContract,
     CrossDomainHelper,
+    TransferHelper,
     Ownable,
     PTokenApprovable
 {
@@ -42,6 +44,8 @@ contract NewDestination is
     uint256 public immutable ONEFORK_MAX_LENGTH = 5; // !!! The final value is 50 , the higher the value, the longer the wait time and the less storage consumption
     uint256 public immutable DEPOSIT_AMOUNT = 1 * 10**18; // !!! The final value is 2 * 10**17
 
+    receive() external payable {}
+
     /*
 	1. every LP need deposit `DEPOSIT_AMOUNT` ETH, DEPOSIT_AMOUNT = OnebondGaslimit * max_fork.length * Average_gasPrice 
 	2. when LP call zfork()、mfork()、claim(). lock deposit, and unlock the preHashOnions LP's deposit. 
@@ -57,6 +61,7 @@ contract NewDestination is
     ) CrossDomainHelper(dockAddr_) {
         tokenAddress = tokenAddress_;
         dTokenAddress = dTokenAddress_;
+        initialize(tokenAddress_);
     }
 
     function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId)
@@ -157,8 +162,7 @@ contract NewDestination is
 
         // Determine whether the maker only submits or submits and responds
         if (_isRespond) {
-            // Todo eth
-            IERC20(tokenAddress).safeTransferFrom(msg.sender, dest, amount);
+            transferToDestWithSafeForm(msg.sender, dest, amount);
         } else {
             // !!! Whether to add the identification position of the index
             isRespondOnions[chainId][newFork.onionHead] = true;
@@ -205,7 +209,7 @@ contract NewDestination is
         for (uint256 i; i < _transferDatas.length; i++) {
             onionHead = Fork.generateOnionHead(onionHead, _transferDatas[i]);
             if (_isResponds[i]) {
-                IERC20(tokenAddress).safeTransferFrom(
+                transferToDestWithSafeForm(
                     msg.sender,
                     _transferDatas[i].destination,
                     _transferDatas[i].amount
@@ -347,8 +351,7 @@ contract NewDestination is
         // When has forkDeposit, send token to fork's endorser
         ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits[forkKey];
         if (forkDeposit.endorser != address(0)) {
-            // Todo eth
-            IERC20(tokenAddress).safeTransfer(
+            transferToDestWithSafe(
                 forkDeposit.endorser,
                 forkDeposit.amount // TODO Add reward and denyer amount
             );
@@ -514,13 +517,10 @@ contract NewDestination is
             _transferDatas,
             _committers
         );
-        // Todo eth
-        // Send token to fork's endorser
-        IERC20(tokenAddress).safeTransfer(
+        transferToDestWithSafe(
             forkDeposit.endorser,
-            forkDeposit.amount // TODO Add reward(No denyer here)
+            forkDeposit.amount // TODO Add reward and denyer amount
         );
-
         // storage fork
         fork.needBond = false;
         hashOnionForks.update(forkKey, fork);
@@ -602,13 +602,12 @@ contract NewDestination is
         address[] calldata _committers
     ) internal {
         // When token.balanceOf(this) < fork.allAmount, get token from LP
-        if (IERC20(tokenAddress).balanceOf(address(this)) < forkAllAmount) {
-            uint256 diffAmount = forkAllAmount -
-                IERC20(tokenAddress).balanceOf(address(this));
+        if (getBalance(address(this)) < forkAllAmount) {
+            uint256 diffAmount = forkAllAmount - getBalance(address(this));
 
             // Ensure LP has sufficient token
             require(
-                IERC20(tokenAddress).balanceOf(dTokenAddress) >= diffAmount,
+                getBalance(dTokenAddress) >= diffAmount,
                 "Pool insufficient"
             );
 
@@ -626,22 +625,21 @@ contract NewDestination is
         // Send token to committers
         for (uint256 i; i < _transferDatas.length; i++) {
             bytes32 onionHead = onionHeads[i];
-            // Todo eth
             if (isRespondOnions[chainId][onionHead]) {
                 address onionAddress = onionsAddress[onionHead];
                 if (onionAddress != address(0)) {
-                    IERC20(tokenAddress).safeTransfer(
+                    transferToDestWithSafe(
                         onionAddress,
                         _transferDatas[i].amount + _transferDatas[i].fee
                     );
                 } else {
-                    IERC20(tokenAddress).safeTransfer(
+                    transferToDestWithSafe(
                         _transferDatas[i].destination,
                         _transferDatas[i].amount + _transferDatas[i].fee
                     );
                 }
             } else {
-                IERC20(tokenAddress).safeTransfer(
+                transferToDestWithSafe(
                     _committers[i],
                     _transferDatas[i].amount + _transferDatas[i].fee
                 );

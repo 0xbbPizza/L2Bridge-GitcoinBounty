@@ -1,9 +1,9 @@
 import { expect } from "chai";
-import { BigNumber, Contract, Signer } from "ethers";
+import { Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
-describe("PToken", function () {
+import { getGasUsed } from "./utils";
+describe("Dtoken for Eth", function () {
   let accounts: Signer[];
-  let basicToken: Contract;
   let pToken: Contract;
   let pTokenTest: Contract;
   let dToken: Contract;
@@ -53,6 +53,7 @@ describe("PToken", function () {
     const balancePToken = await pToken.balanceOf(pTokenTest.address);
     expect(balancePToken).eq(pTokenAmount);
   });
+
   it("Test DToken mint", async function () {
     await dToken.initialize(
       tokenAddress,
@@ -74,7 +75,7 @@ describe("PToken", function () {
 
     const responce = await dToken.mint(amount, { value: amount });
     const tx = await responce.wait();
-    const gasUsed = tx.cumulativeGasUsed.mul(tx.effectiveGasPrice);
+    const gasUsed = getGasUsed(tx);
     const afterUserETHBalance = await accounts[0].getBalance();
     const afterUserTokenBalance = await dToken.balanceOf(
       await accounts[0].getAddress()
@@ -87,6 +88,7 @@ describe("PToken", function () {
     expect(beforeUserTokenBalance.add(amount)).eq(afterUserTokenBalance);
     expect(beforeContractETHBalance.add(amount)).eq(afterContractETHBalance);
   });
+
   it("Test DToken borrow", async function () {
     const pTokenTestNew = pTokenTest.connect(accounts[1]);
     const beforeExchageRate = await dToken.exchangeRateStored();
@@ -115,6 +117,7 @@ describe("PToken", function () {
     );
     expect(secondBorrowExchageRate).gt(beforeExchageRate);
   });
+
   it("Test DToken redeem", async function () {
     // The amount of deposit redeemed by the user should be less than the amount of cash in DToken Pool.
     // The DToken Pool only have 0.4 Ether.
@@ -129,7 +132,7 @@ describe("PToken", function () {
     const responce = await dToken.redeem(redeemAmount);
 
     const tx = await responce.wait();
-    const gasUsed = tx.cumulativeGasUsed.mul(tx.effectiveGasPrice);
+    const gasUsed = getGasUsed(tx);
 
     const redeemExchageRate = await dToken.exchangeRateStored();
     // Calculation of the number of underlying assets based on exchange rates.
@@ -149,6 +152,7 @@ describe("PToken", function () {
       afterContractETHBalance
     );
   });
+
   it("Test DToken repayBorrow", async function () {
     const pTokenTestNew = pTokenTest.connect(accounts[1]);
     const beforeExchageRate = await dToken.exchangeRateStored();
@@ -171,6 +175,7 @@ describe("PToken", function () {
     expect(beforeUserETHBalance.sub(amount)).eq(afterUserETHBalance);
     expect(beforeContractETHBalance.add(amount)).eq(afterContractETHBalance);
   });
+
   it("Test APY", async function () {
     const APY = await dToken.supplyRatePerBlock();
     console.log("APY: ", APY);

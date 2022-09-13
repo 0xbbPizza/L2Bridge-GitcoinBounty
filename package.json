@@ -35,6 +35,7 @@
     "test:std": "hardhat test ./test/SourceToDest.test.ts",
     "test:ptoken": "hardhat test ./test/PToken.test.ts",
     "test:deposit": "hardhat test ./test/SourceToDestDeposit.test.ts",
-    "test:eth": "hardhat test ./test/eth.test.ts"
+    "test:eth": "hardhat test ./test/DTokenForEth.test.ts",
+    "test:stdEth": "hardhat test ./test/SourceToDestForEth.test.ts"
   }
 }

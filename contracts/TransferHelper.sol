@@ -9,6 +9,7 @@ contract TransferHelper {
     using SafeERC20 for IERC20;
     uint256 private tokenStatus; // 0:unInit   1:ETH  2:ERC20
     address private tokenAddress;
+    address private sameDomainDestAddress;
 
     modifier onlyInit() {
         require(tokenStatus != 0, "Only Init");
@@ -23,6 +24,10 @@ contract TransferHelper {
             tokenStatus = 2;
         }
         tokenAddress = _tokenAddress;
+    }
+
+    function bindDestAddress(address _sameDomainDestAddress) internal onlyInit {
+        sameDomainDestAddress = _sameDomainDestAddress;
     }
 
     function getBalance(address from) public view onlyInit returns (uint256) {
@@ -71,7 +76,7 @@ contract TransferHelper {
     }
 
     function ethTransfer(address to, uint256 amount) internal onlyInit {
-        if (to == address(this)) {
+        if (to == address(this) || to == sameDomainDestAddress) {
             require(msg.value == amount, "Inconsistent transfer amount");
         }
         payable(to).transfer(amount);

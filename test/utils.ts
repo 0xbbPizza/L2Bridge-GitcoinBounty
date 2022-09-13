@@ -62,8 +62,12 @@ export async function getGoerliFastPerGas() {
   const PriorityFeePerGas = ethers.BigNumber.from(json.result);
   const options = {
     gasLimit: 3000000,
-    maxPriorityFeePerGas: PriorityFeePerGas,
-    maxFeePerGas: PriorityFeePerGas.mul(2),
+    maxPriorityFeePerGas: PriorityFeePerGas.mul(20),
+    maxFeePerGas: PriorityFeePerGas.mul(20),
   };
   return options;
+}
+
+export function getGasUsed(tx: any) {
+  return tx.cumulativeGasUsed.mul(tx.effectiveGasPrice);
 }

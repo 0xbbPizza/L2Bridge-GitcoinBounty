@@ -9,37 +9,35 @@ import "../BasicToken.sol";
 import "hardhat/console.sol";
 
 contract PTokenTest is PTokenApprovable {
-    function mintToken(uint256 amount)
-        external
-        returns (bool)
-    {
-        PToken(pTokenAddress()).mint(amount);
+    function mintToken(uint256 amount) external payable returns (bool) {
+        PToken(payable(pTokenAddress())).mint(amount);
 
         return true;
     }
 
-    function borrowToken(DToken dTokenAddress,uint256 borrowAmount)
+    function borrowToken(DToken dTokenAddress, uint256 borrowAmount)
         external
-        returns(bool)
+        returns (bool)
     {
         dTokenAddress.borrow(borrowAmount);
 
         return true;
-    } 
+    }
 
-    function repayBorrowToken(DToken dTokenAddress,uint256 repayAmount)
+    function repayBorrowToken(DToken dTokenAddress, uint256 repayAmount)
         external
-        returns(bool)
+        returns (bool)
     {
         dTokenAddress.repayBorrow(repayAmount);
 
         return true;
     }
 
-    function approve(BasicToken basicTokenAddress,address spender,uint256 amount)
-        external
-        returns(bool)
-    {
+    function approve(
+        BasicToken basicTokenAddress,
+        address spender,
+        uint256 amount
+    ) external returns (bool) {
         basicTokenAddress.approve(spender, amount);
 
         return true;

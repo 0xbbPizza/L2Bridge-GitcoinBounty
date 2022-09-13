@@ -26,7 +26,7 @@ contract NewDestination is
     using ForkDeposit for mapping(bytes32 => ForkDeposit.Info);
 
     address private tokenAddress;
-    address private dTokenAddress;
+    address payable private dTokenAddress;
 
     mapping(bytes32 => Fork.Info) public hashOnionForks;
     mapping(uint256 => mapping(bytes32 => bool)) private isRespondOnions;
@@ -52,7 +52,7 @@ contract NewDestination is
 
     constructor(
         address tokenAddress_,
-        address dTokenAddress_,
+        address payable dTokenAddress_,
         address dockAddr_
     ) CrossDomainHelper(dockAddr_) {
         tokenAddress = tokenAddress_;
@@ -157,6 +157,7 @@ contract NewDestination is
 
         // Determine whether the maker only submits or submits and responds
         if (_isRespond) {
+            // Todo eth
             IERC20(tokenAddress).safeTransferFrom(msg.sender, dest, amount);
         } else {
             // !!! Whether to add the identification position of the index
@@ -346,6 +347,7 @@ contract NewDestination is
         // When has forkDeposit, send token to fork's endorser
         ForkDeposit.Info memory forkDeposit = hashOnionForkDeposits[forkKey];
         if (forkDeposit.endorser != address(0)) {
+            // Todo eth
             IERC20(tokenAddress).safeTransfer(
                 forkDeposit.endorser,
                 forkDeposit.amount // TODO Add reward and denyer amount
@@ -512,7 +514,7 @@ contract NewDestination is
             _transferDatas,
             _committers
         );
-
+        // Todo eth
         // Send token to fork's endorser
         IERC20(tokenAddress).safeTransfer(
             forkDeposit.endorser,
@@ -611,7 +613,7 @@ contract NewDestination is
             );
 
             // Calculate lever
-            PToken pToken = PToken(pTokenAddress());
+            PToken pToken = PToken(payable(pTokenAddress()));
             uint256 pTokenAmount = diffAmount * pToken.scale();
 
             // Mint pToken to this
@@ -624,7 +626,7 @@ contract NewDestination is
         // Send token to committers
         for (uint256 i; i < _transferDatas.length; i++) {
             bytes32 onionHead = onionHeads[i];
-
+            // Todo eth
             if (isRespondOnions[chainId][onionHead]) {
                 address onionAddress = onionsAddress[onionHead];
                 if (onionAddress != address(0)) {

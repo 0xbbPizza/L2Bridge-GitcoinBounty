@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PToken is ERC20, Ownable {
+    receive() external payable {}
+
     uint32 private _scale = 10;
 
     constructor(address owner_) ERC20("Orbiter Pool Token", "PToken") {

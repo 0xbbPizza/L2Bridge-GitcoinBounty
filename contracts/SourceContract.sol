@@ -84,6 +84,7 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
         // require(chainId_Onions[chainId].destAddress != address(0));
 
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
+        // Todo eth
         IERC20(tokenAddress).safeTransferFrom(
             msg.sender,
             sameDomainDestAddress,
@@ -123,6 +124,7 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
         // require(chainId_Onions[chainId].destAddress != address(0));
 
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
+        // Todo eth
         IERC20(tokenAddress).safeTransferFrom(
             msg.sender,
             sameDomainDestAddress,

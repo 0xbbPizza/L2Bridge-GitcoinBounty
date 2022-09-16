@@ -5,6 +5,7 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MessageDock/CrossDomainHelper.sol";
+import "./libraries/Data.sol";
 import "./TransferHelper.sol";
 
 interface ISourceContract {
@@ -31,7 +32,9 @@ interface ISourceContract {
         uint256 fee
     ) external payable;
 
-    function extractHashOnion(uint256 _chainId) external payable;
+    function extractHashOnion(uint256 _chainId, Data.ArbInfo calldata arbInfo)
+        external
+        payable;
 }
 
 contract SourceContract is
@@ -165,7 +168,11 @@ contract SourceContract is
         override
     {}
 
-    function extractHashOnion(uint256 _chainId) external payable override {
+    function extractHashOnion(uint256 _chainId, Data.ArbInfo calldata arbInfo)
+        external
+        payable
+        override
+    {
         address destAddress = chainId_Onions[_chainId].destAddress;
         require(destAddress != address(0));
         bytes memory callMessage = abi.encodeWithSignature(
@@ -173,15 +180,11 @@ contract SourceContract is
             _chainId,
             chainId_Onions[_chainId].bringHashOnion
         );
-        address excessFeeRefundAddress = address(0x0);
-        uint256 maxGas = 0;
-        uint256 gasPriceBid = 0;
-        uint256 maxSubmissionCost = 0;
         bytes memory ticketIncidentalInfo = abi.encode(
-            excessFeeRefundAddress,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost
+            arbInfo.excessFeeRefundAddress,
+            arbInfo.maxGas,
+            arbInfo.gasPriceBid,
+            arbInfo.maxSubmissionCost
         );
         // Todo Change transmission parameters
         crossDomainMassage(

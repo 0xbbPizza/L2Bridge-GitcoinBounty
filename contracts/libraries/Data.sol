@@ -14,4 +14,11 @@ library Data {
         bytes32 forkKey;
         bytes32[] wrongtxHash;
     }
+
+    struct ArbInfo {
+        uint256 maxGas;
+        uint256 gasPriceBid;
+        uint256 maxSubmissionCost;
+        address excessFeeRefundAddress;
+    }
 }

@@ -140,6 +140,8 @@ contract DToken is
          */
         uint256 mintTokens = div_(mintAmount, exchangeRate);
         _mint(minter, mintTokens);
+
+        emit mintTransfer(minter);
     }
 
     /**
@@ -309,6 +311,7 @@ contract DToken is
          *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
          */
         transferToDestWithSafe(borrower, borrowAmount);
+        emit BorrowTransfer(borrowAmount);
     }
 
     /**

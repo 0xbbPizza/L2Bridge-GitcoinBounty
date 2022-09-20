@@ -151,7 +151,7 @@ contract NewDestination is
         uint256 amount,
         uint256 fee,
         bool _isRespond
-    ) external override {
+    ) external payable override {
         (Fork.Info memory workFork, Fork.Info memory newFork) = hashOnionForks
             .createZFork(chainId, workForkKey, dest, amount, fee);
 
@@ -184,7 +184,7 @@ contract NewDestination is
         uint256 _workIndex,
         Data.TransferData[] calldata _transferDatas,
         bool[] calldata _isResponds
-    ) external override {
+    ) external payable override {
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");
 
@@ -263,7 +263,7 @@ contract NewDestination is
         uint16 _index,
         Data.TransferData calldata _transferData,
         bool _isRespond
-    ) external override {
+    ) external payable override {
         // Determine whether tx.origin is eligible to submit
         require(_committerDeposits[msg.sender] == true, "a3");
 
@@ -297,7 +297,7 @@ contract NewDestination is
         bytes32 forkKey,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _committers
-    ) external override {
+    ) external payable override {
         // incoming data length is correct
         require(_transferDatas.length > 0, "a1");
         require(_committers.length == _transferDatas.length, "a2");

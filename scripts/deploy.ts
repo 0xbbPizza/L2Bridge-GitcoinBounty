@@ -39,13 +39,13 @@ async function main() {
   // Add dock to relay
   const addResp = await relay.addDock(
     dock_Mainnet.address,
-    chainId,
-    await getGoerliFastPerGas()
+    chainId
+    // await getGoerliFastPerGas()
   );
   await addResp.wait();
   // Deploy DToken
   const DToken = await ethers.getContractFactory("DToken");
-  let dToken = await DToken.deploy("Orbiter DToken", "DAI", 18);
+  let dToken = await DToken.deploy("Orbiter DToken", "ETH", 18);
   await dToken.deployed();
   console.log("dTokenContract Address", dToken.address);
 
@@ -70,16 +70,18 @@ async function main() {
   console.log("sourceContract Address", source.address);
 
   // add 1 to 4
-  await dest.addDomain(chainId, source.address, await getGoerliFastPerGas());
-  console.log("addDomain");
+  await dest.addDomain(
+    chainId,
+    source.address
+    // await getGoerliFastPerGas()
+  );
 
   // add 4 to 1
   await source.addDestDomain(
     chainId,
-    dest.address,
-    await getGoerliFastPerGas()
+    dest.address
+    // await getGoerliFastPerGas()
   );
-  console.log("addDestDomain");
 
   // deploy PToken contract
   const PToken = await ethers.getContractFactory("PToken");
@@ -87,7 +89,10 @@ async function main() {
   await pToken.deployed();
   console.log("pTokenContract Adddress", pToken.address);
 
-  await dest.bindPTokenAddress(pToken.address, await getGoerliFastPerGas());
+  await dest.bindPTokenAddress(
+    pToken.address
+    // await getGoerliFastPerGas()
+  );
   // DToken initialize
   const iResp = await dToken.initialize(
     tokenAddress,
@@ -97,8 +102,8 @@ async function main() {
     ethers.utils.parseEther("0.004"),
     ethers.utils.parseEther("0.011"),
     ethers.utils.parseEther("0.008"),
-    ethers.utils.parseEther("0.008"),
-    await getGoerliFastPerGas()
+    ethers.utils.parseEther("0.008")
+    // await getGoerliFastPerGas()
   );
   await iResp.wait();
 }

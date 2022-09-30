@@ -116,14 +116,6 @@ export default {
       url: process.env.mainnetRPC,
       accounts: getAccounts(),
     },
-    rinkeby: {
-      url: process.env.rinkebyRPC,
-      accounts: getAccounts(),
-    },
-    kovan: {
-      url: process.env.kovanRPC,
-      accounts: getAccounts(),
-    },
     goerli: {
       url: process.env.goerliRPC,
       accounts: getAccounts(),
@@ -131,10 +123,6 @@ export default {
 
     arbitrum: {
       url: process.env.arbitrumRPC,
-      accounts: getAccounts(),
-    },
-    rinkebyArbitrum: {
-      url: process.env.rinkebyArbitrumRPC,
       accounts: getAccounts(),
     },
     goerliArbitrum: {
@@ -153,10 +141,6 @@ export default {
 
     optimism: {
       url: process.env.optimismRPC,
-      accounts: getAccounts(),
-    },
-    kovanOptimism: {
-      url: process.env.kovanOptimismRPC,
       accounts: getAccounts(),
     },
     goerliOptimism: {

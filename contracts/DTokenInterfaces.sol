@@ -82,8 +82,8 @@ contract DTokenStorage {
      * @member interestIndex Global borrowIndex as of the most recent balance-changing action
      */
     struct BorrowSnapshot {
-        uint principal;
-        uint interestIndex;
+        uint256 principal;
+        uint256 interestIndex;
     }
 
     // Mapping of account addresses to outstanding borrow balances
@@ -95,4 +95,7 @@ contract DTokenStorage {
     uint8 internal _decimals = 18;
 }
 
-interface DTokenInterface {}
+interface DTokenInterface {
+    event mintTransfer(address minter);
+    event BorrowTransfer(uint256 borrowAmount);
+}

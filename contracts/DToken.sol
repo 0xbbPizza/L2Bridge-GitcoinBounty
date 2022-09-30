@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./Compound/ExponentialNoError.sol";
+import "./TransferHelper.sol";
 import "./DTokenInterfaces.sol";
 import "hardhat/console.sol";
 
@@ -17,9 +18,12 @@ contract DToken is
     ReentrancyGuard,
     ERC20,
     Ownable,
-    ExponentialNoError
+    ExponentialNoError,
+    TransferHelper
 {
     using SafeERC20 for IERC20;
+
+    receive() external payable {}
 
     constructor(
         string memory name_,
@@ -87,8 +91,8 @@ contract DToken is
         accrualBlockNumber = block.number;
         borrowIndex = mantissaOne;
 
-        // Ensure underlyingToken is ERC20
-        IERC20(underlyingToken).totalSupply();
+        // Initialize token and ensure underlyingToken
+        initialize(underlyingToken);
     }
 
     /**
@@ -97,7 +101,7 @@ contract DToken is
      * @param mintAmount The amount of the underlying asset to supply
      * @return bool true=success
      */
-    function mint(uint256 mintAmount) external returns (bool) {
+    function mint(uint256 mintAmount) external payable returns (bool) {
         mintInternal(mintAmount);
         return true;
     }
@@ -128,11 +132,7 @@ contract DToken is
         // (No safe failures beyond this point)
 
         // Transfer underlying to this
-        IERC20(underlyingToken).safeTransferFrom(
-            minter,
-            address(this),
-            mintAmount
-        );
+        transferToDestWithSafeForm(minter, address(this), mintAmount);
 
         /*
          * We get the current exchange rate and calculate the number of cTokens to be minted:
@@ -140,6 +140,8 @@ contract DToken is
          */
         uint256 mintTokens = div_(mintAmount, exchangeRate);
         _mint(minter, mintTokens);
+
+        emit mintTransfer(minter);
     }
 
     /**
@@ -243,8 +245,8 @@ contract DToken is
         // Burn redeemer redeemToken
         _burn(redeemer, redeemTokens);
 
-        // Send underlyingToken to redeemer
-        IERC20(underlyingToken).transfer(redeemer, redeemAmount);
+        // Send underlyingToken to redeemerSend underlyingToken to redeemer
+        transferToDest(redeemer, redeemAmount);
     }
 
     /**
@@ -308,7 +310,8 @@ contract DToken is
          *  On success, the cToken borrowAmount less of cash.
          *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
          */
-        IERC20(underlyingToken).safeTransfer(borrower, borrowAmount);
+        transferToDestWithSafe(borrower, borrowAmount);
+        emit BorrowTransfer(borrowAmount);
     }
 
     /**
@@ -345,7 +348,11 @@ contract DToken is
      * @notice Sender repays their own borrow
      * @param repayAmount The amount to repay, or type(uint256).max for the full outstanding amount
      */
-    function repayBorrow(uint256 repayAmount) external onlyBorrowAllower {
+    function repayBorrow(uint256 repayAmount)
+        external
+        payable
+        onlyBorrowAllower
+    {
         repayBorrowInternal(repayAmount);
     }
 
@@ -394,11 +401,7 @@ contract DToken is
          *   it returns the amount actually transferred, in case of a fee.
          */
         uint256 actualRepayAmount = repayAmountFinal;
-        IERC20(underlyingToken).safeTransferFrom(
-            payer,
-            address(this),
-            repayAmountFinal
-        );
+        transferToDestWithSafeForm(payer, address(this), repayAmountFinal);
 
         /*
          * We calculate the new borrower and total borrow balances, failing on underflow:
@@ -422,7 +425,7 @@ contract DToken is
      * @return The quantity of underlying tokens owned by this contract
      */
     function getCashPrior() public view returns (uint256) {
-        return IERC20(underlyingToken).balanceOf(address(this));
+        return getBalance(address(this));
     }
 
     /**

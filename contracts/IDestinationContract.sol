@@ -20,7 +20,7 @@ interface IDestinationContract {
         uint256 amount,
         uint256 fee,
         bool _isRespond
-    ) external;
+    ) external payable;
 
     function claim(
         uint256 chainId,
@@ -28,7 +28,7 @@ interface IDestinationContract {
         uint256 _workIndex,
         Data.TransferData[] calldata _transferDatas,
         bool[] calldata _isResponds
-    ) external;
+    ) external payable;
 
     function mFork(
         uint256 chainId,
@@ -37,7 +37,7 @@ interface IDestinationContract {
         uint16 _index,
         Data.TransferData calldata _transferData,
         bool _isRespond
-    ) external;
+    ) external payable;
 
     function zbond(
         uint256 chainId,
@@ -45,7 +45,7 @@ interface IDestinationContract {
         bytes32 _preHashOnion,
         Data.TransferData[] calldata _transferDatas,
         address[] calldata _commiters
-    ) external;
+    ) external payable;
 
     function buyOneOnion(
         uint256 chainId,

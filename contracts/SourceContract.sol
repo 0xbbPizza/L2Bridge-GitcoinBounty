@@ -5,6 +5,8 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MessageDock/CrossDomainHelper.sol";
+import "./libraries/Data.sol";
+import "./TransferHelper.sol";
 
 interface ISourceContract {
     struct DomainStruct {
@@ -30,10 +32,17 @@ interface ISourceContract {
         uint256 fee
     ) external payable;
 
-    function extractHashOnion(uint256 _chainId) external;
+    function extractHashOnion(uint256 _chainId, Data.ArbInfo calldata arbInfo)
+        external
+        payable;
 }
 
-contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
+contract SourceContract is
+    ISourceContract,
+    CrossDomainHelper,
+    TransferHelper,
+    Ownable
+{
     using SafeERC20 for IERC20;
 
     // relay need data
@@ -60,6 +69,8 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
     ) CrossDomainHelper(_dockAddr) {
         tokenAddress = _tokenAddress;
         sameDomainDestAddress = _sameDomainDestAddress;
+        initialize(_tokenAddress);
+        bindDestAddress(_sameDomainDestAddress);
     }
 
     function addDestDomain(uint256 chainId, address destContract)
@@ -84,7 +95,7 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
         // require(chainId_Onions[chainId].destAddress != address(0));
 
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
-        IERC20(tokenAddress).safeTransferFrom(
+        transferToDestWithSafeForm(
             msg.sender,
             sameDomainDestAddress,
             allAmount
@@ -123,7 +134,7 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
         // require(chainId_Onions[chainId].destAddress != address(0));
 
         uint256 allAmount = amount + fee + BASE_BIND_FEE;
-        IERC20(tokenAddress).safeTransferFrom(
+        transferToDestWithSafeForm(
             msg.sender,
             sameDomainDestAddress,
             allAmount
@@ -157,7 +168,11 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
         override
     {}
 
-    function extractHashOnion(uint256 _chainId) external override {
+    function extractHashOnion(uint256 _chainId, Data.ArbInfo calldata arbInfo)
+        external
+        payable
+        override
+    {
         address destAddress = chainId_Onions[_chainId].destAddress;
         require(destAddress != address(0));
         bytes memory callMessage = abi.encodeWithSignature(
@@ -165,14 +180,19 @@ contract SourceContract is ISourceContract, CrossDomainHelper, Ownable {
             _chainId,
             chainId_Onions[_chainId].bringHashOnion
         );
-        uint256 testValue;
-        bytes memory testInfo;
+        bytes memory ticketIncidentalInfo = abi.encode(
+            arbInfo.excessFeeRefundAddress,
+            arbInfo.maxGas,
+            arbInfo.gasPriceBid,
+            arbInfo.maxSubmissionCost
+        );
+        // Todo Change transmission parameters
         crossDomainMassage(
             destAddress,
             _chainId,
-            testValue,
+            msg.value,
             callMessage,
-            testInfo
+            ticketIncidentalInfo
         );
 
         // !!! Create a portable chainId_Onions[chainId].hashOnion, taking into account the fee reward for the bonder

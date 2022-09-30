@@ -71,3 +71,13 @@ export async function getGoerliFastPerGas() {
 export function getGasUsed(tx: any) {
   return tx.cumulativeGasUsed.mul(tx.effectiveGasPrice);
 }
+
+export function getChainId(chainId: number) {
+  if (chainId == 5) {
+    return 5;
+  } else if (chainId == 421613) {
+    return 22;
+  } else if (chainId == 420) {
+    return 77;
+  }
+}

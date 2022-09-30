@@ -1,9 +1,11 @@
 import { ethers, run } from "hardhat";
-import { getGoerliFastPerGas } from "../test/utils";
+import { getGoerliFastPerGas, getChainId } from "../test/utils";
 async function main() {
   await run("compile");
   const accounts = await ethers.getSigners();
-  const chainId = await accounts[0].getChainId();
+  let chainId = await accounts[0].getChainId();
+  let tmp = getChainId(chainId);
+  tmp !== undefined ? (chainId = tmp) : null;
   console.log("chainId", chainId);
   let tokenAddress = process.env["TOKEN_ADDRESS"];
   if (!tokenAddress) {

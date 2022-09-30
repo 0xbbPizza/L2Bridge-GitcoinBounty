@@ -142,7 +142,6 @@ contract NewDestination is
         1. CommiterA deposits the deposit, initiates a commit or fork, and the deposit is locked
         2. The margin can only be unlocked by the addition of another Committer  
     */
-
     // if index % ONEFORK_MAX_LENGTH == 0
     function zFork(
         uint256 chainId,
@@ -154,11 +153,11 @@ contract NewDestination is
     ) external payable override {
         (Fork.Info memory workFork, Fork.Info memory newFork) = hashOnionForks
             .createZFork(chainId, workForkKey, dest, amount, fee);
-
-        if (_committerDeposits[msg.sender] == false) {
-            // If same commiter, don't need deposit
-            require(msg.sender == workFork.lastCommiterAddress, "a2");
-        }
+        // Todo
+        // if (_committerDeposits[msg.sender] == false) {
+        //     // If same commiter, don't need deposit
+        //     require(msg.sender == workFork.lastCommiterAddress, "a2");
+        // }
 
         // Determine whether the maker only submits or submits and responds
         if (_isRespond) {

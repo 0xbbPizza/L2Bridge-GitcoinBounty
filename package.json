@@ -9,7 +9,7 @@
     "dotenv": "^16.0.1"
   },
   "devDependencies": {
-    "@arbitrum/sdk": "^3.0.0-beta.8",
+    "@arbitrum/sdk": "^3.0.0",
     "@eth-optimism/sdk": "^1.6.0",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.0.4",

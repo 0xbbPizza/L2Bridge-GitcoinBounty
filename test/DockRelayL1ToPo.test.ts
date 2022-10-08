@@ -126,7 +126,6 @@ describe("GoerliToPolygon", function () {
   });
 
   it("DockRelayL1ToPo", async function () {
-    console.warn("start send", new Date());
     const messageInfo = [
       GoerliPolygonChainId,
       "This message comes from Goerli",

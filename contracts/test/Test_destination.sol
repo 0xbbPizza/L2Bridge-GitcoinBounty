@@ -24,7 +24,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Test_destination is CrossDomainHelper, Ownable {
     uint256 public chainId;
     string public message;
-    bool public status = false;
     mapping(address => uint256) public sourc_chainIds;
 
     constructor(address _dockAddr) CrossDomainHelper(_dockAddr) {}
@@ -40,8 +39,6 @@ contract Test_destination is CrossDomainHelper, Ownable {
     {
         chainId = _chainId;
         message = _message;
-        // 是否改变状态
-        status = true;
     }
 
     function _onlyApprovedSources(address _sourceSender, uint256 _sourChainId)

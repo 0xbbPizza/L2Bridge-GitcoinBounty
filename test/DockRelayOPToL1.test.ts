@@ -1,5 +1,6 @@
 import { expect } from "chai";
-import { Contract, providers, Signer, Wallet } from "ethers";
+import { Contract, providers, Wallet } from "ethers";
+import { CrossChainMessenger, MessageStatus } from "@eth-optimism/sdk";
 import { config, ethers } from "hardhat";
 import { timeout } from "./utils";
 describe("source", function () {
@@ -136,8 +137,32 @@ describe("source", function () {
     );
     await sendMessageResp.wait();
     console.log("sendMessageResp hash:", sendMessageResp.hash);
-    await timeout(5);
-    console.log(await test_destination.status());
+
+    const crossChainMessenger = new CrossChainMessenger({
+      l1ChainId: GoerliChainId,
+      l2ChainId: GoerliOptimismChainId,
+      l1SignerOrProvider: Goerli,
+      l2SignerOrProvider: GoerliOptimism,
+    });
+    /* 
+      MessageStatus.STATE_ROOT_NOT_PUBLISHED(2)：The state root has not been published yet. The challenge period only starts when the state root is published, which is means you might need to wait a few minutes.
+      MessageStatus.IN_CHALLENGE_PERIOD(3)：Still in the challenge period, wait a few seconds.
+      MessageStatus.READY_FOR_RELAY(4)：Ready to finalize the message. Go on to the next step.
+    */
+    let L2_NOT_READY_FOR_RELAY = true;
+    while (L2_NOT_READY_FOR_RELAY) {
+      await timeout(1);
+      (await crossChainMessenger.getMessageStatus(sendMessageResp.hash)) ===
+      MessageStatus.READY_FOR_RELAY
+        ? (L2_NOT_READY_FOR_RELAY = false)
+        : (L2_NOT_READY_FOR_RELAY = true);
+    }
+
+    const finalizeTx = await crossChainMessenger.finalizeMessage(
+      sendMessageResp.hash
+    );
+    await finalizeTx.wait();
+
     expect(await test_destination.message()).to.equal(messageInfo[1]);
     expect(await test_destination.chainId()).to.equal(messageInfo[0]);
   });
